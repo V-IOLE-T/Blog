@@ -14,7 +14,7 @@ export default {
   // 网站作者
   Author: 'OO',
   // 作者头像
-  Avatar: 'public/assets/images/profile.jpg',
+  Avatar: '/assets/images/profile.jpg',
   // 网站座右铭
   Motto: '止于至善.',
   // Cover 网站缩略图
