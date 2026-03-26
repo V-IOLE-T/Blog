@@ -2,7 +2,7 @@ export default {
   // 网站标题
   Title: 'Zheng(OOWiki)',
   // 网站地址
-  // Site: 'https://www.vvhan.com',
+  site: 'https://blog-git-main-ni-chijous-projects.vercel.app',
   // 网站副标题
   Subtitle: '不曾与你分享的时间,我在进步.',
   // 网站描述
