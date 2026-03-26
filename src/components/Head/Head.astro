@@ -1,17 +1,18 @@
 ---
 import SITE_CONFIG from "@/config";
+const { Site, site: fallbackSite, Title: SiteName, Subtitle, Author, Cover, DNSOptimization } = SITE_CONFIG;
+const site = Astro.site ?? Site ?? fallbackSite;
 // 当前页面的 URL 元地址
-const canonicalData = new URL(Astro.url.pathname, Astro.site);
+const canonicalData = new URL(Astro.url.pathname, site);
 const canonicalURL = canonicalData.href.replace(/\/+$/, "");
 // 页面内容的元数据
 const { Title, Keywords, Description, PageCover } = Astro.props;
-const { Site, Title: SiteName, Subtitle, Author, Cover, DNSOptimization } = SITE_CONFIG;
 const WebTitle = Title || SiteName;
-const SiteCover = Site + Cover;
+const SiteCover = site + Cover;
 const WebCover = PageCover || SiteCover;
 // Schema.org 结构化数据（JSON-LD）
 const WebSiteData = { "@context": "https://schema.org", "@type": "WebSite", url: canonicalURL, name: WebTitle, description: Description, inLanguage: "zh-CN", image: WebCover, publisher: { "@type": "Organization", name: WebTitle, logo: { "@type": "ImageObject", url: SiteCover } } };
-const ArticleData = { "@context": "https://schema.org", "@type": "BlogPosting", mainEntityOfPage: { "@type": "WebPage", "@id": canonicalURL }, headline: WebTitle, description: Description, image: [WebCover], datePublished: new Date().toISOString().replace("Z", `+08:00`), dateModified: new Date().toISOString().replace("Z", `+08:00`), author: { "@type": "Person", name: Author, url: Site }, publisher: { "@type": "Organization", name: SiteName, logo: { "@type": "ImageObject", url: SiteCover } }, keywords: (Keywords || ["Astro", "分享", "博客"]).join(", ") };
+const ArticleData = { "@context": "https://schema.org", "@type": "BlogPosting", mainEntityOfPage: { "@type": "WebPage", "@id": canonicalURL }, headline: WebTitle, description: Description, image: [WebCover], datePublished: new Date().toISOString().replace("Z", `+08:00`), dateModified: new Date().toISOString().replace("Z", `+08:00`), author: { "@type": "Person", name: Author, url: site }, publisher: { "@type": "Organization", name: SiteName, logo: { "@type": "ImageObject", url: SiteCover } }, keywords: (Keywords || ["Astro", "分享", "博客"]).join(", ") };
 
 // 基础 样式
 import "@/styles/Base.less";
@@ -28,7 +29,7 @@ import "@/styles/Base.less";
 	<meta name="format-detection" content="telephone=no, email=no, date=no, address=no" />
 	<!-- 元数据 -->
 	<meta name="title" content={WebTitle} />
-	<meta name="site" content={Site} />
+	<meta name="site" content={site} />
 	<meta name="author" content={Author} />
 	<meta name="generator" content={Astro.generator} />
 	<meta name="robots" content="index, follow, max-image-preview:large" />

@@ -1,8 +1,12 @@
+const site = 'https://blog-git-main-ni-chijous-projects.vercel.app';
+
 export default {
   // 网站标题
   Title: 'Zheng(OOWiki)',
   // 网站地址
-  site: 'https://blog-git-main-ni-chijous-projects.vercel.app',
+  // 同时保留 Site / site，兼容主题内部的历史字段名和 Astro 配置读取。
+  Site: site,
+  site,
   // 网站副标题
   Subtitle: '不曾与你分享的时间,我在进步.',
   // 网站描述
