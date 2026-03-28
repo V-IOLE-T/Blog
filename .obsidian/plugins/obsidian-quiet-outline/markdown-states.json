@@ -1632,15 +1632,15 @@
     "expandedKeys": []
   },
   "notes/posts/2026-03-29-post.md": {
-    "scroll": 1.0558375634517767,
+    "scroll": 4.392727272727273,
     "cursor": {
       "from": {
-        "line": 8,
-        "ch": 0
+        "line": 10,
+        "ch": 5
       },
       "to": {
-        "line": 8,
-        "ch": 0
+        "line": 10,
+        "ch": 5
       }
     },
     "expandedKeys": []
