@@ -10,6 +10,7 @@
           {
             "id": "fa060665da4e4b2e",
             "type": "tabs",
+            "dimension": 74.22680412371135,
             "children": [
               {
                 "id": "4aba67f2a2a13081",
@@ -45,6 +46,7 @@
           {
             "id": "62d323ea92932e87",
             "type": "tabs",
+            "dimension": 25.773195876288657,
             "children": [
               {
                 "id": "6c4eac7336c833e2",
@@ -292,7 +294,7 @@
       "obsidian-git:Open Git source control": false
     }
   },
-  "active": "6c4eac7336c833e2",
+  "active": "d6c2e23835eb8b25",
   "lastOpenFiles": [
     "notes/posts/2026-03-29-post.md",
     "src/content/blog/2026/03/2026-03-29-post.md",
