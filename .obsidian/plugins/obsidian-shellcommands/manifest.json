@@ -1,0 +1,11 @@
+{
+  "id": "obsidian-shellcommands",
+  "name": "Shell commands",
+  "version": "0.23.0",
+  "minAppVersion": "1.4.0",
+  "description": "预定义常用系统命令并为其分配快捷键，也支持自动执行和通过 URI 调用。",
+  "author": "Jarkko Linnanvirta",
+  "authorUrl": "https://github.com/Taitava",
+  "fundingUrl": "https://publish.obsidian.md/shellcommands/Donate",
+  "isDesktopOnly": true
+}

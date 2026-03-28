@@ -1,0 +1,24 @@
+{
+  "用户提示框": {},
+  "语法高亮": false,
+  "复制按钮": false,
+  "版本": "10.3.2",
+  "自动折叠": true,
+  "默认折叠类型": "打开",
+  "注入颜色": true,
+  "解析标题": true,
+  "投影": true,
+  "隐藏空白": false,
+  "打开": {
+    "提示框": true,
+    "图标": true,
+    "其他": true,
+    "高级": true
+  },
+  "图标": [],
+  "使用FontAwesome": true,
+  "RPG已下载过一次": false,
+  "Word文档已转换": false,
+  "使用代码片段": false,
+  "代码片段路径": "custom-admonitions.f5725f"
+}

@@ -1,0 +1,11 @@
+{
+    "id": "dynamic-outline",
+    "name": "Dynamic Outline",
+    "version": "1.19.0",
+    "minAppVersion": "0.15.0",
+    "description": "添加一个可自定义的类似GitHub的浮动目录。",
+    "author": "theopavlove",
+    "authorUrl": "https://github.com/theopavlove",
+    "fundingUrl": "https://www.buymeacoffee.com/theopavlove",
+    "isDesktopOnly": false
+}

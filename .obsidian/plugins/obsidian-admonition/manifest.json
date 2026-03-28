@@ -1,0 +1,10 @@
+{
+    "id": "obsidian-admonition",
+    "name": "Admonition",
+    "version": "10.3.2",
+    "minAppVersion": "1.1.0",
+    "description": "为 Obsidian.md 增强的提示信息",
+    "author": "Jeremy Valentine",
+    "authorUrl": "",
+    "isDesktopOnly": false
+}

@@ -5,9 +5,11 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "test": "node --test tests/*.test.js",
     "preview": "astro preview",
     "astro": "astro",
     "newpost": "node ./script/newpost.js",
+    "publish:note": "node ./script/publish-note.js",
     "offdev": "astro preferences disable devToolbar",
     "ondev": "astro preferences enable devToolbar"
   },

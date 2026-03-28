@@ -1,0 +1,10 @@
+{
+    "id": "obsidian-annotator",
+    "name": "Annotator",
+    "version": "0.2.11",
+    "minAppVersion": "1.0.3",
+    "description": "允许你打开和标注 PDF 和 EPUB 文件。",
+    "author": "Obsidian",
+    "authorUrl": "https://obsidian.md/about",
+    "isDesktopOnly": false
+}

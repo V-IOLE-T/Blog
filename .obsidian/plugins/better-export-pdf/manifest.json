@@ -1,0 +1,11 @@
+{
+  "id": "better-export-pdf",
+  "name": "Better Export PDF",
+  "version": "1.11.0",
+  "minAppVersion": "0.15.0",
+  "description": "将笔记导出为 PDF，支持导出预览，添加书签大纲和页眉/页脚。",
+  "author": "l1xnan",
+  "authorUrl": "https://github.com/l1xnan",
+  "fundingUrl": "https://www.buymeacoffee.com/l1xnan",
+  "isDesktopOnly": true
+}

@@ -1,0 +1,10 @@
+{
+  "id": "workspaces-plus",
+  "name": "Workspaces Plus",
+  "version": "0.3.3",
+  "minAppVersion": "1.0.0",
+  "description": "快速切换和管理工作区",
+  "author": "NothingIsLost and Johnny ✨",
+  "authorUrl": "https://github.com/nothingislost",
+  "isDesktopOnly": true
+}

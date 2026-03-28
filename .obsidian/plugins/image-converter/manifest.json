@@ -1,0 +1,11 @@
+{
+    "id": "image-converter",
+    "name": "Image Converter",
+    "version": "1.4.1",
+    "minAppVersion": "0.15.0",
+    "description": "通过拖放或粘贴到笔记中，将图片从一种格式转换、压缩和调整大小为另一种格式。支持 HEIC、TIF、JPG、WEBP、PNG 格式。",
+    "author": "xRyul",
+    "authorUrl": "https://github.com/xryul",
+    "isDesktopOnly": false,
+    "fundingUrl": "https://ko-fi.com/xryul"
+}

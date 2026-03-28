@@ -1,0 +1,11 @@
+{
+    "id": "longform",
+    "name": "Longform",
+    "version": "2.1.0",
+    "minAppVersion": "1.0",
+    "description": "在Obsidian中撰写小说、剧本和其他大型项目。",
+    "author": "Kevin Barrett",
+    "authorUrl": "https://kevinbarrett.org",
+    "fundingUrl": "https://github.com/sponsors/kevboh",
+    "isDesktopOnly": false
+}
