@@ -166,6 +166,7 @@
             "state": {
               "type": "backlink",
               "state": {
+                "file": "notes/posts/2026-03-29-post.md",
                 "collapseAll": false,
                 "extraContext": false,
                 "sortOrder": "alphabetical",
@@ -175,7 +176,7 @@
                 "unlinkedCollapsed": true
               },
               "icon": "links-coming-in",
-              "title": "反向链接"
+              "title": "2026-03-29-post 的反向链接列表"
             }
           },
           {
@@ -296,18 +297,33 @@
   },
   "active": "d6c2e23835eb8b25",
   "lastOpenFiles": [
+    "dist/vh_static/preload-helper.BlTxHScW.js.br",
+    "dist/vh_static/slim.DKVzFo39.js.br",
+    "dist/vh_static/page.IvS8TaQB.js.br",
+    "dist/vh_static/index.modern.D46RI4Wq.js.br",
+    "dist/vh_static/index.BZkLg1Gk.css.br",
+    "dist/vh_static/index.f5b1e545.BgRHRmHR.js.br",
+    "dist/vh_static/index.NSIFUb2X.css.br",
+    "dist/vh_static/index.C9x-7vOQ.css.br",
+    "dist/vh_static/_article_.B-Bi6akT.css.br",
+    "dist/vh_static/index.BPyknviE.css.br",
+    "dist/vh_static/_page_.Jx0-sFsu.css.br",
+    "dist/assets/livephoto/1.webp",
+    "dist/assets/livephoto/2.webp",
+    "dist/assets/images/owo/paopao/what_2x.png",
+    "dist/assets/images/owo/paopao/OK_2x.png",
+    "dist/assets/images/owo/paopao/haha_2x.png",
+    "dist/assets/images/owo/paopao/E9BB91E7BABF_2x.png",
+    "dist/assets/images/owo/paopao/E9A699E89589_2x.png",
+    "dist/assets/images/owo/paopao/E99FB3E4B990_2x.png",
+    "dist/assets/images/owo/paopao/E998B4E999A9_2x.png",
+    "dist/assets/images/owo/paopao/E992B1_2x.png",
     "notes/posts/2026-03-29-post.md",
     "src/content/blog/2026/03/2026-03-29-post.md",
-    "src/content/blog/2026/03",
-    "src/content/blog/2026",
-    "script/quickadd-publish-note.cjs",
-    "tests/quickadd-publish-note.test.js",
     "docs/obsidian-workflow.md",
     "notes/posts/未命名.md",
     "README.md",
     "templates/Post Template.md",
-    "templates/Post",
-    "templates",
     "未命名.md"
   ]
 }

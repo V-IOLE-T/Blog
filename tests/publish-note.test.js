@@ -74,6 +74,36 @@ tags:
   ]);
 });
 
+test("发布无标签笔记时会显式写出 tags: []，避免前端组件读到 undefined", async () => {
+  const rootDir = await createWorkspace();
+  const notePath = path.join(rootDir, "notes", "posts", "无标签文章.md");
+
+  await writeFile(
+    notePath,
+    `---
+title: 无标签文章
+categories: 未分类
+---
+
+正文。
+`,
+    "utf8"
+  );
+
+  const result = await publishNote({
+    rootDir,
+    notePath,
+    now: FIXED_NOW,
+    execGit: async () => ({ code: 0, stdout: "", stderr: "" }),
+  });
+
+  const sourceContent = await readFile(notePath, "utf8");
+  const publishedContent = await readFile(result.outputPath, "utf8");
+
+  assert.match(sourceContent, /tags: \[\]/);
+  assert.match(publishedContent, /tags: \[\]/);
+});
+
 test("发布时把 ![[图片]] 转换成站内路径并按内容哈希复制资源", async () => {
   const rootDir = await createWorkspace();
   const notePath = path.join(rootDir, "notes", "posts", "图片文章.md");

@@ -20,7 +20,7 @@ import "./Archive.less";
 							<em>{fmtTime(_.date, "MM-DD")}</em>
 							<i />
 							<span class="vh-ellipsis">{_.title}</span>
-							<cite class="vh-ellipsis">{_.tags.map((tag: string) => `#${tag}`).join(" ")}</cite>
+							<cite class="vh-ellipsis">{(_.tags || []).map((tag: string) => `#${tag}`).join(" ")}</cite>
 						</a>
 					))}
 				</div>

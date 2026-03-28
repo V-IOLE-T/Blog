@@ -124,7 +124,11 @@ function formatFrontmatter(data, { includeDraft }) {
     }
 
     if (key === "tags") {
-      if (!Array.isArray(value) || value.length === 0) {
+      if (!Array.isArray(value)) {
+        continue;
+      }
+      if (value.length === 0) {
+        lines.push("tags: []");
         continue;
       }
       lines.push(`${key}:`);

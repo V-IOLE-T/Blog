@@ -1,6 +1,7 @@
 ---
 import { getDescription, fmtTime } from "@/utils/index";
 const { post } = Astro.props;
+const tags = post.data.tags || [];
 // 获取文章的摘要
 const description = getDescription(post);
 // 获取封面图
@@ -17,7 +18,9 @@ import "./ArticleCard.less";
 		<h1 class="title"><a class="vh-ellipsis" href={`/article/${post.data.id}`}>{post.data.title}</a></h1>
 	</header>
 	<h2 class="vh-article-excerpt vh-ellipsis line-2">{description}</h2>
-	<h4 class="vh-article-taglist vh-ellipsis">
-		{post.data.tags.map((tag: string) => <a href={`/tag/${tag}`}>{tag}</a>)}
-	</h4>
+	{tags.length > 0 && (
+		<h4 class="vh-article-taglist vh-ellipsis">
+			{tags.map((tag: string) => <a href={`/tag/${tag}`}>{tag}</a>)}
+		</h4>
+	)}
 </article>
