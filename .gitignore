@@ -27,3 +27,4 @@ test/
 .edgeone/*
 .tef_dist/*
   
+.obsidian/plugins/obsidian-quiet-outline/markdown-states.json
