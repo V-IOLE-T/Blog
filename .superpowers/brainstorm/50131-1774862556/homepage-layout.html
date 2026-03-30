@@ -1,0 +1,52 @@
+<h2>首页应该怎么呈现“关于我”？</h2>
+<p class="subtitle">先选整体结构，后面我再据此补详细设计</p>
+
+<div class="cards">
+  <div class="card" data-choice="hero" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">方案 A：首页感更强</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Logo | 文章目录 | 动态 | 昔日 | 留言</div>
+          <div style="padding: 18px 0;">
+            <div class="placeholder" style="height: 72px; margin-bottom: 12px;">一句核心介绍 + 副标题</div>
+            <div style="display:flex; gap:12px; margin-bottom:12px;">
+              <div class="mock-button">查看文章目录</div>
+              <div class="mock-button">联系我</div>
+            </div>
+            <div class="placeholder" style="height: 110px; margin-bottom: 12px;">个人简介 / 擅长方向</div>
+            <div style="display:flex; gap:12px;">
+              <div class="placeholder" style="flex:1; height: 84px;">技能 / 技术栈</div>
+              <div class="placeholder" style="flex:1; height: 84px;">项目 / 外部站点</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>方案 A：个人主页式首页</h3>
+      <p>更像一个真正的个人入口页，先介绍你，再引导去“文章目录”。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="article" onclick="toggleSelect(this)">
+    <div class="card-image">
+      <div class="mockup">
+        <div class="mockup-header">方案 B：关于页直接变首页</div>
+        <div class="mockup-body">
+          <div class="mock-nav">Logo | 文章目录 | 动态 | 昔日 | 留言</div>
+          <div style="padding: 18px 0;">
+            <div class="placeholder" style="height: 54px; margin-bottom: 12px;">关于我标题 + 简介</div>
+            <div class="placeholder" style="height: 88px; margin-bottom: 12px;">大段自我介绍说明</div>
+            <div class="placeholder" style="height: 88px; margin-bottom: 12px;">技术方向 / 理念 / 未来计划</div>
+            <div class="placeholder" style="height: 70px;">技能徽章 / 联系方式</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>方案 B：纯 About 首页</h3>
+      <p>最接近你当前的 about 页面，改动小，但首页感会弱一些。</p>
+    </div>
+  </div>
+</div>
