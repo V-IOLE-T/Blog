@@ -7,12 +7,7 @@ import { defineConfig } from 'astro/config';
 import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Markdown 配置================
-import remarkMath from "remark-math";
-import rehypeSlug from "rehype-slug";
-import rehypeKatex from "rehype-katex";
-import remarkDirective from "remark-directive";
-import { remarkNote, addClassNames } from './src/plugins/markdown.custom'
-// Markdown 配置================
+import { markdownConfig } from "./src/markdown/config.js";
 import SITE_INFO from './src/config';
 import swup from '@swup/astro';
 // https://astro.build/config
@@ -40,18 +35,7 @@ export default defineConfig({
 	mdx({ extendMarkdownConfig: false }),
 	Compressor({ gzip: false, brotli: true, fileExtensions: [".html", ".css", ".js"] })
 	],
-	markdown: {
-		remarkPlugins: [remarkMath, remarkDirective, remarkNote,],
-		rehypePlugins: [[
-			rehypeKatex, {
-				output: 'mathml',
-				trust: true,
-				strict: false
-			}
-		], rehypeSlug, addClassNames],
-		syntaxHighlight: 'shiki',
-		shikiConfig: { theme: 'github-light' },
-	},
+	markdown: markdownConfig,
 	vite: { resolve: { alias: { "@": path.resolve(__dirname, "./src") } } },
 	server: { host: '0.0.0.0' }
 });

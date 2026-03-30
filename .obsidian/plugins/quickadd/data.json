@@ -84,6 +84,26 @@
           }
         ]
       }
+    },
+    {
+      "id": "83f3cd3d-b66a-4a3f-a2e8-73f23723311b",
+      "name": "发表动态",
+      "type": "Macro",
+      "command": true,
+      "runOnStartup": false,
+      "macro": {
+        "name": "发表动态",
+        "id": "8879a82f-9df3-4682-a197-635bb274f7bc",
+        "commands": [
+          {
+            "name": "publish-talking",
+            "type": "UserScript",
+            "id": "25c0c512-72b3-49e5-8e31-32d5ea120837",
+            "path": "script/quickadd-publish-talking.cjs",
+            "settings": {}
+          }
+        ]
+      }
     }
   ],
   "inputPrompt": "single-line",
