@@ -2,7 +2,7 @@ const site = 'https://blog-git-main-ni-chijous-projects.vercel.app';
 
 export default {
   // 网站标题
-  Title: 'Zheng(OOWiki)',
+  Title: 'Zheng Han(OO)',
   // 网站地址
   // 同时保留 Site / site，兼容主题内部的历史字段名和 Astro 配置读取。
   Site: site,
@@ -12,7 +12,7 @@ export default {
   // 网站描述
   Description: '韩小韩博客 专注于前开发与相关技术的实战分享，涵盖Vue框架、Node.js、Serverless等，并涉及Node、Python、Linux、Docker等领域。同时，博客也分享作者的生活、音乐和旅行的热爱。',
   // 网站作者
-  Author: 'Zheng(OOWiki)',
+  Author: 'Zheng Han(OO)',
   // 作者头像
   Avatar: '/assets/images/profile.jpg',
   // 网站座右铭
@@ -120,9 +120,9 @@ export default {
   // 文章内赞赏码
   Reward: {
     // 支付宝收款码
-    AliPay: '/assets/images/alipay.webp',
+    AliPay: '',
     // 微信收款码
-    WeChat: '/assets/images/wechat.webp'
+    WeChat: ''
   },
   // 访问网页 自动推送到搜索引擎
   SeoPush: {

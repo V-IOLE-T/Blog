@@ -10,6 +10,7 @@
     "astro": "astro",
     "newpost": "node ./script/newpost.js",
     "publish:note": "node ./script/publish-note.js",
+    "publish:talking": "node ./script/publish-talking.js",
     "offdev": "astro preferences disable devToolbar",
     "ondev": "astro preferences enable devToolbar"
   },
