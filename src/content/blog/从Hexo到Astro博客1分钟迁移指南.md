@@ -1,6 +1,7 @@
 ---
 title: "从Hexo到Astro博客1分钟迁移指南"
-categories: Share
+folder: frontend
+summary: 分享从 Hexo 博客迁移到 Astro 的最小步骤与迁移经验。
 tags: ["Hexo", "Astro", "静态博客", "迁移"]
 id: "hexo-to-astro-1-minute-migration-guide"
 date: 2025-04-07 17:20:46

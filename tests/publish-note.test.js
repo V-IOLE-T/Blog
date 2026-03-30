@@ -54,16 +54,16 @@ tags:
   const publishedContent = await readFile(result.outputPath, "utf8");
 
   assert.equal(result.frontmatter.title, "第一篇文章");
-  assert.equal(result.frontmatter.categories, "未分类");
+  assert.equal(result.frontmatter.folder, "notes");
   assert.deepEqual(result.frontmatter.tags, ["Obsidian"]);
   assert.equal(result.frontmatter.id, "第一篇文章");
-  assert.match(sourceContent, /categories: 未分类/);
+  assert.match(sourceContent, /folder: notes/);
   assert.match(sourceContent, /id: 第一篇文章/);
   assert.match(sourceContent, /date: 2026-03-29 12:34:56/);
   assert.match(sourceContent, /updated: 2026-03-29 12:34:56/);
   assert.ok(result.outputPath.endsWith(path.join("src", "content", "blog", "2026", "03", "第一篇文章.md")));
   assert.match(publishedContent, /title: 第一篇文章/);
-  assert.match(publishedContent, /categories: 未分类/);
+  assert.match(publishedContent, /folder: notes/);
   assert.match(publishedContent, /id: 第一篇文章/);
   assert.doesNotMatch(publishedContent, /draft:/);
   assert.match(publishedContent, /这是正文。/);
@@ -82,7 +82,7 @@ test("发布无标签笔记时会显式写出 tags: []，避免前端组件读�
     notePath,
     `---
 title: 无标签文章
-categories: 未分类
+folder: notes
 ---
 
 正文。
@@ -221,7 +221,8 @@ test("Obsidian 文章模板使用合法的默认 frontmatter", async () => {
   assert.equal(
     templateContent.startsWith(`---
 title: {{title}}
-categories: 未分类
+folder: notes
+summary:
 tags: []
 id:
 date:
@@ -231,7 +232,7 @@ draft: true
 ---`),
     true
   );
-  assert.doesNotMatch(templateContent, /\{ categories \}/);
+  assert.doesNotMatch(templateContent, /\{ folder \}/);
   assert.doesNotMatch(templateContent, /\{ tags \}/);
   assert.doesNotMatch(templateContent, /^!\[\[图片\.png\]\]$/m);
 });

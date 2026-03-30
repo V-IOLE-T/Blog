@@ -86,6 +86,96 @@
   }
 }
 
+.header-main.home-hero {
+  flex-direction: row;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 0 1.5rem;
+  max-width: var(--vh-main-max-width);
+  margin: 0 auto;
+
+  &>.hero-copy {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.88rem;
+    width: min(100%, 42rem);
+  }
+
+  & .eyebrow {
+    display: inline-flex;
+    padding: 0.35rem 0.8rem;
+    border-radius: 999px;
+    background: rgb(255 255 255 / 16%);
+    color: var(--vh-white-color);
+    font-size: 0.88rem;
+    letter-spacing: 0.08em;
+  }
+
+  &>.hero-copy>.auther {
+    padding-top: 0;
+    font-size: 3rem;
+  }
+
+  & .intro {
+    max-width: 38rem;
+    color: rgb(255 255 255 / 88%);
+    font-size: 1.05rem;
+    line-height: 1.88;
+  }
+
+  & .hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.88rem;
+    padding-top: 0.4rem;
+  }
+
+  & .hero-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.82rem 1.3rem;
+    border-radius: 999px;
+    border: 1px solid rgb(255 255 255 / 28%);
+    color: var(--vh-white-color);
+    font-weight: 600;
+    transition: transform 0.2s ease, background-color 0.2s ease;
+
+    &:hover {
+      transform: translateY(-0.12rem);
+    }
+
+    &.primary {
+      background: var(--vh-main-color);
+      border-color: var(--vh-main-color);
+    }
+
+    &.secondary {
+      background: rgb(255 255 255 / 10%);
+    }
+  }
+
+  &>.hero-copy>.desc {
+    max-width: 34rem;
+    padding: 0.2rem 0 0;
+    text-align: left;
+
+    &::before {
+      background: linear-gradient(90deg, rgb(255 255 255 / 0%) 0%, rgb(255 255 255 / 78%) 18%, rgb(255 255 255 / 78%) 82%, rgb(255 255 255 / 0%) 100%);
+    }
+  }
+
+  &>.avatar {
+    flex-shrink: 0;
+    width: 10rem;
+    height: 10rem;
+    box-shadow: 0 20px 40px -24px rgb(0 0 0 / 55%);
+  }
+}
+
 
 
 @media screen and (max-width: 1150px) {
@@ -99,6 +189,32 @@
 
     &>.auther {
       padding-top: 0;
+    }
+  }
+
+  .header-main.home-hero {
+    flex-direction: column-reverse;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    height: auto;
+    min-height: 26rem;
+
+    &>.hero-copy {
+      align-items: center;
+      text-align: center;
+    }
+
+    &>.hero-copy>.auther {
+      font-size: 2.25rem;
+    }
+
+    & .intro,
+    &>.hero-copy>.desc {
+      text-align: center;
+    }
+
+    & .hero-actions {
+      justify-content: center;
     }
   }
 }

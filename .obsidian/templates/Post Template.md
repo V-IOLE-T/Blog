@@ -1,6 +1,7 @@
 ---
 title: {{title}}
-categories: 未分类
+folder: notes
+summary:
 tags: []
 id:
 date:

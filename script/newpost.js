@@ -14,7 +14,8 @@ if (!articleName) {
 }
 const ArticleContent = `---
 title: "${articleName.replace(/"/g, '\\"')}"
-categories: 分类
+folder: notes
+summary:
 tags: ['标签']
 id: "${articleID.slice(0, 16)}"
 date: ${dayjs().format('YYYY-MM-DD HH:mm:ss')}

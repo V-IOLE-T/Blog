@@ -13,7 +13,8 @@ import {
 const FRONTMATTER_BOUNDARY = "---";
 const FRONTMATTER_ORDER = [
   "title",
-  "categories",
+  "folder",
+  "summary",
   "tags",
   "id",
   "date",
@@ -291,10 +292,11 @@ function normalizeFrontmatter(frontmatter, notePath, now) {
   const tags = Array.isArray(frontmatter.tags)
     ? frontmatter.tags.map((item) => String(item).trim()).filter(Boolean)
     : [];
-  const categoriesSource = Array.isArray(frontmatter.categories)
-    ? frontmatter.categories.find((item) => String(item).trim())
-    : frontmatter.categories;
-  const categories = String(categoriesSource || "未分类").trim() || "未分类";
+  const folderSource = Array.isArray(frontmatter.folder)
+    ? frontmatter.folder.find((item) => String(item).trim())
+    : frontmatter.folder;
+  const folder = String(folderSource || "notes").trim() || "notes";
+  const summary = typeof frontmatter.summary === "string" ? frontmatter.summary.trim() : "";
   const id = String(frontmatter.id || createStableId(title)).trim();
   const date = String(frontmatter.date || formatDate(now)).trim();
   const updated = formatDate(now);
@@ -302,7 +304,8 @@ function normalizeFrontmatter(frontmatter, notePath, now) {
   return {
     ...frontmatter,
     title,
-    categories,
+    folder,
+    summary,
     tags,
     id,
     date,
@@ -383,7 +386,8 @@ export async function publishNote({
 
   const sourceFrontmatter = {
     title: normalizedFrontmatter.title,
-    categories: normalizedFrontmatter.categories,
+    folder: normalizedFrontmatter.folder,
+    summary: normalizedFrontmatter.summary,
     tags: normalizedFrontmatter.tags,
     id: normalizedFrontmatter.id,
     date: normalizedFrontmatter.date,
@@ -394,7 +398,8 @@ export async function publishNote({
 
   const publishedFrontmatter = {
     title: normalizedFrontmatter.title,
-    categories: normalizedFrontmatter.categories,
+    folder: normalizedFrontmatter.folder,
+    summary: normalizedFrontmatter.summary,
     tags: normalizedFrontmatter.tags,
     id: normalizedFrontmatter.id,
     date: normalizedFrontmatter.date,

@@ -8,10 +8,8 @@ import { fmtTime } from "@/utils/index";
 import SITE_CONFIG from "@/config";
 const { Avatar, Author, Motto, WebSites, GoogleAds, AsideShow } = SITE_CONFIG;
 // 获取文章数据
-import { getCategories, getTags, getRecommendArticles, getCountInfo } from "@/utils/getPostInfo";
+import { getTags, getRecommendArticles, getCountInfo } from "@/utils/getPostInfo";
 // 获取数据统计
-// 分类列表
-const categories = getCategories();
 // 热门标签
 const tags = getTags().slice(0, 16);
 // 获取网站统计数据
@@ -45,8 +43,8 @@ import "./Aside.less";
 						<p>文章数</p>
 					</div>
 					<div class="cat-item count">
-						<span>{CountInfo.CategoryCount}</span>
-						<p>分类数</p>
+						<span>{CountInfo.FolderCount}</span>
+						<p>目录数</p>
 					</div>
 					<div class="tag-item count">
 						<span>{CountInfo.TagCount}</span>
@@ -71,25 +69,6 @@ import "./Aside.less";
 				</span>
 				<div class="tips-content">
 					<Fragment set:html={SITE_CONFIG.Tips} />
-				</div>
-			</section>
-		)
-	}
-
-	<!-- 分类块 -->
-	{
-		AsideShow.CategoriesShow && (
-			<section class="vh-aside-item cat">
-				<h3>分类</h3>
-				<div class="vh-aside-cat">
-					{categories
-						.sort((a: any, b: any) => b.count - a.count)
-						.map(i => (
-							<a href={`/categories/${i.title}`}>
-								<span>{i.title}</span>
-								<i>{i.count}</i>
-							</a>
-						))}
 				</div>
 			</section>
 		)
