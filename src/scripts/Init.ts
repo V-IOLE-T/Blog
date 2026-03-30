@@ -19,8 +19,6 @@ import { searchFn, vhSearchInit } from "@/scripts/Search";
 import vhLzImgInit from "@/scripts/vhLazyImg";
 // 图片灯箱
 import ViewImage from "@/scripts/ViewImage";
-// 底部网站运行时间
-import initWebSiteTime from "@/scripts/Footer";
 // 友情链接初始化
 import initLinks from "@/scripts/Links";
 // 朋友圈 RSS 初始化
@@ -47,8 +45,6 @@ const videoList: any[] = [];
 const MusicList: any[] = [];
 let commentLIst: any = { walineInit: null };
 const indexInit = async (only: boolean = true) => {
-  // 初始化网站运行时间
-  only && initWebSiteTime();
   // 初始化BackTop组件
   only && BackTopInitFn();
   // SmoothScroll 滚动优化
