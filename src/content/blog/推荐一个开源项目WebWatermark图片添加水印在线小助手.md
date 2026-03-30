@@ -1,6 +1,7 @@
 ---
 title: 【开源】Web Watermark 图片添加水印在线小助手
-categories: Daily
+folder: tools
+summary: 推荐一个可离线运行的网页端图片加水印开源工具。
 tags:
   - 开源
   - 水印

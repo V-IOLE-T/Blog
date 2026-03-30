@@ -1,7 +1,8 @@
 ---
 title: 基于AI的微博动态心情分析【开源】
 date: 2024-09-04 15:59:05
-categories: Daily
+folder: ai
+summary: 使用大模型分析指定微博账号的动态情绪并进行消息推送。
 tags:
   - 微博动态
   - 心情分析

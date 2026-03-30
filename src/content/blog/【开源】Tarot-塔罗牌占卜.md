@@ -1,6 +1,7 @@
 ---
 title: 【开源】Tarot-塔罗牌占卜
-categories: Code
+folder: tools
+summary: 一个基于网页的塔罗牌占卜开源项目展示与体验入口。
 tags:
   - 开源
   - Tarot
