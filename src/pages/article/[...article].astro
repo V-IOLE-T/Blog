@@ -14,6 +14,8 @@ const ARTICLE_COVER: string = await getCover(post.data.cover);
 // 获取文章数据
 import { getPrevNextPosts } from "@/utils/getPostInfo";
 const { prev, next } = getPrevNextPosts(post.data.id);
+import BLOG_FOLDERS from "@/page_data/BlogFolders";
+const currentFolder = BLOG_FOLDERS.find((folder) => folder.slug === post.data.folder);
 // 页面 Info
 import SITE_CONFIG from "@/config";
 const { Site, Title, Author, GoogleAds } = SITE_CONFIG;
@@ -52,9 +54,9 @@ import "@/styles/ArticleBase.less";
 					<span class="count"><strong>{article_word_count || "一点"}</strong>字</span>
 					<span class="time"><strong>{parseFloat((Number(reading_time) || 0).toFixed(1).replace(/\.0+$/, ""))}</strong>分钟</span>
 				</span>
-				<a class="article-meta-item" href={`/categories/${post.data.categories}`}>
+				<a class="article-meta-item" href={`/blog?folder=${post.data.folder}`}>
 					<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path stroke="none" d="M0 0h24v24H0z" fill="none"></path><path d="M4 6h16"></path><path d="M7 12h13"></path><path d="M10 18h10"></path></svg>
-					<span>{post.data.categories}</span>
+					<span>{currentFolder?.name || post.data.folder}</span>
 				</a>
 			</div>
 		</header>

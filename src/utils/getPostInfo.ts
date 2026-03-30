@@ -1,17 +1,15 @@
 import { getCollection } from "astro:content";
-const posts = (await getCollection("blog")).sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
-// 获取文章分类
-const getCategories = () => {
-  const categoriesList = posts.reduce((acc: any, i: any) => {
-    acc[i.data.categories] = (acc[i.data.categories] || 0) + 1;
-    return acc;
-  }, {});
-  return Object.entries(categoriesList).map(([title, count]) => ({ title, count }));
-}
+const posts = (await getCollection("blog"))
+  .filter((post) => !post.data.hide)
+  .sort((a, b) => b.data.date.valueOf() - a.data.date.valueOf());
 
 // 获取统计数据
 const getCountInfo = () => {
-  return { ArticleCount: posts.length, CategoryCount: getCategories().length, TagCount: getTags().length }
+  return {
+    ArticleCount: posts.length,
+    FolderCount: new Set(posts.map((post) => post.data.folder)).size,
+    TagCount: getTags().length,
+  }
 }
 
 // 获取文章标签
@@ -40,4 +38,4 @@ const getPrevNextPosts = (id: string) => {
 }
 
 
-export { getCategories, getTags, getRecommendArticles, getCountInfo, getPrevNextPosts };
+export { getTags, getRecommendArticles, getCountInfo, getPrevNextPosts };

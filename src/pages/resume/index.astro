@@ -1,0 +1,76 @@
+---
+import Layout from "@/layouts/Layout/Layout.astro";
+import SITE_CONFIG from "@/config";
+import "@/styles/Resume.less";
+
+const skills = [
+  "Astro / Vue / TypeScript",
+  "Cloudflare Workers / Pages",
+  "Node.js / 自动化脚本",
+  "Docker / Linux / Homelab",
+  "AI 工作流与内容自动化",
+];
+
+const projects = [
+  {
+    name: "Blog",
+    desc: "个人技术博客与长期内容输出阵地，持续演进信息架构与体验。",
+  },
+  {
+    name: "Han Analytics",
+    desc: "自建访问分析服务，验证边缘部署、数据采集与统计展示方案。",
+  },
+  {
+    name: "Cloudflare 优选工具",
+    desc: "围绕优选 IP、访问质量与边缘托管做的一系列探索和工具化尝试。",
+  },
+];
+---
+
+<Layout title="个人简历" description={SITE_CONFIG.Description} activeNav="resume">
+	<section class="resume-page vh-animation vh-animation-init">
+		<section class="resume-card resume-hero">
+			<div>
+				<span>CV / 个人简历</span>
+				<h1>{SITE_CONFIG.Author}</h1>
+				<p>
+					专注前端工程、边缘部署、AI 应用与自托管实践，持续把个人站点和项目当作长期实验场。
+				</p>
+			</div>
+			<a href="/blog">查看文章目录</a>
+		</section>
+
+		<section class="resume-card">
+			<h2>个人简介</h2>
+			<p>
+				我长期围绕内容网站、边缘服务、自动化工作流和个人基础设施做实践，习惯把真实项目当成方法论沉淀的载体。
+			</p>
+		</section>
+
+		<section class="resume-card">
+			<h2>技术技能</h2>
+			<div class="resume-list">
+				{skills.map((item) => <span>{item}</span>)}
+			</div>
+		</section>
+
+		<section class="resume-card">
+			<h2>代表项目</h2>
+			<div class="resume-projects">
+				{projects.map((item) => (
+					<article>
+						<h3>{item.name}</h3>
+						<p>{item.desc}</p>
+					</article>
+				))}
+			</div>
+		</section>
+
+		<section class="resume-card">
+			<h2>长期关注方向</h2>
+			<p>
+				我希望继续把边缘计算、AI 增强开发和自托管服务连接起来，做出既稳定又有个人风格的内容与工具产品。
+			</p>
+		</section>
+	</section>
+</Layout>
