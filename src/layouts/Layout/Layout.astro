@@ -43,7 +43,7 @@ import "./Layout.less";
 		<MobileSidebar />
 		<Header activeNav={activeNav} />
 		<main class="main">
-			{HomeBanner.enable && <MainHeader />}
+			{HomeBanner.enable && <MainHeader Home={Home} />}
 			<section class="main-inner" style={`padding-top:${HomeBanner.enable ? "0.88rem" : "calc(66px + 0.68rem)"}`}>
 				<section class="main-inner-content">
 					<slot />
