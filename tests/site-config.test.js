@@ -12,4 +12,5 @@ test("站点配置使用新的主页名称并关闭文章打赏码", async () =>
   assert.match(configContent, /Author:\s*'Zheng Han\(OO\)'/);
   assert.match(configContent, /AliPay:\s*''/);
   assert.match(configContent, /WeChat:\s*''/);
+  assert.match(configContent, /CategoriesShow:\s*false/);
 });

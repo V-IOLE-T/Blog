@@ -58,10 +58,11 @@ export default {
     // 建议使用 https://tabler.io/icons 直接下载 SVG
     // { text: '朋友', link: '/links', icon: 'Nav_friends' },
     // { text: '圈子', link: '/friends', icon: 'Nav_rss' },
+    { text: '文章目录', link: '/blog', icon: 'Nav_link' },
     { text: '动态', link: '/talking', icon: 'Nav_talking' },
     { text: '昔日', link: '/archives', icon: 'Nav_archives' },
     { text: '留言', link: '/message', icon: 'Nav_message' },
-    { text: '关于', link: '/about', icon: 'Nav_about' },
+    { text: '简历', link: '/resume', icon: 'Nav_about' },
   ],
   // 侧边栏个人网站
   WebSites: [
@@ -77,7 +78,7 @@ export default {
     // 是否展示个人网站
     WebSitesShow: true,
     // 是否展示分类
-    CategoriesShow: true,
+    CategoriesShow: false,
     // 是否展示标签
     TagsShow: true,
     // 是否展示推荐文章
