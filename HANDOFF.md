@@ -1,17 +1,23 @@
 # Blog 仓库 HANDOFF
 
-更新时间：2026-03-31 22:58（Asia/Shanghai）
+更新时间：2026-04-01 00:43（Asia/Shanghai）
 
-## 先看这 8 句话
+## 先看这 11 句话
 
 1. 这份 handoff 不是只看 git 写出来的，结合了本地仓库状态、服务器实测结果，以及最近几小时的 Codex 会话记录：`~/.codex/sessions/2026/03/31/*.jsonl`。
 2. 用户已经明确决定：不要新建仓库，直接把当前 `Blog` 仓库改造成基于 `Innei-dev/Yohaku` 源码的新前端仓库，继续沿用现在这个仓库历史和远端。
-3. 当前 `Blog` 工作树已经被私有仓库 `git@github.com:Innei-dev/Yohaku.git` 的源码快照替换，但本地还没有提交；现有 `.git` 历史和远端保持不变。
+3. 当前 `Blog` 仓库已经完成 Yohaku 接管并本地提交，分支仍是 `codex/modify`，现有 `.git` 历史和远端保持不变。
 4. 上游拉取与构建已验证：临时克隆目录是 `/tmp/yohaku-import.jBOASL`，上游分支 `main`，确认过的快照 commit 是 `58a53b7`。
-5. 本地验证已经通过：`pnpm install` 成功，`NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz pnpm --filter @shiro/web build` 成功。
+5. 本地验证已经通过：`pnpm install` 成功，`NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz pnpm --filter @shiro/web build` 成功；接管提交已落在本地 commit `9b0158e feat(blog): 切换到 Yohaku 前端源码`。
 6. 服务器已经从源码构建并运行新的 `yohaku` 容器，当前公网 `https://418122.xyz` 和 `https://www.418122.xyz` 都已切到 Yohaku，新前端实际在线。
 7. 当前线上返回的是 Yohaku/Next.js 页面，且 `https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`；切流已完成，不再是“准备切流”的状态。
-8. 下一位 agent 如果要继续，最有价值的动作不是重新部署，而是收尾本地 git 记录、决定是否推远端，以及替换线上占位内容/配置。
+8. 站点 owner 账号已经不再是初始化占位值，当前已改成：
+   - username：`zhenghanoo`
+   - email：`z411622h@163.com`
+   - password：用户指定值，已实测登录成功
+9. 2026-04-01 新排掉了一个真实线上 bug：后台“修改头像后不显示/看起来像保存不了”不是 Mongo 或保存接口坏了，而是后台上传返回旧的 `/objects/...` 路径，而当前服务真正公开的是 `/api/v2/files/...`。
+10. 已在服务器 `Caddyfile` 增加 `/objects/* -> /api/v2/files/*` 的兼容转发，并通过 `docker compose up -d --force-recreate caddy` 生效；现在旧头像 URL 在 `https://api.418122.xyz` 和 `https://418122.xyz` 下都返回 `200`。
+11. 下一位 agent 如果要继续，最有价值的动作不是重新部署，而是替换线上 placeholder 内容/配置，决定是否 push 当前分支，并考虑是否要从上游根治后台返回旧头像 URL 的问题。
 
 ---
 
@@ -91,7 +97,7 @@
   - 不再围着老镜像修补
   - 直接基于私有 `Innei-dev/Yohaku` 源码构建新版前端
 
-### 阶段 3：本地仓库已被 Yohaku 源码快照替换
+### 阶段 3：本地仓库已被 Yohaku 源码快照替换并提交
 
 已经完成的事情：
 
@@ -104,10 +110,11 @@
 - 通过 `rsync` 把 Yohaku 工作树同步到当前 `Blog` 仓库，同时保留本地 `.git` 历史和远端
 - 新增 `UPSTREAM.md` 记录上游来源
 
-注意：
+后续收口已经完成：
 
-- 当前仓库里的文件虽然都已经换成 Yohaku 代码，但还没有提交。
-- `git status --short` 现在显示的是大量 `??` 未跟踪文件，这是预期现状，不是同步失败。
+- 当前分支：`codex/modify`
+- 接管提交：`9b0158e feat(blog): 切换到 Yohaku 前端源码`
+- 当前 `git status --short` 为空，工作树干净
 
 ### 阶段 4：本地构建验证已经完成
 
@@ -259,19 +266,16 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 分支：`codex/modify`
 - 当前远端仍是原 Blog 远端，没有改 repo：
   - `origin = https://github.com/V-IOLE-T/Blog.git`
-- 最近已提交的 commit 仍是旧的清仓 commit：
+- 最近关键 commit：
+  - `9b0158e feat(blog): 切换到 Yohaku 前端源码`
   - `b5fae84 chore(repo): 清空旧博客业务文件`
-- 现在工作树已经是 Yohaku 接管后的内容，但尚未 commit
-
-当前 `git status --short` 的含义：
-
-- `apps/`、`packages/`、`package.json`、`pnpm-lock.yaml` 等大量 `??`
-- `HANDOFF.md`、`UPSTREAM.md`、`docs/` 也是未跟踪
+- 当前 `git status --short` 为空，工作树干净
 
 也就是说：
 
 - 本地真实代码已经到位
-- 但 git 历史里还没记录这次接管
+- git 历史里已经记录了这次接管
+- 是否推送到原远端，还需要按用户意图决定
 
 ---
 
@@ -317,6 +321,80 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 ---
 
+## 2026-04-01 新增进展：账号与头像
+
+### Owner 账号已经替换成用户指定值
+
+已完成并验证：
+
+- username：`zhenghanoo`
+- email：`z411622h@163.com`
+- password：用户指定值，已通过 `POST /api/v2/auth/sign-in/username` 实测登录成功
+
+数据库结构里相关文档当前对应关系：
+
+- `readers._id = ObjectId("69cbbe672b60836536a13af5")`
+- `owner_profiles.readerId = ObjectId("69cbbe672b60836536a13af5")`
+- `accounts.userId = ObjectId("69cbbe672b60836536a13af5")`
+
+### 头像 bug 的根因、有效修复、以及什么没用
+
+用户报告的现象：
+
+- 在后台设定页上传 / 修改头像后，头像一直显示不出来，看起来也像“没保存”
+
+真实复现证据：
+
+- 后台设定页上传头像后，`头像 URL` 输入框会被自动写成：
+  - `https://api.418122.xyz/objects/avatar/<name>`
+- `mx-server` 日志会出现：
+  - `Cannot GET /objects/avatar/<name>`
+- 但文件本体其实已经成功落盘：
+  - `/root/.mx-space/static/avatar/<name>`
+- 同一个文件用真正公开路由访问是通的：
+  - `https://api.418122.xyz/api/v2/files/avatar/<name>` -> `200`
+
+结论：
+
+- 保存动作本身是好的，`readers.image` 会被更新
+- 真正坏的是“后台上传返回的 URL 还是旧 `/objects/...`，而当前后端公开下载路由已经是 `/api/v2/files/...`”
+- 所以用户感知成“保存不了”，本质上更接近“保存了一个当前环境里 404 的旧资源地址”
+
+已经验证无效或不是根因的方向：
+
+- 不是 Mongo 没写入
+- 不是文件没上传
+- 不是 Yohaku 前端首页组件不显示头像
+- 不是 Caddy 基础切流没成功
+
+这次已采用、且已经验证有效的最小修复：
+
+- 在服务器 `/opt/mxspace/Caddyfile` 的两个站点块里都增加：
+  - `/objects/*` -> `uri replace /objects /api/v2/files` -> `reverse_proxy app:2333`
+- 然后执行：
+
+```bash
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
+  cd /opt/mxspace &&
+  docker compose up -d --force-recreate caddy
+'
+```
+
+修复后的验证结果：
+
+- `https://api.418122.xyz/objects/avatar/u14l0nhwhlu09rq5sd.png` -> `200`
+- `https://418122.xyz/objects/avatar/u14l0nhwhlu09rq5sd.png` -> `200`
+- 后台页面里的该头像资源 `naturalWidth` 已大于 `0`
+- 调试过程中临时写入的测试头像已恢复回原来的占位头像，避免污染正式资料
+
+给下一位 agent 的直接建议：
+
+- 如果用户之后再次在后台改头像，当前线上已经能正常显示旧 `/objects/...` 路径，不会再出现“明明上传了但一直裂图”
+- 真正的长期方案不是再修 Caddy，而是找到上游 `mx-server` / admin 为何仍返回旧 `/objects/...` URL，并在源码或镜像层修正
+- 在长期方案落地前，保留这个 Caddy 兼容映射是对的
+
+---
+
 ## 什么有效
 
 这些路径已被真实验证有效：
@@ -343,18 +421,13 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 ## 下一个 agent 最应该做什么
 
-### 如果目标是“把这次接管收口到仓库历史里”
+### 如果目标是“把这次接管收口到远端”
 
 优先做这个：
 
 1. 复核本地 `git status`
-2. 把当前 Yohaku 快照、`UPSTREAM.md`、`HANDOFF.md`、`docs/` 一起 stage
-3. 提交一个本地 commit
-4. 除非用户明确同意，否则不要擅自 push
-
-推荐 commit 方向：
-
-- `feat(blog): 切换到 Yohaku 前端源码`
+2. 确认是否要把 `codex/modify` 推到原 `origin`
+3. 除非用户明确同意，否则不要擅自 push
 
 ### 如果目标是“继续让线上更像正式站”
 
@@ -387,12 +460,15 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker logs --tail 80 mx-caddy'
 当前真实状态是：
 
 - 私有 Yohaku 源码已经进了当前 `Blog` 仓库工作树
+- 本地接管 commit 已存在，且工作树干净
 - 本地构建通过
 - 服务器源码构建通过
 - 根域名已经切到 Yohaku
 - API 正常
+- 后台头像旧路径兼容已修复
 - 最大未收口项是：
-  - 本地 git 还没把这次接管提交下来
   - 线上仍是 placeholder 内容，还不是最终正式内容
+  - 当前分支是否 push 到原远端还没最终决定
+  - 后台上传头像为什么仍返回旧 `/objects/...` 路径，还没有从上游根治
 
 如果时间有限，只看本文件就足够继续。
