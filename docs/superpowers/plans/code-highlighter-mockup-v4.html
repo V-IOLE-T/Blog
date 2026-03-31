@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Highlighter Mockup v4</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --font-sans: "Instrument Sans", "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --font-serif: "Iowan Old Style", "Palatino Linotype", "Noto Serif SC", serif;
+      --font-mono: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", monospace;
+      --easing: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      background:
+        radial-gradient(circle at top left, rgba(255, 228, 180, 0.34), transparent 28rem),
+        linear-gradient(180deg, #fffef9 0%, #faf8f1 100%);
+      color: #1a1917;
+    }
+
+    .page {
+      width: min(1280px, calc(100vw - 48px));
+      margin: 0 auto;
+      padding: 56px 0 72px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 10px;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: #9a9995;
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      color: #151412;
+    }
+
+    .lede {
+      width: min(660px, 100%);
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.9;
+      color: #676560;
+    }
+
+    .gallery {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 26px;
+      margin-top: 44px;
+    }
+
+    .scene {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      border-radius: 28px;
+      padding: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(51, 166, 184, 0.06), transparent 12rem),
+        rgba(255, 255, 252, 0.8);
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.02),
+        0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    .scene.dark {
+      background:
+        radial-gradient(circle at top right, rgba(245, 150, 170, 0.08), transparent 12rem),
+        linear-gradient(180deg, rgba(31, 31, 33, 0.96), rgba(22, 22, 24, 0.98));
+      border-color: rgba(255, 255, 255, 0.06);
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.25),
+        0 16px 40px rgba(0, 0, 0, 0.28);
+      color: #ece8e1;
+    }
+
+    .scene-title {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .scene-title strong {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: #9d9b94;
+    }
+
+    .scene-title span {
+      font-size: 12px;
+      color: #817f79;
+    }
+
+    .scene.dark .scene-title strong {
+      color: #9a9995;
+    }
+
+    .scene.dark .scene-title span {
+      color: #7e7c77;
+    }
+
+    .article {
+      position: relative;
+      display: grid;
+      gap: 18px;
+      padding: 22px;
+      border-radius: 22px;
+      background: rgba(254, 254, 251, 0.82);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .scene.dark .article {
+      background: rgba(36, 36, 39, 0.88);
+      border-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .article p {
+      margin: 0;
+      font-size: 14px;
+      line-height: 1.95;
+      color: #56544f;
+    }
+
+    .scene.dark .article p {
+      color: #b3afa8;
+    }
+
+    .pull-quote {
+      font-family: var(--font-serif);
+      font-style: italic;
+      font-size: 12px;
+      color: #9c988f;
+    }
+
+    .scene.dark .pull-quote {
+      color: #87837c;
+    }
+
+    .code-card {
+      position: relative;
+      margin: 2px 0;
+      overflow: hidden;
+      border-radius: 22px;
+      border: 1px solid rgba(0, 0, 0, 0.055);
+      background:
+        linear-gradient(180deg, rgba(51, 166, 184, 0.055), rgba(51, 166, 184, 0.02) 28%, rgba(255, 255, 255, 0) 100%),
+        #fefefb;
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.02),
+        0 8px 22px rgba(0, 0, 0, 0.055);
+    }
+
+    .code-card::before,
+    .code-card::after {
+      content: "";
+      position: absolute;
+      top: 14px;
+      width: 48px;
+      height: 16px;
+      background: rgba(255, 228, 180, 0.5);
+      border: 1px solid rgba(191, 164, 112, 0.12);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26);
+      opacity: 0.72;
+      pointer-events: none;
+    }
+
+    .code-card::before {
+      left: 18px;
+      transform: rotate(-4deg);
+    }
+
+    .code-card::after {
+      right: 22px;
+      width: 38px;
+      transform: rotate(5deg);
+    }
+
+    .scene.dark .code-card {
+      border-color: rgba(255, 255, 255, 0.06);
+      background:
+        linear-gradient(180deg, rgba(245, 150, 170, 0.08), rgba(245, 150, 170, 0.03) 28%, rgba(0, 0, 0, 0) 100%),
+        #1b1b1d;
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.24),
+        0 12px 30px rgba(0, 0, 0, 0.24);
+    }
+
+    .scene.dark .code-card::before,
+    .scene.dark .code-card::after {
+      background: rgba(245, 150, 170, 0.11);
+      border-color: rgba(255, 255, 255, 0.05);
+      box-shadow: none;
+    }
+
+    .code-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 22px 12px;
+    }
+
+    .code-meta-left {
+      min-width: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+    }
+
+    .code-label {
+      flex: none;
+      font-size: 9px;
+      letter-spacing: 0.32em;
+      text-transform: uppercase;
+      color: #9a9995;
+    }
+
+    .filename {
+      min-width: 0;
+      font-family: var(--font-serif);
+      font-size: 15px;
+      color: #2d2b27;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .code-meta-right {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 11px;
+      color: #8b8983;
+    }
+
+    .lang-dot {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .lang-dot::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #33a6b8;
+      box-shadow: 0 0 0 4px rgba(51, 166, 184, 0.08);
+    }
+
+    .scene.dark .code-label,
+    .scene.dark .code-meta-right {
+      color: #89857d;
+    }
+
+    .scene.dark .filename {
+      color: #e8e2d8;
+    }
+
+    .scene.dark .lang-dot::before {
+      background: #f596aa;
+      box-shadow: 0 0 0 4px rgba(245, 150, 170, 0.08);
+    }
+
+    .copy {
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.14);
+      cursor: default;
+    }
+
+    .scene.dark .copy {
+      border-bottom-color: rgba(255, 255, 255, 0.14);
+    }
+
+    .divider {
+      height: 1px;
+      margin: 0 22px;
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.08) 16%, rgba(0, 0, 0, 0.08) 84%, transparent);
+    }
+
+    .scene.dark .divider {
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.09) 16%, rgba(255, 255, 255, 0.09) 84%, transparent);
+    }
+
+    pre {
+      margin: 0;
+      padding: 14px 0 8px;
+      overflow-x: auto;
+    }
+
+    code {
+      display: grid;
+      gap: 2px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.9;
+      color: #2d2a26;
+    }
+
+    .scene.dark code {
+      color: #e5e0d7;
+    }
+
+    .line {
+      position: relative;
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      gap: 16px;
+      padding: 0 22px;
+    }
+
+    .line-no {
+      text-align: right;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      color: #c3c0b8;
+      user-select: none;
+    }
+
+    .scene.dark .line-no {
+      color: #56524d;
+    }
+
+    .line.is-focus {
+      background: rgba(51, 166, 184, 0.08);
+    }
+
+    .line.is-focus::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.22rem;
+      bottom: 0.22rem;
+      width: 2px;
+      background: #33a6b8;
+    }
+
+    .scene.dark .line.is-focus {
+      background: rgba(245, 150, 170, 0.09);
+    }
+
+    .scene.dark .line.is-focus::before {
+      background: #f596aa;
+    }
+
+    .tk-key {
+      color: #9e65d0;
+    }
+
+    .tk-fn {
+      color: #2e7d86;
+    }
+
+    .tk-str {
+      color: #327c58;
+    }
+
+    .tk-note {
+      color: #9a8b6c;
+      font-style: italic;
+    }
+
+    .tk-punc {
+      color: #8b8880;
+    }
+
+    .scene.dark .tk-key {
+      color: #d09ff6;
+    }
+
+    .scene.dark .tk-fn {
+      color: #f0b3c2;
+    }
+
+    .scene.dark .tk-str {
+      color: #a8cf98;
+    }
+
+    .scene.dark .tk-note,
+    .scene.dark .tk-punc {
+      color: #928d85;
+    }
+
+    .fold-note {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 12px 22px 16px;
+      font-size: 11px;
+      color: #817c75;
+    }
+
+    .fold-note .hint {
+      font-family: var(--font-serif);
+      font-style: italic;
+      color: #9a958c;
+    }
+
+    .unfold {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .unfold::before {
+      content: "";
+      width: 18px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.4;
+    }
+
+    .scene.dark .fold-note {
+      color: #918d86;
+    }
+
+    .scene.dark .fold-note .hint {
+      color: #78756e;
+    }
+
+    .mini-grid {
+      display: grid;
+      gap: 18px;
+      margin-top: 24px;
+    }
+
+    .mini-card {
+      overflow: hidden;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.055);
+      background: rgba(254, 254, 251, 0.9);
+    }
+
+    .scene.dark .mini-card {
+      border-color: rgba(255, 255, 255, 0.06);
+      background: rgba(27, 27, 29, 0.92);
+    }
+
+    .mini-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px 10px;
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #99968f;
+    }
+
+    .mini-card pre {
+      padding-top: 6px;
+    }
+
+    .mini-card .line {
+      grid-template-columns: 1fr;
+      padding-left: 18px;
+      padding-right: 18px;
+    }
+
+    .mini-card .line-no {
+      display: none;
+    }
+
+    @media (max-width: 980px) {
+      .gallery {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100vw - 24px, 1280px);
+        padding-top: 28px;
+      }
+
+      .scene {
+        padding: 16px;
+        border-radius: 22px;
+      }
+
+      .article {
+        padding: 16px;
+      }
+
+      .code-card {
+        border-radius: 18px;
+      }
+
+      .code-card::after {
+        display: none;
+      }
+
+      .code-meta {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .code-meta-left {
+        width: 100%;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .line {
+        grid-template-columns: 28px 1fr;
+        gap: 12px;
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .divider,
+      .fold-note {
+        margin-left: 16px;
+        margin-right: 16px;
+      }
+
+      .fold-note {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Code Highlighter / Mockup v4</p>
+    <h1>附页夹片，而不是 IDE 面板</h1>
+    <p class="lede">
+      这个方向把代码块当成正文里夹着的一页手稿。标题、语言、复制这些操作都退回边缘，只保留阅读节奏、纸面层次和很轻的批注感。
+    </p>
+
+    <section class="gallery">
+      <article class="scene">
+        <div class="scene-title">
+          <strong>Article Flow</strong>
+          <span>light / default block</span>
+        </div>
+
+        <div class="article">
+          <p>写到状态管理这一段时，代码块不应该突然变成一个完整的小工具窗。它更像被夹进正文的一张附页，提供证据，而不是抢走叙事节奏。</p>
+
+          <div class="code-card">
+            <div class="code-meta">
+              <div class="code-meta-left">
+                <span class="code-label">Snippet</span>
+                <span class="filename">CodeHighlighter.tsx</span>
+              </div>
+              <div class="code-meta-right">
+                <span class="lang-dot">tsx</span>
+                <button class="copy" type="button">copy</button>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">export const</span> <span class="tk-fn">ShikiHighLighterWrapper</span> <span class="tk-punc">=</span> <span class="tk-punc">({</span> <span class="tk-note">...props</span> <span class="tk-punc">})</span> <span class="tk-punc">=&gt;</span> <span class="tk-punc">{</span></span></span>
+<span class="line"><span class="line-no">02</span><span>  <span class="tk-key">const</span> <span class="tk-punc">[</span>copied<span class="tk-punc">,</span> setCopied<span class="tk-punc">]</span> <span class="tk-punc">=</span> <span class="tk-fn">useState</span><span class="tk-punc">(</span><span class="tk-key">false</span><span class="tk-punc">)</span></span></span>
+<span class="line is-focus"><span class="line-no">03</span><span>  <span class="tk-key">const</span> filename <span class="tk-punc">=</span> <span class="tk-fn">parseFilenameFromAttrs</span><span class="tk-punc">(</span>attrs <span class="tk-punc">||</span> <span class="tk-str">''</span><span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">04</span><span>  <span class="tk-key">const</span> languageColor <span class="tk-punc">=</span> <span class="tk-fn">languageToColorMap</span><span class="tk-punc">[</span>language<span class="tk-punc">]</span></span></span>
+<span class="line"><span class="line-no">05</span><span>  <span class="tk-key">return</span> <span class="tk-punc">(</span></span></span>
+<span class="line"><span class="line-no">06</span><span>    <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"shiki-code-card group"</span><span class="tk-punc">&gt;</span></span></span>
+<span class="line"><span class="line-no">07</span><span>      <span class="tk-punc">&lt;</span>AutoResizeHeight <span class="tk-note">spring</span> <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"relative"</span> <span class="tk-punc">/&gt;</span></span></span>
+<span class="line"><span class="line-no">08</span><span>    <span class="tk-punc">)</span></span></span>
+            </code></pre>
+            <div class="fold-note">
+              <span class="hint">note: language 只作为纸面边注，不做主色标题栏</span>
+              <span class="unfold">24 lines hidden · unfold</span>
+            </div>
+          </div>
+
+          <p class="pull-quote">操作感尽量薄一点，让代码仍然属于阅读流，而不是切换到另一个应用界面。</p>
+
+          <div class="mini-grid">
+            <div class="mini-card">
+              <div class="mini-meta">
+                <span>Inline Sample</span>
+                <span>no filename</span>
+              </div>
+              <pre><code>
+<span class="line"><span><span class="tk-key">const</span> theme <span class="tk-punc">=</span> <span class="tk-str">'paper'</span></span></span>
+<span class="line is-focus"><span><span class="tk-key">if</span> <span class="tk-punc">(</span>isOverflow<span class="tk-punc">)</span> <span class="tk-fn">setIsCollapsed</span><span class="tk-punc">(</span><span class="tk-key">true</span><span class="tk-punc">)</span></span></span>
+<span class="line"><span><span class="tk-key">return</span> <span class="tk-punc">&lt;</span>CodeBlock <span class="tk-note">variant</span><span class="tk-punc">=</span><span class="tk-str">"insert"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="scene dark">
+        <div class="scene-title">
+          <strong>Night Surface</strong>
+          <span>dark / same hierarchy</span>
+        </div>
+
+        <div class="article">
+          <p>夜间版不是另一套视觉，只是同一张纸换到更安静的光线里。保留层级关系、边注逻辑和轻量操作，不改成科技感面板。</p>
+
+          <div class="code-card">
+            <div class="code-meta">
+              <div class="code-meta-left">
+                <span class="code-label">Patch</span>
+                <span class="filename">ShikiWrapper.tsx</span>
+              </div>
+              <div class="code-meta-right">
+                <span class="lang-dot">diff</span>
+                <button class="copy" type="button">copy</button>
+              </div>
+            </div>
+            <div class="divider"></div>
+            <pre><code>
+<span class="line"><span class="line-no">12</span><span><span class="tk-key">const</span> hasHeader <span class="tk-punc">=</span> <span class="tk-fn">Boolean</span><span class="tk-punc">(</span>filename<span class="tk-punc">)</span></span></span>
+<span class="line is-focus"><span class="line-no">13</span><span><span class="tk-key">const</span> paperTint <span class="tk-punc">=</span> languageColor <span class="tk-punc">?</span> <span class="tk-str">'soft'</span> <span class="tk-punc">:</span> <span class="tk-str">'quiet'</span></span></span>
+<span class="line"><span class="line-no">14</span><span><span class="tk-key">return</span> <span class="tk-punc">(</span></span></span>
+<span class="line"><span class="line-no">15</span><span>  <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"code-card paper-insert"</span><span class="tk-punc">&gt;</span></span></span>
+<span class="line"><span class="line-no">16</span><span>    <span class="tk-punc">&lt;</span>header <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"meta-row"</span><span class="tk-punc">&gt;</span></span></span>
+<span class="line"><span class="line-no">17</span><span>      <span class="tk-punc">&lt;</span>span <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"label"</span><span class="tk-punc">&gt;</span>SNIPPET<span class="tk-punc">&lt;/</span>span<span class="tk-punc">&gt;</span></span></span>
+<span class="line"><span class="line-no">18</span><span>    <span class="tk-punc">&lt;/</span>header<span class="tk-punc">&gt;</span></span></span>
+            </code></pre>
+            <div class="fold-note">
+              <span class="hint">note: dark mode 只降低亮度和高光，不改变信息结构</span>
+              <span class="unfold">8 hidden lines · unfold</span>
+            </div>
+          </div>
+
+          <div class="mini-grid">
+            <div class="mini-card">
+              <div class="mini-meta">
+                <span>Compact</span>
+                <span>mobile bias</span>
+              </div>
+              <pre><code>
+<span class="line"><span><span class="tk-key">const</span> meta <span class="tk-punc">=</span> <span class="tk-str">'tsx · copy'</span></span></span>
+<span class="line"><span><span class="tk-key">return</span> <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"stacked-meta"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

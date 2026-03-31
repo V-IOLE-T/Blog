@@ -1,0 +1,214 @@
+@reference "../../../../styles/tailwindcss.css";
+
+.shiki-code-card {
+  @apply relative my-6 m-1 overflow-hidden rounded-xl border border-black/[0.04] bg-paper dark:border-white/[0.06];
+
+  font-size: 14px;
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 0.01),
+    0 3px 10px rgb(0 0 0 / 0.02);
+
+  --code-accent: var(--color-accent);
+  --code-accent-line: color-mix(in srgb, var(--color-accent) 22%, transparent);
+  --code-accent-soft: color-mix(in srgb, var(--color-accent) 8%, transparent);
+  --code-accent-tint: color-mix(in srgb, var(--color-accent) 3%, transparent);
+  --code-accent-icon: color-mix(in srgb, var(--color-accent) 6%, transparent);
+  --code-accent-foreground: color-mix(
+    in srgb,
+    var(--color-accent) 82%,
+    black 18%
+  );
+}
+
+:where(.dark, [data-theme='dark']) .shiki-code-card {
+  box-shadow:
+    0 1px 1px rgb(0 0 0 / 0.18),
+    0 4px 16px rgb(0 0 0 / 0.16);
+}
+
+.shiki-code-card .shiki-code-surface {
+  @apply relative bg-paper;
+
+  background-image: linear-gradient(
+    180deg,
+    var(--code-accent-tint),
+    transparent 22%
+  );
+}
+
+.shiki-code-card .shiki-code-topline {
+  @apply h-px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--code-accent-line) 16%,
+    color-mix(in srgb, var(--code-accent-line) 40%, transparent) 74%,
+    transparent
+  );
+}
+
+.shiki-code-card .shiki-code-header {
+  @apply flex min-h-[42px] items-center justify-between gap-3 px-3.5 py-2.5 font-sans;
+}
+
+.shiki-code-card .shiki-code-header--meta-only {
+  @apply py-2;
+}
+
+.shiki-code-card .shiki-code-header--utility-only {
+  @apply min-h-0 py-2;
+}
+
+.shiki-code-card .shiki-code-header-left,
+.shiki-code-card .shiki-code-header-right {
+  @apply flex items-center;
+}
+
+.shiki-code-card .shiki-code-header-left {
+  @apply min-w-0 gap-2;
+}
+
+.shiki-code-card .shiki-code-header-right {
+  @apply shrink-0 gap-1;
+}
+
+.shiki-code-card .shiki-code-language-icon {
+  @apply inline-flex size-[22px] shrink-0 items-center justify-center rounded-[7px];
+
+  background: var(--code-accent-icon);
+  color: var(--code-accent-foreground);
+}
+
+.shiki-code-card .shiki-code-filename,
+.shiki-code-card .shiki-code-language-label {
+  @apply truncate text-[13px] font-medium tracking-[-0.01em] text-neutral-8;
+}
+
+.shiki-code-card .shiki-code-language-text {
+  @apply text-[10px] uppercase tracking-[0.16em] text-neutral-4;
+}
+
+.shiki-code-card .shiki-code-copy-button {
+  @apply inline-flex size-[26px] items-center justify-center rounded-lg border border-black/5 bg-white/70 text-neutral-5 duration-200 active:translate-y-px dark:border-white/[0.06] dark:bg-white/[0.04];
+}
+
+.shiki-code-card .shiki-code-copy-button:hover {
+  @apply text-neutral-8;
+
+  border-color: color-mix(in srgb, var(--code-accent) 18%, transparent);
+  background: color-mix(in srgb, var(--code-accent) 6%, white 94%);
+}
+
+.shiki-code-card .shiki-code-divider {
+  @apply mx-3.5 h-px;
+
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(0 0 0 / 0.07) 14%,
+    rgb(0 0 0 / 0.07) 86%,
+    transparent
+  );
+}
+
+:where(.dark, [data-theme='dark']) .shiki-code-card .shiki-code-divider {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgb(255 255 255 / 0.08) 14%,
+    rgb(255 255 255 / 0.08) 86%,
+    transparent
+  );
+}
+
+.shiki-code-card .shiki-code-expand-button {
+  @apply inline-flex items-center gap-1.5 text-[11px] text-neutral-5 duration-200 hover:text-neutral-8;
+}
+
+:where(.dark, [data-theme='dark'])
+  .shiki-code-card
+  .shiki-code-copy-button:hover {
+  background: color-mix(in srgb, var(--code-accent) 8%, black);
+}
+
+.shiki-code-card pre {
+  @apply m-0! p-0! rounded-none;
+
+  font-size: min(1em, 16px);
+}
+
+.shiki-code-card pre code {
+  @apply flex flex-col;
+}
+
+.shiki-code-card .shiki,
+.shiki-code-card code {
+  @apply bg-transparent!;
+}
+
+.shiki-code-card .line {
+  @apply block px-4;
+
+  & > span:last-child {
+    @apply mr-4;
+  }
+
+  /* 撑开没有内容的行 */
+  &::after {
+    content: ' ';
+  }
+}
+
+.shiki-code-card .highlighted,
+.shiki-code-card .diff {
+  @apply relative break-all;
+
+  &::before {
+    @apply absolute left-0 top-0 h-full w-[2px];
+    content: '';
+  }
+}
+
+.shiki-code-card .diff.add {
+  @apply bg-green-100 dark:bg-green-900;
+
+  &::before {
+    @apply bg-green-500;
+  }
+
+  &::after {
+    content: ' +';
+    @apply absolute left-0 text-green-500;
+  }
+}
+
+.shiki-code-card .diff.remove {
+  @apply bg-red-100 dark:bg-red-900;
+
+  &::before {
+    @apply bg-red-500;
+  }
+
+  &::after {
+    content: ' -';
+    @apply absolute left-0 text-red-500;
+  }
+}
+
+.shiki-code-card .highlighted {
+  background: var(--code-accent-soft);
+
+  &::before {
+    background: var(--code-accent);
+  }
+}
+
+.shiki-code-card .shiki-scroll-container pre::-webkit-scrollbar-track {
+  margin-left: 1rem;
+  margin-right: var(--sr-margin, 0);
+}
+
+.shiki-code-card .shiki-scroll-container pre::-webkit-scrollbar {
+  background-color: transparent !important;
+}

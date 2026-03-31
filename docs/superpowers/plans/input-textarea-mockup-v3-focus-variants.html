@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input / Textarea Focus Mockup v3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: "Instrument Sans", "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+      --bg: #fcfaf5;
+      --paper: #fffefb;
+      --text: #201c18;
+      --text-soft: #5f594f;
+      --text-faint: #928b81;
+      --line: rgba(0, 0, 0, 0.06);
+      --line-strong: rgba(0, 0, 0, 0.09);
+      --accent: #33a6b8;
+      --accent-05: rgba(51, 166, 184, 0.05);
+      --accent-08: rgba(51, 166, 184, 0.08);
+      --accent-12: rgba(51, 166, 184, 0.12);
+      --accent-18: rgba(51, 166, 184, 0.18);
+      --warm: rgba(255, 228, 180, 0.18);
+      --shadow-paper: 0 1px 1px rgba(0, 0, 0, 0.015), 0 8px 22px rgba(0, 0, 0, 0.025);
+      --shadow-inline: 0 1px 1px rgba(0, 0, 0, 0.01), 0 3px 10px rgba(0, 0, 0, 0.02);
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --radius-panel: 20px;
+      --radius-surface: 16px;
+      --radius-field: 12px;
+      --radius-note: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 228, 180, 0.24), transparent 22rem),
+        linear-gradient(180deg, #fffef8 0%, var(--bg) 100%);
+    }
+
+    .page {
+      width: min(1480px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 46px 0 80px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 10px;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 42px);
+      font-weight: 500;
+      letter-spacing: -0.025em;
+    }
+
+    .lede {
+      width: min(820px, 100%);
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.95;
+      color: var(--text-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin-top: 34px;
+    }
+
+    .panel {
+      overflow: hidden;
+      border-radius: var(--radius-panel);
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      background:
+        radial-gradient(circle at top right, rgba(51, 166, 184, 0.035), transparent 14rem),
+        rgba(255, 255, 252, 0.86);
+      box-shadow: var(--shadow-paper);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 18px 12px;
+    }
+
+    .panel-id {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .panel-name {
+      display: block;
+      margin-top: 5px;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .panel-tag {
+      font-size: 11px;
+      color: #847d73;
+      white-space: nowrap;
+    }
+
+    .panel-body {
+      padding: 0 18px 18px;
+    }
+
+    .panel-note {
+      margin: 0 0 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-soft);
+    }
+
+    .article {
+      display: grid;
+      gap: 16px;
+      padding: 16px;
+      border-radius: var(--radius-surface);
+      background: rgba(255, 254, 249, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.035);
+    }
+
+    .field-shell {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-meta {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #474137;
+      letter-spacing: -0.01em;
+      transition: color 220ms var(--ease);
+    }
+
+    .field-side {
+      font-size: 11px;
+      color: var(--text-faint);
+      transition: color 220ms var(--ease);
+    }
+
+    .field-control {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 42px;
+      padding: 0 13px;
+      border-radius: var(--radius-field);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.72));
+      box-shadow: var(--shadow-inline);
+      transition:
+        border-color 220ms var(--ease),
+        background-color 220ms var(--ease),
+        box-shadow 220ms var(--ease),
+        transform 220ms var(--ease);
+    }
+
+    .note .field-control {
+      min-height: 136px;
+      align-items: flex-start;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-radius: var(--radius-note);
+      background:
+        linear-gradient(180deg, rgba(255, 250, 239, 0.72), rgba(255, 255, 255, 0.88) 24%),
+        rgba(255, 255, 255, 0.86);
+    }
+
+    .field-input,
+    .field-textarea {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+    }
+
+    .field-input::placeholder,
+    .field-textarea::placeholder {
+      color: #9b9489;
+    }
+
+    .field-textarea {
+      min-height: 108px;
+      resize: none;
+      padding: 12px 0 13px;
+    }
+
+    .field-footer {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 18px;
+      padding: 0 2px;
+    }
+
+    .field-hint {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-faint);
+    }
+
+    .field-counter {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+    }
+
+    .variant-soft-border .focus .field-control {
+      border-color: var(--accent-18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8)),
+        var(--accent-05);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.01), 0 4px 14px rgba(51, 166, 184, 0.03);
+    }
+
+    .variant-soft-border .focus .field-label,
+    .variant-soft-border .focus .field-side {
+      color: #56878f;
+    }
+
+    .variant-paper-lift .focus .field-control {
+      border-color: rgba(0, 0, 0, 0.07);
+      transform: translateY(-1px);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(255, 255, 255, 0.84)),
+        var(--accent-05);
+      box-shadow:
+        0 1px 1px rgba(0, 0, 0, 0.015),
+        0 8px 20px rgba(0, 0, 0, 0.035),
+        0 0 0 1px rgba(51, 166, 184, 0.08);
+    }
+
+    .variant-paper-lift .focus .field-label {
+      color: #3e6f78;
+    }
+
+    .variant-topline .field-control::before {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      top: 0;
+      height: 1px;
+      background: transparent;
+      transition: background-color 220ms var(--ease);
+    }
+
+    .variant-topline .focus .field-control {
+      border-color: rgba(0, 0, 0, 0.07);
+      background:
+        linear-gradient(180deg, rgba(51, 166, 184, 0.05), rgba(255, 255, 255, 0) 26%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8));
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.01), 0 4px 14px rgba(0, 0, 0, 0.02);
+    }
+
+    .variant-topline .focus .field-control::before {
+      background: linear-gradient(90deg, transparent, rgba(51, 166, 184, 0.56) 18%, rgba(51, 166, 184, 0.18) 82%, transparent);
+    }
+
+    .variant-topline .focus .field-side {
+      color: #6f8f95;
+    }
+
+    .variant-bottom-line .field-control::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 8px;
+      height: 1px;
+      border-radius: 999px;
+      background: transparent;
+      transition: background-color 220ms var(--ease), opacity 220ms var(--ease);
+      opacity: 0;
+    }
+
+    .variant-bottom-line .focus .field-control {
+      border-color: rgba(0, 0, 0, 0.07);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82)),
+        rgba(255, 255, 255, 0.82);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.01), 0 3px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    .variant-bottom-line .focus .field-control::after {
+      background: linear-gradient(90deg, rgba(51, 166, 184, 0.06), rgba(51, 166, 184, 0.72) 50%, rgba(51, 166, 184, 0.06));
+      opacity: 1;
+    }
+
+    .variant-bottom-line .focus .field-label {
+      color: #55747a;
+    }
+
+    .legend {
+      display: grid;
+      gap: 9px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 12px;
+      font-size: 12px;
+      line-height: 1.75;
+      color: var(--text-soft);
+    }
+
+    .legend-row strong {
+      color: #4c463e;
+      font-weight: 500;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Focus Language</p>
+    <h1>Quiet Input + Note Textarea</h1>
+    <p class="lede">
+      这次只比较 focus 的表达方式。基础表面、圆角、纸感、排版都不动，只替换“聚焦时怎么提气”这件事。
+      目标是保留安静的阅读感，不再用左侧高亮线去强调交互。
+    </p>
+
+    <section class="grid">
+      <article class="panel variant-soft-border">
+        <header class="panel-head">
+          <div>
+            <span class="panel-id">A</span>
+            <strong class="panel-name">Soft Border</strong>
+          </div>
+          <span class="panel-tag">最稳</span>
+        </header>
+        <div class="panel-body">
+          <p class="panel-note">只做边框加深和极淡染色，没有额外标记，最不打断正文。</p>
+          <div class="article">
+            <div class="field-shell focus">
+              <div class="field-meta">
+                <label class="field-label">Email</label>
+                <span class="field-side">focused</span>
+              </div>
+              <div class="field-control">
+                <input class="field-input" value="contact@shiroi.dev">
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">像纸面被轻轻点亮。</span>
+                <span class="field-counter">A1</span>
+              </div>
+            </div>
+            <div class="field-shell note focus">
+              <div class="field-meta">
+                <label class="field-label">Reply</label>
+                <span class="field-side">Cmd+Enter</span>
+              </div>
+              <div class="field-control">
+                <textarea class="field-textarea">The focus state stays almost invisible until you compare it with the default one.</textarea>
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">很安静，但可见性最弱。</span>
+                <span class="field-counter">124/500</span>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row"><strong>气质</strong><span>最像正文里的自然输入，不像组件态控件。</span></div>
+            <div class="legend-row"><strong>风险</strong><span>如果页面整体层级太轻，focus 感知可能不够强。</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel variant-paper-lift">
+        <header class="panel-head">
+          <div>
+            <span class="panel-id">B</span>
+            <strong class="panel-name">Paper Lift</strong>
+          </div>
+          <span class="panel-tag">纸页被托起</span>
+        </header>
+        <div class="panel-body">
+          <p class="panel-note">聚焦时不是加线，而是让纸页轻轻离开桌面一点，强调结构而不是强调颜色。</p>
+          <div class="article">
+            <div class="field-shell focus">
+              <div class="field-meta">
+                <label class="field-label">Email</label>
+                <span class="field-side">focused</span>
+              </div>
+              <div class="field-control">
+                <input class="field-input" value="contact@shiroi.dev">
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">更有“纸片被翻起”的感觉。</span>
+                <span class="field-counter">B1</span>
+              </div>
+            </div>
+            <div class="field-shell note focus">
+              <div class="field-meta">
+                <label class="field-label">Reply</label>
+                <span class="field-side">Cmd+Enter</span>
+              </div>
+              <div class="field-control">
+                <textarea class="field-textarea">This one relies on subtle elevation rather than a directional marker.</textarea>
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">对 textarea 和 editor 友好。</span>
+                <span class="field-counter">124/500</span>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row"><strong>气质</strong><span>最符合纸张隐喻，交互很自然。</span></div>
+            <div class="legend-row"><strong>风险</strong><span>如果 hover 也有浮起，就要小心和 focus 混淆。</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel variant-topline">
+        <header class="panel-head">
+          <div>
+            <span class="panel-id">C</span>
+            <strong class="panel-name">Topline Wash</strong>
+          </div>
+          <span class="panel-tag">编辑批注感</span>
+        </header>
+        <div class="panel-body">
+          <p class="panel-note">accent 不再出现在左边，而是退成顶部一根淡淡的批注线，和 codeblock 的 header 语言更接近。</p>
+          <div class="article">
+            <div class="field-shell focus">
+              <div class="field-meta">
+                <label class="field-label">Email</label>
+                <span class="field-side">focused</span>
+              </div>
+              <div class="field-control">
+                <input class="field-input" value="contact@shiroi.dev">
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">更像编辑标记，而不是表单高亮。</span>
+                <span class="field-counter">C1</span>
+              </div>
+            </div>
+            <div class="field-shell note focus">
+              <div class="field-meta">
+                <label class="field-label">Reply</label>
+                <span class="field-side">Cmd+Enter</span>
+              </div>
+              <div class="field-control">
+                <textarea class="field-textarea">The top edge picks up the signal, so the content area still feels calm.</textarea>
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">和 codeblock 语系更近。</span>
+                <span class="field-counter">124/500</span>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row"><strong>气质</strong><span>最像“附页 / 批注”系统里的 focus。</span></div>
+            <div class="legend-row"><strong>风险</strong><span>单行输入上比较优雅，长 textarea 里可能略微太轻。</span></div>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel variant-bottom-line">
+        <header class="panel-head">
+          <div>
+            <span class="panel-id">D</span>
+            <strong class="panel-name">Inner Bottom Line</strong>
+          </div>
+          <span class="panel-tag">偏输入语义</span>
+        </header>
+        <div class="panel-body">
+          <p class="panel-note">把 focus 感知压到底部内部线条，比较像书写基线，不再抢四周边框。</p>
+          <div class="article">
+            <div class="field-shell focus">
+              <div class="field-meta">
+                <label class="field-label">Email</label>
+                <span class="field-side">focused</span>
+              </div>
+              <div class="field-control">
+                <input class="field-input" value="contact@shiroi.dev">
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">更偏传统输入逻辑，但做得更轻。</span>
+                <span class="field-counter">D1</span>
+              </div>
+            </div>
+            <div class="field-shell note focus">
+              <div class="field-meta">
+                <label class="field-label">Reply</label>
+                <span class="field-side">Cmd+Enter</span>
+              </div>
+              <div class="field-control">
+                <textarea class="field-textarea">The signal sits at the bottom, so the top half remains visually quiet.</textarea>
+              </div>
+              <div class="field-footer">
+                <span class="field-hint">更像输入法语义，不像批注语义。</span>
+                <span class="field-counter">124/500</span>
+              </div>
+            </div>
+          </div>
+          <div class="legend">
+            <div class="legend-row"><strong>气质</strong><span>最接近常规输入组件，但比普通 underline 方案更内敛。</span></div>
+            <div class="legend-row"><strong>风险</strong><span>对多行编辑器有时会显得过于“表单”。</span></div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

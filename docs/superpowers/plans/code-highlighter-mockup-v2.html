@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Highlighter — 余白 Design</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@4.0.0/dist/tailwind.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: 'Instrument Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: #FAFAF8;
+      color: #1A1917;
+      padding: 64px 48px;
+      line-height: 1.7;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      body { background: #0F0F0E; color: #E8E6E1; }
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 500;
+      letter-spacing: -0.025em;
+      margin-bottom: 6px;
+    }
+    p.subtitle {
+      font-size: 13px;
+      color: #9A9995;
+      margin-bottom: 56px;
+    }
+
+    h2 {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #C4C3BE;
+      margin-bottom: 14px;
+    }
+    @media (prefers-color-scheme: dark) { h2 { color: #5A5A58; } }
+
+    .section { margin-bottom: 52px; }
+
+    /* === Token Reference === */
+    .token-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 40px;
+    }
+    .token-chip {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 6px;
+      background: #F4F3F0;
+      color: #1A1917;
+    }
+    @media (prefers-color-scheme: dark) {
+      .token-chip { background: #1C1C1A; color: #E8E6E1; }
+    }
+
+    /* === Code Block Base === */
+    .code-block {
+      border-radius: 10px;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.75;
+      transition: all 0.2s ease;
+    }
+
+    /* Surface */
+    .surface-a { background: #FEFEFE; }
+    .surface-b { background: #F7F6F3; }
+    @media (prefers-color-scheme: dark) {
+      .surface-a { background: #171716; }
+      .surface-b { background: #1C1C1A; }
+    }
+
+    /* Border */
+    .border-a { border: 1px solid rgba(0,0,0,0.05); }
+    .border-b { border: 1px solid rgba(0,0,0,0.08); }
+    @media (prefers-color-scheme: dark) {
+      .border-a { border-color: rgba(255,255,255,0.05); }
+      .border-b { border-color: rgba(255,255,255,0.08); }
+    }
+
+    /* Shadow */
+    .shadow-a {
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.02),
+        0 4px 12px rgba(0,0,0,0.04),
+        0 12px 32px rgba(0,0,0,0.03);
+    }
+    @media (prefers-color-scheme: dark) {
+      .shadow-a {
+        box-shadow:
+          0 1px 1px rgba(0,0,0,0.2),
+          0 4px 12px rgba(0,0,0,0.15),
+          0 16px 40px rgba(0,0,0,0.2);
+      }
+    }
+
+    /* Code content */
+    .code-content {
+      padding: 18px 0;
+      overflow-x: auto;
+    }
+    .code-content code {
+      display: block;
+      padding: 0 22px;
+    }
+
+    /* Line */
+    .line {
+      display: flex;
+      gap: 20px;
+    }
+    .line-num {
+      min-width: 24px;
+      text-align: right;
+      color: #D4D3CF;
+      user-select: none;
+      font-size: 11px;
+      line-height: inherit;
+    }
+    @media (prefers-color-scheme: dark) { .line-num { color: #3D3D3B; } }
+
+    /* Syntax colors — light */
+    .tk-keyword { color: #8B5CF6; }
+    .tk-string  { color: #059669; }
+    .tk-func    { color: #2563EB; }
+    .tk-comment { color: #A8A29E; font-style: italic; }
+    .tk-type    { color: #D97706; }
+    .tk-var     { color: #1A1917; }
+    .tk-number  { color: #DC2626; }
+    .tk-op      { color: #71717A; }
+
+    /* Syntax colors — dark */
+    @media (prefers-color-scheme: dark) {
+      .tk-keyword { color: #A78BFA; }
+      .tk-string  { color: #34D399; }
+      .tk-func    { color: #60A5FA; }
+      .tk-comment { color: #6B7280; }
+      .tk-type    { color: #FBBF24; }
+      .tk-var     { color: #E8E6E1; }
+      .tk-number  { color: #F87171; }
+      .tk-op      { color: #A1A1AA; }
+    }
+
+    /* === Variants === */
+
+    /* V1: Pure minimal */
+    .v1 .code-content { padding: 20px 0; }
+    .v1 .line { padding: 1px 0; }
+    .v1 code { padding: 0 24px; }
+
+    /* V2: Subtle surface */
+    .v2 { background: #F7F6F3; border: 1px solid rgba(0,0,0,0.06); }
+    @media (prefers-color-scheme: dark) { .v2 { background: #1C1C1A; border-color: rgba(255,255,255,0.05); } }
+
+    /* V3: Accent bar top */
+    .v3 { border: 1px solid rgba(0,0,0,0.05); overflow: visible; }
+    .v3::before {
+      content: '';
+      display: block;
+      height: 2px;
+      background: linear-gradient(90deg, #33A6B8 0%, transparent 60%);
+      opacity: 0.7;
+    }
+    @media (prefers-color-scheme: dark) {
+      .v3::before { background: linear-gradient(90deg, #F596AA 0%, transparent 60%); }
+    }
+
+    /* V4: File tab */
+    .v4 { border: 1px solid rgba(0,0,0,0.05); }
+    .v4-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: #F4F3F0;
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      font-size: 12px;
+    }
+    @media (prefers-color-scheme: dark) { .v4-header { background: #1C1C1A; border-color: rgba(255,255,255,0.05); } }
+    .v4-filename {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 500;
+      color: #1A1917;
+    }
+    @media (prefers-color-scheme: dark) { .v4-filename { color: #E8E6E1; } }
+    .v4-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #F596AA;
+    }
+    .v4-dot.ts { background: #3178C6; }
+    .v4-dot.rs { background: #CE412B; }
+    .v4-dot.css { background: #264DE4; }
+    .v4-copy {
+      font-size: 11px;
+      color: #9A9995;
+      background: none;
+      border: 1px solid rgba(0,0,0,0.08);
+      padding: 3px 10px;
+      border-radius: 5px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+    .v4:hover .v4-copy { opacity: 1; }
+    @media (prefers-color-scheme: dark) {
+      .v4 { border-color: rgba(255,255,255,0.06); }
+      .v4-copy { border-color: rgba(255,255,255,0.08); }
+    }
+
+    /* V5: Language pill */
+    .v5 { border: 1px solid rgba(0,0,0,0.05); position: relative; }
+    .v5-pill {
+      position: absolute;
+      bottom: 10px;
+      right: 12px;
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #9A9995;
+      background: rgba(0,0,0,0.04);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .v5-pill { color: #6A6A68; background: rgba(255,255,255,0.04); }
+    }
+
+    /* V6: Focus mode */
+    .v6 { border: 1px solid rgba(0,0,0,0.05); }
+    .v6 .line { padding: 2px 24px; margin: 0 -24px; transition: background 0.12s; }
+    .v6 .line.focused {
+      background: rgba(51, 166, 184, 0.06);
+      border-left: 2px solid #33A6B8;
+      margin-left: -2px;
+    }
+    @media (prefers-color-scheme: dark) {
+      .v6 .line.focused {
+        background: rgba(245, 150, 170, 0.08);
+        border-left-color: #F596AA;
+      }
+    }
+
+    /* V7: Glass effect */
+    .v7 {
+      border: 1px solid rgba(0,0,0,0.04);
+      background: rgba(255,255,255,0.7);
+      backdrop-filter: blur(12px);
+    }
+    @media (prefers-color-scheme: dark) {
+      .v7 {
+        border-color: rgba(255,255,255,0.05);
+        background: rgba(20,20,20,0.6);
+      }
+    }
+
+    /* === Two-col layout === */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .label {
+      font-size: 11px;
+      color: #9A9995;
+      margin-top: 10px;
+    }
+
+    /* === Mono Specimen === */
+    .mono-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .mono-card {
+      background: #F4F3F0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 12px;
+    }
+    @media (prefers-color-scheme: dark) { .mono-card { background: #1C1C1A; } }
+    .mono-card .name { color: #9A9995; margin-bottom: 6px; }
+    .mono-card code { font-family: var(--font); }
+    .mono-card .sample { font-size: 13px; line-height: 1.6; }
+  </style>
+</head>
+<body>
+
+<h1>Code Highlighter — Design Direction</h1>
+<p class="subtitle">余白 · Instrument Sans + JetBrains Mono</p>
+
+<div class="section">
+  <h2>Design Tokens</h2>
+  <div class="token-grid">
+    <span class="token-chip">--code-bg: #FEFEFE</span>
+    <span class="token-chip">--code-surface: #F7F6F3</span>
+    <span class="token-chip">--code-border: rgba(0,0,0,0.05)</span>
+    <span class="token-chip">--code-radius: 10px</span>
+    <span class="token-chip">--code-font: JetBrains Mono</span>
+    <span class="token-chip">--code-size: 13px</span>
+    <span class="token-chip">--code-lh: 1.75</span>
+    <span class="token-chip">--code-px: 24px</span>
+    <span class="token-chip">--accent: #33A6B8 / #F596AA</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Direction 1 — Minimal</h2>
+  <div class="two-col">
+    <div>
+      <div class="code-block v1 surface-a border-a shadow-a">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">import</span> { useState } <span class="tk-keyword">from</span> <span class="tk-string">'react'</span></div>
+            <div class="line"><span class="line-num">2</span></div>
+            <div class="line"><span class="line-num">2</span><span class="tk-keyword">export const</span> <span class="tk-func">Counter</span> = () => {</div>
+            <div class="line"><span class="line-num">3</span>  <span class="tk-keyword">const</span> [n, <span class="tk-func">setN</span>] = <span class="tk-func">useState</span>(<span class="tk-number">0</span>)</div>
+            <div class="line"><span class="line-num">4</span>  <span class="tk-keyword">return</span> &lt;button onClick={() =&gt; <span class="tk-func">setN</span>(n + <span class="tk-number">1</span>)}&gt;{n}&lt;/button&gt;</div>
+            <div class="line"><span class="line-num">5</span>}</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">纯白背景，无多余装饰，行号淡化</p>
+    </div>
+    <div>
+      <div class="code-block v2">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">fn</span> <span class="tk-func">main</span>() {</div>
+            <div class="line"><span class="line-num">2</span>    <span class="tk-func">println</span>(<span class="tk-string">"，余白"</span>);</div>
+            <div class="line"><span class="line-num">3</span>    <span class="tk-keyword">let</span> x: <span class="tk-type">i32</span> = <span class="tk-number">42</span>;</div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">浅灰 surface，区分于页面背景</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Direction 2 — File Tab</h2>
+  <div class="code-block v4 surface-a shadow-a">
+    <div class="v4-header">
+      <span class="v4-filename">
+        <span class="v4-dot ts"></span>
+        useAuth.ts
+      </span>
+      <button class="v4-copy">Copy</button>
+    </div>
+    <div class="code-content">
+      <code>
+        <div class="line"><span class="line-num">1</span><span class="tk-keyword">export const</span> <span class="tk-func">useAuth</span> = () => {</div>
+        <div class="line"><span class="line-num">2</span>  <span class="tk-keyword">const</span> { user, <span class="tk-func">login</span>, <span class="tk-func">logout</span> } = <span class="tk-func">useContext</span>(AuthCtx)</div>
+        <div class="line"><span class="line-num">3</span>  <span class="tk-keyword">return</span> { user, isAuth: !!user }</div>
+        <div class="line"><span class="line-num">4</span>}</div>
+      </code>
+    </div>
+  </div>
+  <p class="label" style="margin-top: 12px;">带文件名、颜色圆点、hover 复制按钮</p>
+</div>
+
+<div class="section">
+  <h2>Direction 3 — Focus Mode</h2>
+  <div class="code-block v6 surface-a shadow-a">
+    <div class="code-content">
+      <code>
+        <div class="line"><span class="line-num">1</span><span class="tk-keyword">const</span> query = <span class="tk-func">useQuery</span>({</div>
+        <div class="line"><span class="line-num">2</span>  <span class="tk-var">queryKey</span>: [<span class="tk-string">'users'</span>],</div>
+        <div class="line focused"><span class="line-num">3</span>  <span class="tk-var">queryFn</span>: () =&gt; <span class="tk-func">fetchUsers</span>(),</div>
+        <div class="line"><span class="line-num">4</span>  <span class="tk-var">staleTime</span>: <span class="tk-number">5</span> * <span class="tk-number">60</span> * <span class="tk-number">1000</span>,</div>
+        <div class="line focused"><span class="line-num">5</span>  <span class="tk-var">retry</span>: <span class="tk-number">2</span>,</div>
+        <div class="line"><span class="line-num">6</span>})</div>
+      </code>
+    </div>
+  </div>
+  <p class="label" style="margin-top: 12px;">高亮行 accent 底色+左边线，非高亮行保持原样</p>
+</div>
+
+<div class="section">
+  <h2>Direction 4 — Accent Bar</h2>
+  <div class="two-col">
+    <div>
+      <div class="code-block v3 surface-a shadow-a">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">async function</span> <span class="tk-func">fetchData</span>() {</div>
+            <div class="line"><span class="line-num">2</span>  <span class="tk-keyword">const</span> res = <span class="tk-keyword">await</span> <span class="tk-func">fetch</span>(<span class="tk-string">'/api/posts'</span>)</div>
+            <div class="line"><span class="line-num">3</span>  <span class="tk-keyword">return</span> res.<span class="tk-func">json</span>()</div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">顶部 accent 渐变条，light mode</p>
+    </div>
+    <div>
+      <div class="code-block v3 surface-a shadow-a" style="--accent-dark: #F596AA;">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">async function</span> <span class="tk-func">fetchData</span>() {</div>
+            <div class="line"><span class="line-num">2</span>  <span class="tk-keyword">const</span> res = <span class="tk-keyword">await</span> <span class="tk-func">fetch</span>(<span class="tk-string">'/api/posts'</span>)</div>
+            <div class="line"><span class="line-num">3</span>  <span class="tk-keyword">return</span> res.<span class="tk-func">json</span>()</div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">顶部 accent 渐变条，dark mode</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Direction 5 — Language Pill</h2>
+  <div class="two-col">
+    <div>
+      <div class="code-block v5 surface-a border-a shadow-a">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">interface</span> <span class="tk-type">User</span> {</div>
+            <div class="line"><span class="line-num">2</span>  <span class="tk-var">id</span>: <span class="tk-type">string</span></div>
+            <div class="line"><span class="line-num">3</span>  <span class="tk-var">name</span>: <span class="tk-type">string</span></div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+        <span class="v5-pill">TypeScript</span>
+      </div>
+      <p class="label">右下角隐蔽语言标签</p>
+    </div>
+    <div>
+      <div class="code-block v5 surface-a border-a shadow-a">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">SELECT</span> *</div>
+            <div class="line"><span class="line-num">2</span><span class="tk-keyword">FROM</span> posts</div>
+            <div class="line"><span class="line-num">3</span><span class="tk-keyword">WHERE</span> published = <span class="tk-number">1</span></div>
+            <div class="line"><span class="line-num">4</span><span class="tk-keyword">ORDER BY</span> created_at <span class="tk-keyword">DESC</span></div>
+          </code>
+        </div>
+        <span class="v5-pill">SQL</span>
+      </div>
+      <p class="label">不抢视线，hover 时可显</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Monospace Specimen — JetBrains Mono</h2>
+  <div class="mono-row">
+    <div class="mono-card" style="--font: 'JetBrains Mono', monospace;">
+      <div class="name">JetBrains Mono</div>
+      <code class="sample">function render() { return null }</code>
+    </div>
+    <div class="mono-card" style="--font: 'Fira Code', monospace;">
+      <div class="name">Fira Code</div>
+      <code class="sample" style="font-family: 'Fira Code', monospace;">function render() { return null }</code>
+    </div>
+    <div class="mono-card" style="--font: 'Geist Mono', monospace;">
+      <div class="name">Geist Mono</div>
+      <code class="sample" style="font-family: 'Geist Mono', monospace;">function render() { return null }</code>
+    </div>
+    <div class="mono-card" style="--font: 'Cascadia Code', monospace;">
+      <div class="name">Cascadia</div>
+      <code class="sample" style="font-family: 'Cascadia Code', monospace;">function render() { return null }</code>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

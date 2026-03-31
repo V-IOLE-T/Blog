@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Highlighter Mockup — 余白</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --accent: #33A6B8;
+      --accent-soft: rgba(51, 166, 184, 0.08);
+      --accent-glow: rgba(51, 166, 184, 0.15);
+      --bg: #fefefb;
+      --bg-secondary: #f7f6f3;
+      --text: #1a1a1a;
+      --text-muted: #888;
+      --border: rgba(0,0,0,0.06);
+      --shadow: 0 1px 2px rgba(0,0,0,0.02), 0 4px 12px rgba(0,0,0,0.04);
+      --radius: 12px;
+      --line-number: #ccc;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --accent: #F596AA;
+        --accent-soft: rgba(245, 150, 170, 0.08);
+        --accent-glow: rgba(245, 150, 170, 0.12);
+        --bg: #141414;
+        --bg-secondary: #1a1a1a;
+        --text: #e8e8e8;
+        --text-muted: #666;
+        --border: rgba(255,255,255,0.06);
+        --shadow: 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.15);
+        --line-number: #444;
+      }
+    }
+
+    body {
+      font-family: 'Instrument Sans', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 48px;
+      line-height: 1.7;
+    }
+
+    h1 {
+      font-size: 24px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      margin-bottom: 48px;
+      font-size: 14px;
+    }
+
+    .section {
+      margin-bottom: 64px;
+    }
+
+    .section-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+    }
+
+    /* === CODE BLOCK VARIANTS === */
+
+    .code-card {
+      position: relative;
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: box-shadow 0.2s ease;
+    }
+
+    .code-card:hover {
+      box-shadow: 0 2px 4px rgba(0,0,0,0.03), 0 8px 20px rgba(0,0,0,0.06);
+    }
+
+    /* Variant A: Minimal — Language badge hidden, subtle */
+    .variant-a {
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    .variant-a pre {
+      padding: 20px 0;
+      margin: 0;
+      overflow-x: auto;
+    }
+
+    .variant-a code {
+      display: block;
+      padding: 0 24px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text);
+    }
+
+    .variant-a .line {
+      display: flex;
+      gap: 16px;
+    }
+
+    .variant-a .line-num {
+      color: var(--line-number);
+      user-select: none;
+      min-width: 28px;
+      text-align: right;
+      font-size: 12px;
+    }
+
+    .variant-a .keyword { color: #7c3aed; }
+    .variant-a .string { color: #059669; }
+    .variant-a .comment { color: #9ca3af; font-style: italic; }
+    .variant-a .function { color: var(--accent); }
+
+    @media (prefers-color-scheme: dark) {
+      .variant-a .keyword { color: #a78bfa; }
+      .variant-a .string { color: #34d399; }
+      .variant-a .comment { color: #6b7280; }
+    }
+
+    /* Variant B: With language badge */
+    .variant-b {
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    .variant-b .lang-badge {
+      position: absolute;
+      bottom: 12px;
+      right: 12px;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      padding: 3px 8px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      text-transform: uppercase;
+    }
+
+    .variant-b pre {
+      padding: 20px 0;
+      margin: 0;
+    }
+
+    .variant-b code {
+      display: block;
+      padding: 0 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    /* Variant C: Focus mode */
+    .variant-c {
+      background: var(--bg);
+      border: 1px solid var(--border);
+    }
+
+    .variant-c pre {
+      padding: 20px 0;
+      margin: 0;
+    }
+
+    .variant-c code {
+      display: block;
+      padding: 0 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .variant-c .line {
+      padding: 2px 0;
+      transition: background 0.15s ease;
+    }
+
+    .variant-c .line.focused {
+      background: var(--accent-soft);
+      border-left: 2px solid var(--accent);
+      margin-left: -2px;
+      padding-left: 22px;
+      margin-right: -24px;
+      padding-right: 24px;
+    }
+
+    /* Variant D: File header */
+    .variant-d {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+
+    .variant-d .file-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .variant-d .file-name {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .variant-d .file-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: #f596aa;
+    }
+
+    .variant-d .file-dot.ts { background: #3178c6; }
+    .variant-d .file-dot.js { background: #f7df1e; }
+    .variant-d .file-dot.rs { background: #dea584; }
+
+    .variant-d .copy-btn {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: none;
+      border: 1px solid var(--border);
+      padding: 3px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+
+    .variant-d:hover .copy-btn { opacity: 1; }
+    .variant-d .copy-btn:hover {
+      background: var(--accent-soft);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .variant-d pre {
+      padding: 16px 0;
+      margin: 0;
+    }
+
+    .variant-d code {
+      display: block;
+      padding: 0 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    /* Variant E: Accent glow (current-ish) */
+    .variant-e {
+      background: linear-gradient(to bottom, var(--accent-glow), var(--bg));
+      border: 1px solid var(--border);
+    }
+
+    .variant-e .accent-bar {
+      height: 3px;
+      background: linear-gradient(90deg, var(--accent), transparent);
+      opacity: 0.6;
+    }
+
+    .variant-e pre {
+      padding: 16px 0;
+      margin: 0;
+    }
+
+    .variant-e code {
+      display: block;
+      padding: 0 24px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    /* Comparison grid */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+    }
+
+    .grid-item {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .grid-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .grid-label strong {
+      color: var(--text);
+      font-weight: 500;
+    }
+
+    /* Mono specimen */
+    .mono-specimen {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .mono-card {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .mono-card h4 {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      font-weight: 400;
+    }
+
+    .mono-card code {
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<h1>Code Highlighter — Design Direction</h1>
+<p class="subtitle">余白 设计语言探索 · Instrument Sans + JetBrains Mono</p>
+
+<div class="section">
+  <div class="section-title">Variant A — Minimal</div>
+  <div class="code-card variant-a">
+    <pre><code><div class="line"><span class="line-num">1</span><span class="keyword">const</span> greeting = <span class="string">'Hello, World'</span></div>
+<div class="line"><span class="line-num">2</span><span class="keyword">const</span> <span class="function">render</span> = () => {</div>
+<div class="line"><span class="line-num">3</span>  <span class="keyword">return</span> <span class="string">`${greeting}!`</span></div>
+<div class="line"><span class="line-num">4</span>}</div></code></pre>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Variant B — Hidden Language Badge</div>
+  <div class="code-card variant-b">
+    <pre><code><div class="line"><span class="keyword">interface</span> Props {</div>
+<div class="line">  name: <span class="keyword">string</span></div>
+<div class="line">  age: <span class="keyword">number</span></div>
+<div class="line">  <span class="function">callback</span>: () => <span class="keyword">void</span></div>
+<div class="line">}</div></code></pre>
+    <span class="lang-badge">TypeScript</span>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Variant C — Focus Mode</div>
+  <div class="code-card variant-c">
+    <pre><code><div class="line"><span class="keyword">const</span> x = <span class="string">'outside'</span></div>
+<div class="line focused"><span class="keyword">const</span> y = <span class="string">'focused line'</span></div>
+<div class="line"><span class="comment">// dimmed but visible</span></div>
+<div class="line focused"><span class="function">console</span>.<span class="function">log</span>(y)</div>
+<div class="line"><span class="keyword">return</span> x</div></code></pre>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Variant D — File Header</div>
+  <div class="code-card variant-d">
+    <div class="file-header">
+      <span class="file-name">
+        <span class="file-dot ts"></span>
+        useAuth.ts
+      </span>
+      <button class="copy-btn">Copy</button>
+    </div>
+    <pre><code><div class="line"><span class="keyword">export const</span> <span class="function">useAuth</span> = () => {</div>
+<div class="line">  <span class="keyword">const</span> user = <span class="function">useContext</span>(AuthContext)</div>
+<div class="line">  <span class="keyword">return</span> { user }</div>
+<div class="line">}</div></code></pre>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Variant E — Accent Glow</div>
+  <div class="code-card variant-e">
+    <div class="accent-bar"></div>
+    <pre><code><div class="line"><span class="keyword">fn</span> <span class="function">main</span>() {</div>
+<div class="line">    <span class="function">println</span>(<span class="string">"Hello"</span>);</div>
+<div class="line">}</div></code></pre>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Monospace Comparison</div>
+  <div class="mono-specimen">
+    <div class="grid">
+      <div class="grid-item">
+        <div class="grid-label"><strong>JetBrains Mono</strong> — 代码首选，连字支持</div>
+        <div class="mono-card" style="--font: 'JetBrains Mono', monospace;">
+          <h4>The quick brown fox</h4>
+          <code>function render() { return null }</code>
+        </div>
+      </div>
+      <div class="grid-item">
+        <div class="grid-label"><strong>Fira Code</strong> — 经典之选</div>
+        <div class="mono-card" style="--font: 'Fira Code', monospace;">
+          <h4>The quick brown fox</h4>
+          <code style="font-family: 'Fira Code', monospace;">function render() { return null }</code>
+        </div>
+      </div>
+      <div class="grid-item">
+        <div class="grid-label"><strong>Sofia Mono</strong> — 优雅细腻</div>
+        <div class="mono-card" style="--font: 'Sofia Mono', monospace;">
+          <h4>The quick brown fox</h4>
+          <code style="font-family: 'Sofia Mono', monospace;">function render() { return null }</code>
+        </div>
+      </div>
+      <div class="grid-item">
+        <div class="grid-label"><strong>Geist Mono</strong> — Vercel 系</div>
+        <div class="mono-card" style="--font: 'Geist Mono', monospace;">
+          <h4>The quick brown fox</h4>
+          <code style="font-family: 'Geist Mono', monospace;">function render() { return null }</code>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Design Tokens — Extracted</div>
+  <pre style="font-size: 12px; color: var(--text-muted); background: var(--bg-secondary); padding: 16px; border-radius: 8px; font-family: 'JetBrains Mono', monospace;">--code-bg: var(--bg)
+--code-border: var(--border)
+--code-radius: 12px
+--code-shadow: 0 1px 2px rgba(), 0 4px 12px rgba()
+--code-font: 'JetBrains Mono', monospace
+--code-size: 13px
+--code-line-height: 1.7
+--code-padding-x: 24px
+--code-padding-y: 16px
+--accent-bar-height: 3px
+--focus-border-width: 2px</pre>
+</div>
+
+</body>
+</html>

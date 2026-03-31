@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Highlighter Mockup v6 Header Variants</title>
+  <style>
+    :root {
+      --font-sans: "Instrument Sans", "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --font-serif: "Iowan Old Style", "Palatino Linotype", "Noto Serif SC", serif;
+      --font-mono: "IBM Plex Mono", "JetBrains Mono", "SFMono-Regular", monospace;
+      --bg: #fcfaf4;
+      --paper: #fffefb;
+      --paper-soft: #f8f5ee;
+      --text: #1b1916;
+      --text-soft: #615d56;
+      --text-faint: #9a9488;
+      --line: rgba(0, 0, 0, 0.06);
+      --line-soft: rgba(0, 0, 0, 0.04);
+      --accent: #33a6b8;
+      --accent-soft: rgba(51, 166, 184, 0.08);
+      --warm: rgba(255, 228, 180, 0.16);
+      --shadow-inline: 0 1px 1px rgba(0, 0, 0, 0.01), 0 3px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 228, 180, 0.26), transparent 26rem),
+        linear-gradient(180deg, #fffef9 0%, var(--bg) 100%);
+    }
+
+    .page {
+      width: min(1420px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 48px 0 72px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 10px;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: var(--font-serif);
+      font-size: clamp(30px, 4vw, 44px);
+      font-weight: 400;
+      letter-spacing: 0.05em;
+    }
+
+    .lede {
+      width: min(720px, 100%);
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.95;
+      color: var(--text-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      margin-top: 36px;
+    }
+
+    .variant {
+      overflow: hidden;
+      border-radius: 26px;
+      border: 1px solid rgba(0, 0, 0, 0.045);
+      background:
+        radial-gradient(circle at top right, rgba(51, 166, 184, 0.04), transparent 14rem),
+        rgba(255, 255, 252, 0.82);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.015), 0 8px 24px rgba(0, 0, 0, 0.03);
+    }
+
+    .variant-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 18px 12px;
+    }
+
+    .variant-id {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .variant-name {
+      display: block;
+      margin-top: 6px;
+      font-family: var(--font-serif);
+      font-size: 18px;
+      color: var(--text);
+    }
+
+    .variant-tag {
+      font-size: 11px;
+      color: #867f77;
+      white-space: nowrap;
+    }
+
+    .variant-body {
+      padding: 0 18px 18px;
+    }
+
+    .variant-note {
+      margin: 0 0 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-soft);
+    }
+
+    .article {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 22px;
+      background: rgba(255, 254, 249, 0.88);
+      border: 1px solid rgba(0, 0, 0, 0.035);
+    }
+
+    .article p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.9;
+      color: #625e57;
+    }
+
+    .code-card {
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      background:
+        linear-gradient(180deg, rgba(51, 166, 184, 0.03), rgba(255, 255, 255, 0) 24%),
+        var(--paper);
+      box-shadow: var(--shadow-inline);
+    }
+
+    .topline {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(51, 166, 184, 0.2) 16%, rgba(51, 166, 184, 0.08) 72%, transparent);
+    }
+
+    .meta {
+      color: #878178;
+      font-size: 11px;
+    }
+
+    .copy {
+      padding: 0;
+      background: none;
+      border: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+      font: inherit;
+      color: inherit;
+      cursor: default;
+    }
+
+    .filename {
+      font-family: var(--font-serif);
+      color: #2b2823;
+    }
+
+    .lang {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      white-space: nowrap;
+    }
+
+    .lang::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--accent);
+      box-shadow: 0 0 0 4px var(--accent-soft);
+    }
+
+    .divider {
+      height: 1px;
+      margin: 0 18px;
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.075) 14%, rgba(0, 0, 0, 0.075) 86%, transparent);
+    }
+
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      padding: 12px 0 8px;
+    }
+
+    code {
+      display: grid;
+      gap: 1px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.9;
+      color: #2e2a26;
+    }
+
+    .line {
+      position: relative;
+      display: grid;
+      grid-template-columns: 34px 1fr;
+      gap: 14px;
+      padding: 0 18px;
+    }
+
+    .line-no {
+      text-align: right;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      color: #c2beb5;
+      user-select: none;
+    }
+
+    .focus {
+      background: var(--accent-soft);
+    }
+
+    .focus::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.28rem;
+      bottom: 0.28rem;
+      width: 2px;
+      background: var(--accent);
+    }
+
+    .tk-key { color: #9c65cf; }
+    .tk-fn { color: #2f7f88; }
+    .tk-str { color: #3a7c58; }
+    .tk-note { color: #9f8b66; font-style: italic; }
+    .tk-punc { color: #888179; }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 18px 14px;
+      font-size: 11px;
+      color: #857f76;
+    }
+
+    .footer em {
+      font-family: var(--font-serif);
+      font-style: italic;
+      color: #988f83;
+    }
+
+    .unfold {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .unfold::before {
+      content: "";
+      width: 16px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.4;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.62);
+      font-size: 10px;
+      color: #878279;
+    }
+
+    .h1 .header {
+      display: grid;
+      gap: 2px;
+      padding: 14px 18px 12px;
+    }
+
+    .h1 .row-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 10px;
+      letter-spacing: 0.26em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .h1 .row-file {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .h1 .row-file .filename {
+      font-size: 16px;
+    }
+
+    .h2 .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 14px 18px 12px;
+    }
+
+    .h2 .left {
+      min-width: 0;
+      display: grid;
+      gap: 3px;
+    }
+
+    .h2 .left .label {
+      letter-spacing: 0.22em;
+    }
+
+    .h2 .left .filename {
+      font-size: 16px;
+    }
+
+    .h2 .right {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding-top: 12px;
+    }
+
+    .h3 .header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 15px 18px 12px;
+    }
+
+    .h3 .left {
+      min-width: 0;
+      display: flex;
+      align-items: baseline;
+      gap: 12px;
+    }
+
+    .h3 .stamp {
+      flex: none;
+      padding: 4px 7px 3px;
+      border-radius: 4px;
+      border: 1px solid rgba(51, 166, 184, 0.18);
+      background: rgba(51, 166, 184, 0.04);
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: #5e8d95;
+    }
+
+    .h3 .left .filename {
+      font-size: 15px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .h3 .right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      color: #868178;
+    }
+
+    .h4 .header {
+      display: grid;
+      gap: 8px;
+      padding: 16px 18px 12px;
+    }
+
+    .h4 .row-file {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .h4 .row-file .filename {
+      font-size: 17px;
+      position: relative;
+      padding-left: 12px;
+    }
+
+    .h4 .row-file .filename::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.35em;
+      width: 4px;
+      height: 4px;
+      border-radius: 999px;
+      background: var(--accent);
+    }
+
+    .h4 .row-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 11px;
+      color: #868178;
+    }
+
+    .h4 .row-meta .left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    @media (max-width: 1080px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100vw - 20px, 1420px);
+        padding-top: 28px;
+      }
+
+      .variant {
+        border-radius: 22px;
+      }
+
+      .variant-head,
+      .variant-body {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .h1 .row-top,
+      .h1 .row-file,
+      .h2 .header,
+      .h3 .header,
+      .h4 .row-file,
+      .h4 .row-meta,
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .h3 .header,
+      .h4 .header {
+        grid-template-columns: 1fr;
+      }
+
+      .line {
+        grid-template-columns: 26px 1fr;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Code Highlighter / Header Variants</p>
+    <h1>保留 A 的安静感，只重做 header</h1>
+    <p class="lede">
+      这四版都基于 `Quiet Insert` 的整体比例和轻阴影，只改 header 的语法。重点是把它从“组件头”变成更像正文边注、编辑标记或文件题签。
+    </p>
+
+    <section class="grid">
+      <article class="variant h1">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">Header 1</span>
+            <span class="variant-name">Margin Note</span>
+          </div>
+          <span class="variant-tag">边注式</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">上层是极轻的 section label，下层才是文件名。语气最像正文边上的编辑注释，不像一个控件 title bar。</p>
+          <div class="article">
+            <p>这版把 header 拆成两层，信息密度被拉开，读起来更像文章里的题签和边注。</p>
+            <div class="code-card">
+              <div class="topline"></div>
+              <div class="header">
+                <div class="row-top">
+                  <span>snippet</span>
+                  <span class="meta">tsx · <button class="copy" type="button">copy</button></span>
+                </div>
+                <div class="row-file">
+                  <span class="filename">CodeHighlighter.tsx</span>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">export const</span> <span class="tk-fn">ShikiHighLighterWrapper</span> <span class="tk-punc">=</span> <span class="tk-punc">({</span> <span class="tk-note">...props</span> <span class="tk-punc">})</span> <span class="tk-punc">=&gt;</span> <span class="tk-punc">{</span></span></span>
+<span class="line"><span class="line-no">02</span><span>  <span class="tk-key">const</span> filename <span class="tk-punc">=</span> <span class="tk-fn">parseFilenameFromAttrs</span><span class="tk-punc">(</span>attrs <span class="tk-punc">||</span> <span class="tk-str">''</span><span class="tk-punc">)</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span>  <span class="tk-key">const</span> hasHeader <span class="tk-punc">=</span> <span class="tk-fn">Boolean</span><span class="tk-punc">(</span>filename<span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">04</span><span>  <span class="tk-key">return</span> <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"paper-code-card"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>最像正文边注。</em>
+                <span class="unfold">24 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">阅读感最好</span>
+              <span class="chip">很轻</span>
+              <span class="chip">不太像 toolbar</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="variant h2">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">Header 2</span>
+            <span class="variant-name">Title Slip</span>
+          </div>
+          <span class="variant-tag">题签式</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">把文件名当正文里的小标题处理，语言和 copy 退到右下角。更像一张贴在代码页上的题签。</p>
+          <div class="article">
+            <p>如果你希望文件名更像“这一段的标题”，这版的秩序更明确，但仍然很安静。</p>
+            <div class="code-card">
+              <div class="topline"></div>
+              <div class="header">
+                <div class="left">
+                  <span class="label">code excerpt</span>
+                  <span class="filename">CodeHighlighter.tsx</span>
+                </div>
+                <div class="right meta">
+                  <span class="lang">tsx</span>
+                  <button class="copy" type="button">copy</button>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">export const</span> <span class="tk-fn">ShikiHighLighterWrapper</span> <span class="tk-punc">=</span> <span class="tk-punc">({</span> <span class="tk-note">...props</span> <span class="tk-punc">})</span> <span class="tk-punc">=&gt;</span> <span class="tk-punc">{</span></span></span>
+<span class="line"><span class="line-no">02</span><span>  <span class="tk-key">const</span> filename <span class="tk-punc">=</span> <span class="tk-fn">parseFilenameFromAttrs</span><span class="tk-punc">(</span>attrs <span class="tk-punc">||</span> <span class="tk-str">''</span><span class="tk-punc">)</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span>  <span class="tk-key">const</span> hasHeader <span class="tk-punc">=</span> <span class="tk-fn">Boolean</span><span class="tk-punc">(</span>filename<span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">04</span><span>  <span class="tk-key">return</span> <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"paper-code-card"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>文件名存在感更强。</em>
+                <span class="unfold">24 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">标题层级清楚</span>
+              <span class="chip">更像题签</span>
+              <span class="chip">适合文件名重要时</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="variant h3">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">Header 3</span>
+            <span class="variant-name">Stamp Label</span>
+          </div>
+          <span class="variant-tag">印章式</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">把 `snippet` 做成一个很轻的 stamp，文件名和 meta 放在同一水平层。更有记忆点，但仍然不重。</p>
+          <div class="article">
+            <p>这版比前两版更有“Shiroi 自己的标记系统”味道，但风险是装饰语义会更明显。</p>
+            <div class="code-card">
+              <div class="topline"></div>
+              <div class="header">
+                <div class="left">
+                  <span class="stamp">snippet</span>
+                  <span class="filename">CodeHighlighter.tsx</span>
+                </div>
+                <div class="right">
+                  <span class="lang">tsx</span>
+                  <button class="copy" type="button">copy</button>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">export const</span> <span class="tk-fn">ShikiHighLighterWrapper</span> <span class="tk-punc">=</span> <span class="tk-punc">({</span> <span class="tk-note">...props</span> <span class="tk-punc">})</span> <span class="tk-punc">=&gt;</span> <span class="tk-punc">{</span></span></span>
+<span class="line"><span class="line-no">02</span><span>  <span class="tk-key">const</span> filename <span class="tk-punc">=</span> <span class="tk-fn">parseFilenameFromAttrs</span><span class="tk-punc">(</span>attrs <span class="tk-punc">||</span> <span class="tk-str">''</span><span class="tk-punc">)</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span>  <span class="tk-key">const</span> hasHeader <span class="tk-punc">=</span> <span class="tk-fn">Boolean</span><span class="tk-punc">(</span>filename<span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">04</span><span>  <span class="tk-key">return</span> <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"paper-code-card"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>更有风格，但也更挑场景。</em>
+                <span class="unfold">24 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">记忆点最强</span>
+              <span class="chip">装饰感略高</span>
+              <span class="chip">适合专题内容</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="variant h4">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">Header 4</span>
+            <span class="variant-name">File First</span>
+          </div>
+          <span class="variant-tag">文件优先</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">先看到文件名，再在下一行看到语言和操作。最接近“正文小节标题 + 元信息”的组织方式，也最自然。</p>
+          <div class="article">
+            <p>如果你不喜欢 label 抢在最前面，这版会更顺。它几乎就是正文里的一个小标题，下面附带一行 meta。</p>
+            <div class="code-card">
+              <div class="topline"></div>
+              <div class="header">
+                <div class="row-file">
+                  <span class="filename">CodeHighlighter.tsx</span>
+                </div>
+                <div class="row-meta">
+                  <div class="left">
+                    <span class="meta">code excerpt</span>
+                    <span class="lang">tsx</span>
+                  </div>
+                  <button class="copy" type="button">copy</button>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">export const</span> <span class="tk-fn">ShikiHighLighterWrapper</span> <span class="tk-punc">=</span> <span class="tk-punc">({</span> <span class="tk-note">...props</span> <span class="tk-punc">})</span> <span class="tk-punc">=&gt;</span> <span class="tk-punc">{</span></span></span>
+<span class="line"><span class="line-no">02</span><span>  <span class="tk-key">const</span> filename <span class="tk-punc">=</span> <span class="tk-fn">parseFilenameFromAttrs</span><span class="tk-punc">(</span>attrs <span class="tk-punc">||</span> <span class="tk-str">''</span><span class="tk-punc">)</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span>  <span class="tk-key">const</span> hasHeader <span class="tk-punc">=</span> <span class="tk-fn">Boolean</span><span class="tk-punc">(</span>filename<span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">04</span><span>  <span class="tk-key">return</span> <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"paper-code-card"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>最顺手，也最不做作。</em>
+                <span class="unfold">24 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">文件名优先</span>
+              <span class="chip">结构最自然</span>
+              <span class="chip">实现成本低</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
