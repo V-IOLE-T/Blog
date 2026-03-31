@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Highlighter — 書写·信纸·光影</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@4.0.0/dist/tailwind.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Noto+Serif+SC:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: 'Instrument Sans', system-ui, sans-serif;
+      --font-serif: 'Noto Serif SC', serif;
+      --font-mono: 'JetBrains Mono', monospace;
+
+      /* 書写·信纸·光影 tokens */
+      --color-root-bg: #fefefb;
+      --color-accent: #33A6B8;
+      --color-accent-soft: rgba(51, 166, 184, 0.08);
+      --color-accent-glow: rgba(51, 166, 184, 0.15);
+      --color-neutral-1: #ffffff;
+      --color-neutral-2: #f7f6f3;
+      --color-neutral-3: #eeece8;
+      --color-neutral-4: #c4c3be;
+      --color-neutral-5: #9a9995;
+      --color-neutral-6: #7c7b78;
+      --color-neutral-7: #5a5956;
+      --color-neutral-8: #3d3c3a;
+      --color-neutral-9: #1a1917;
+      --color-neutral-10: #0f0f0e;
+      --color-border: rgba(0,0,0,0.05);
+      --color-border-strong: rgba(0,0,0,0.08);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-root-bg: rgb(28,28,30);
+        --color-accent: #F596AA;
+        --color-accent-soft: rgba(245, 150, 170, 0.08);
+        --color-accent-glow: rgba(245, 150, 170, 0.12);
+        --color-neutral-1: #0f0f0e;
+        --color-neutral-2: #1a1917;
+        --color-neutral-3: #252523;
+        --color-neutral-4: #3d3c3a;
+        --color-neutral-5: #5a5956;
+        --color-neutral-6: #7c7b78;
+        --color-neutral-7: #9a9995;
+        --color-neutral-8: #c4c3be;
+        --color-neutral-9: #e8e6e1;
+        --color-neutral-10: #fafaf8;
+        --color-border: rgba(255,255,255,0.05);
+        --color-border-strong: rgba(255,255,255,0.08);
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--color-root-bg);
+      color: var(--color-neutral-9);
+      font-size: 14px;
+      line-height: 1.75;
+      padding: 64px 48px;
+    }
+
+    h1 {
+      font-family: var(--font-serif);
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: 0.04em;
+      color: var(--color-neutral-9);
+      margin-bottom: 6px;
+    }
+    p.subtitle {
+      font-size: 12px;
+      color: var(--color-neutral-5);
+      margin-bottom: 56px;
+      letter-spacing: 0.02em;
+    }
+
+    h2 {
+      font-family: var(--font-sans);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 4px;
+      color: var(--color-neutral-4);
+      margin-bottom: 16px;
+    }
+
+    .section { margin-bottom: 52px; }
+
+    /* === Token Reference === */
+    .token-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 40px;
+    }
+    .token-chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      padding: 4px 9px;
+      border-radius: 4px;
+      background: var(--color-neutral-2);
+      color: var(--color-neutral-7);
+      border: 1px solid var(--color-border);
+    }
+
+    /* === Code Block Base === */
+    .code-block {
+      border-radius: 8px;
+      overflow: hidden;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.8;
+      transition: box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    /* Surface */
+    .srf-root  { background: var(--color-root-bg); }
+    .srf-paper { background: var(--color-neutral-2); }
+    .srf-warm  { background: #fefefb; }
+
+    /* Border */
+    .bdr {
+      border: 1px solid var(--color-border);
+    }
+    .bdr-strong {
+      border: 1px solid var(--color-border-strong);
+    }
+
+    /* Shadow — 書写卡片风格 */
+    .shd {
+      box-shadow:
+        0 1px 1px rgba(0,0,0,0.01),
+        0 2px 6px -1px rgba(0,0,0,0.03),
+        0 8px 20px -6px rgba(0,0,0,0.04);
+    }
+    .shd:hover {
+      box-shadow:
+        0 2px 4px rgba(0,0,0,0.02),
+        0 6px 16px -2px rgba(0,0,0,0.04),
+        0 16px 36px -8px rgba(0,0,0,0.06);
+    }
+    @media (prefers-color-scheme: dark) {
+      .shd {
+        box-shadow:
+          0 1px 1px rgba(0,0,0,0.15),
+          0 2px 6px -1px rgba(0,0,0,0.2),
+          0 8px 20px -6px rgba(0,0,0,0.2);
+      }
+      .shd:hover {
+        box-shadow:
+          0 2px 4px rgba(0,0,0,0.2),
+          0 6px 16px -2px rgba(0,0,0,0.25),
+          0 16px 36px -8px rgba(0,0,0,0.25);
+      }
+    }
+
+    /* Code content */
+    .code-content {
+      padding: 18px 0;
+      overflow-x: auto;
+    }
+    .code-content code {
+      display: block;
+      padding: 0 22px;
+    }
+
+    /* Line */
+    .line {
+      display: flex;
+      gap: 18px;
+      padding: 1px 0;
+    }
+    .line-num {
+      min-width: 22px;
+      text-align: right;
+      color: var(--color-neutral-4);
+      user-select: none;
+      font-size: 11px;
+      line-height: inherit;
+      font-family: var(--font-sans);
+    }
+
+    /* Syntax colors — light */
+    .tk-keyword { color: #8B5CF6; }
+    .tk-string  { color: #059669; }
+    .tk-func    { color: var(--color-accent); }
+    .tk-comment { color: var(--color-neutral-5); font-style: italic; }
+    .tk-type    { color: #D97706; }
+    .tk-var     { color: var(--color-neutral-9); }
+    .tk-number  { color: #DC2626; }
+    .tk-op      { color: var(--color-neutral-6); }
+
+    /* Syntax colors — dark */
+    @media (prefers-color-scheme: dark) {
+      .tk-keyword { color: #A78BFA; }
+      .tk-string  { color: #34D399; }
+      .tk-func    { color: var(--color-accent); }
+      .tk-comment { color: var(--color-neutral-5); }
+      .tk-type    { color: #FBBF24; }
+      .tk-var     { color: var(--color-neutral-9); }
+      .tk-number  { color: #F87171; }
+      .tk-op      { color: var(--color-neutral-6); }
+    }
+
+    /* === File Header — Serif Filename === */
+    .file-hdr {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--color-border);
+      background: var(--color-neutral-2);
+    }
+    .file-name {
+      font-family: var(--font-serif);
+      font-size: 12px;
+      font-weight: 400;
+      color: var(--color-neutral-7);
+      letter-spacing: 0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .file-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--color-accent);
+      opacity: 0.7;
+    }
+    .file-dot.ts { background: #3178C6; }
+    .file-dot.rs { background: #CE412B; }
+    .file-dot.css { background: #264DE4; }
+    .file-dot.json { background: #D97706; }
+
+    .copy-btn {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      color: var(--color-neutral-5);
+      background: none;
+      border: 1px solid var(--color-border-strong);
+      padding: 3px 9px;
+      border-radius: 4px;
+      cursor: pointer;
+      opacity: 0;
+      transition: all 0.2s ease;
+      letter-spacing: 0.02em;
+    }
+    .code-block:hover .copy-btn { opacity: 1; }
+    .copy-btn:hover {
+      background: var(--color-accent-soft);
+      color: var(--color-accent);
+      border-color: var(--color-accent);
+    }
+
+    /* === Language Indicator === */
+    .lang-pill {
+      position: absolute;
+      bottom: 12px;
+      right: 14px;
+      font-family: var(--font-sans);
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-neutral-5);
+      padding: 3px 8px;
+      border-radius: 3px;
+      background: var(--color-neutral-2);
+      border: 1px solid var(--color-border);
+    }
+
+    /* === Accent Bar === */
+    .accent-bar {
+      height: 2px;
+      background: linear-gradient(90deg, var(--color-accent), transparent 70%);
+      opacity: 0.5;
+    }
+
+    /* === Focus Line === */
+    .line.focused {
+      background: var(--color-accent-soft);
+      border-left: 2px solid var(--color-accent);
+      margin-left: -2px;
+      padding-left: 20px;
+      margin-right: -22px;
+      padding-right: 22px;
+    }
+
+    /* === Two-col grid === */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .label {
+      font-size: 11px;
+      color: var(--color-neutral-5);
+      margin-top: 10px;
+      font-family: var(--font-sans);
+    }
+
+    /* === Decorative light spot === */
+    .light-spot {
+      position: absolute;
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255,228,180,0.25) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .light-spot-cold {
+      background: radial-gradient(circle, rgba(180,200,255,0.12) 0%, transparent 70%);
+    }
+
+    /* === Section decorative divider === */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--color-border-strong) 20%, var(--color-border-strong) 80%, transparent);
+      margin: 48px 0;
+    }
+
+    /* === Mono specimen row === */
+    .mono-row {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+    .mono-card {
+      background: var(--color-neutral-2);
+      border-radius: 6px;
+      padding: 14px 16px;
+      border: 1px solid var(--color-border);
+    }
+    .mono-card .name {
+      font-family: var(--font-sans);
+      font-size: 10px;
+      color: var(--color-neutral-5);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .mono-card code {
+      font-family: var(--font);
+      font-size: 12px;
+      line-height: 1.6;
+      color: var(--color-neutral-7);
+    }
+  </style>
+</head>
+<body>
+
+<h1>書写·信纸·光影</h1>
+<p class="subtitle">Code Highlighter · 余白 Design Language</p>
+
+<div class="section">
+  <h2>Design Tokens</h2>
+  <div class="token-grid">
+    <span class="token-chip">--color-root-bg: #fefefb / rgb(28,28,30)</span>
+    <span class="token-chip">--color-accent: #33A6B8 / #F596AA</span>
+    <span class="token-chip">--color-accent-soft: 8% opacity</span>
+    <span class="token-chip">--color-neutral-2: #f7f6f3</span>
+    <span class="token-chip">--color-neutral-3: #eeece8</span>
+    <span class="token-chip">--color-neutral-4: #c4c3be</span>
+    <span class="token-chip">--color-neutral-5: #9a9995</span>
+    <span class="token-chip">--color-neutral-7: #5a5956</span>
+    <span class="token-chip">--color-border: rgba(0,0,0,0.05)</span>
+    <span class="token-chip">--color-border-strong: rgba(0,0,0,0.08)</span>
+    <span class="token-chip">--font-serif: Noto Serif SC</span>
+    <span class="token-chip">--font-sans: Instrument Sans</span>
+    <span class="token-chip">--font-mono: JetBrains Mono</span>
+    <span class="token-chip">--radius: 8px</span>
+    <span class="token-chip">--code-lh: 1.8</span>
+    <span class="token-chip">--code-size: 13px</span>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Direction A — 信纸本色</h2>
+  <div class="two-col">
+    <div>
+      <div class="code-block srf-root bdr shd" style="position: relative;">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num"> 1</span><span class="tk-keyword">import</span> { useState } <span class="tk-keyword">from</span> <span class="tk-string">'react'</span></div>
+            <div class="line"><span class="line-num"> 2</span></div>
+            <div class="line"><span class="line-num"> 3</span><span class="tk-keyword">export const</span> <span class="tk-func">Counter</span> = () => {</div>
+            <div class="line"><span class="line-num"> 4</span>  <span class="tk-keyword">const</span> [n, <span class="tk-func">setN</span>] = <span class="tk-func">useState</span>(<span class="tk-number">0</span>)</div>
+            <div class="line"><span class="line-num"> 5</span>  <span class="tk-keyword">return</span> &lt;button onClick={() =&gt; <span class="tk-func">setN</span>(n + <span class="tk-number">1</span>)}&gt;</div>
+            <div class="line"><span class="line-num"> 6</span>    {n} <span class="tk-comment">/* 余白 */</span></div>
+            <div class="line"><span class="line-num"> 7</span>  &lt;/button&gt;</div>
+            <div class="line"><span class="line-num"> 8</span>}</div>
+          </code>
+        </div>
+        <span class="lang-pill">TypeScript</span>
+      </div>
+      <p class="label">同根背景，浅边界，hover 现语言标签，如纸页边缘</p>
+    </div>
+    <div>
+      <div class="code-block srf-paper bdr shd">
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">fn</span> <span class="tk-func">main</span>() {</div>
+            <div class="line"><span class="line-num">2</span>    <span class="tk-keyword">let</span> x: <span class="tk-type">i32</span> = <span class="tk-number">42</span>;</div>
+            <div class="line"><span class="line-num">3</span>    <span class="tk-func">println</span>(<span class="tk-string">"，余白"</span>);</div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+        <span class="lang-pill">Rust</span>
+      </div>
+      <p class="label">neutral-2 背景，区分于页面，如内页纸</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Direction B — 文件名（Serif）</h2>
+  <div class="code-block srf-root bdr shd">
+    <div class="file-hdr">
+      <span class="file-name">
+        <span class="file-dot ts"></span>
+        useAuth.ts
+      </span>
+      <button class="copy-btn">Copy</button>
+    </div>
+    <div class="code-content">
+      <code>
+        <div class="line"><span class="line-num">1</span><span class="tk-keyword">export const</span> <span class="tk-func">useAuth</span> = () => {</div>
+        <div class="line"><span class="line-num">2</span>  <span class="tk-keyword">const</span> { user, <span class="tk-func">login</span>, <span class="tk-func">logout</span> }</div>
+        <div class="line"><span class="line-num">3</span>    = <span class="tk-func">useContext</span>(AuthCtx)</div>
+        <div class="line"><span class="line-num">4</span>  <span class="tk-keyword">return</span> { user, isAuth: !!user }</div>
+        <div class="line"><span class="line-num">5</span>}</div>
+      </code>
+    </div>
+  </div>
+  <p class="label">Noto Serif SC 斜体文件名，信纸隐喻；accent 色圆点；hover 显 Copy</p>
+</div>
+
+<div class="section">
+  <h2>Direction C — Focus Mode</h2>
+  <div class="code-block srf-root bdr shd">
+    <div class="code-content">
+      <code>
+        <div class="line"><span class="line-num">1</span><span class="tk-keyword">const</span> query = <span class="tk-func">useQuery</span>({</div>
+        <div class="line"><span class="line-num">2</span>  <span class="tk-var">queryKey</span>: [<span class="tk-string">'posts'</span>],</div>
+        <div class="line focused"><span class="line-num">3</span>  <span class="tk-var">queryFn</span>: () =&gt; <span class="tk-func">fetchPosts</span>(),</div>
+        <div class="line"><span class="line-num">4</span>  <span class="tk-var">staleTime</span>: <span class="tk-number">5</span> * <span class="tk-number">60</span> * <span class="tk-number">1000</span>,</div>
+        <div class="line focused"><span class="line-num">5</span>  <span class="tk-var">retry</span>: <span class="tk-number">2</span>,</div>
+        <div class="line"><span class="line-num">6</span>})</div>
+      </code>
+    </div>
+  </div>
+  <p class="label" style="margin-top: 12px;">accent-soft 背景 + 左边线，8% 透明度克制不抢</p>
+</div>
+
+<div class="section">
+  <h2>Direction D — Accent Bar</h2>
+  <div class="two-col">
+    <div>
+      <div class="code-block srf-root bdr shd">
+        <div class="accent-bar"></div>
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">async function</span> <span class="tk-func">fetchData</span>() {</div>
+            <div class="line"><span class="line-num">2</span>  <span class="tk-keyword">const</span> res = <span class="tk-keyword">await</span> <span class="tk-func">fetch</span>(<span class="tk-string">'/api/posts'</span>)</div>
+            <div class="line"><span class="line-num">3</span>  <span class="tk-keyword">return</span> res.<span class="tk-func">json</span>()</div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">浅葱 accent 渐变条，50% 透明度，如信纸边缘光</p>
+    </div>
+    <div>
+      <div class="code-block srf-root bdr shd" style="position: relative; overflow: visible;">
+        <div style="position: absolute; top: 0; left: 20%; width: 200px; height: 200px; background: radial-gradient(circle, rgba(180,200,255,0.15) 0%, transparent 70%); pointer-events: none; border-radius: 50%;"></div>
+        <div class="accent-bar" style="background: linear-gradient(90deg, var(--color-accent), transparent 70%);"></div>
+        <div class="code-content">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">async function</span> <span class="tk-func">fetchData</span>() {</div>
+            <div class="line"><span class="line-num">2</span>  <span class="tk-keyword">const</span> res = <span class="tk-keyword">await</span> <span class="tk-func">fetch</span>(<span class="tk-string">'/api/posts'</span>)</div>
+            <div class="line"><span class="line-num">3</span>  <span class="tk-keyword">return</span> res.<span class="tk-func">json</span>()</div>
+            <div class="line"><span class="line-num">4</span>}</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">加 cold light spot（dark mode 冷光余韵）</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Direction E — 散落式（无边界）</h2>
+  <div class="two-col">
+    <div>
+      <p style="font-family: var(--font-serif); font-size: 13px; color: var(--color-neutral-5); font-style: italic; margin-bottom: 12px;">代码如 Marginal notes，散落纸面。</p>
+      <div class="code-block srf-root" style="border: none; box-shadow: none; background: transparent;">
+        <div class="code-content" style="padding: 12px 0;">
+          <code>
+            <div class="line"><span class="line-num">1</span><span class="tk-keyword">const</span> x = <span class="tk-number">1</span> <span class="tk-op">+</span> <span class="tk-number">2</span> <span class="tk-comment">// 批注</span></div>
+            <div class="line"><span class="line-num">2</span><span class="tk-keyword">return</span> x</div>
+          </code>
+        </div>
+      </div>
+      <p class="label">无 border/shadow，如手写边注（适合 inline code）</p>
+    </div>
+    <div>
+      <p style="font-family: var(--font-serif); font-size: 13px; color: var(--color-neutral-5); font-style: italic; margin-bottom: 12px;">Inline code，serif 斜体，如旁注。</p>
+      <p style="font-size: 14px; line-height: 2;">
+        <span style="font-family: var(--font-serif); font-style: italic; background: var(--color-neutral-2); padding: 2px 6px; border-radius: 3px; color: var(--color-neutral-7);">const x = 1</span>，
+        <span style="font-family: var(--font-serif); font-style: italic; background: var(--color-neutral-2); padding: 2px 6px; border-radius: 3px; color: var(--color-neutral-7);">useState()</span>。
+      </p>
+      <p class="label">Inline code 用 serif italic + neutral-2 background</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Monospace Comparison</h2>
+  <div class="mono-row">
+    <div class="mono-card" style="--font: 'JetBrains Mono', monospace;">
+      <div class="name">JetBrains Mono</div>
+      <code>function render() { return null }</code>
+    </div>
+    <div class="mono-card" style="--font: 'Fira Code', monospace;">
+      <div class="name">Fira Code</div>
+      <code style="font-family: 'Fira Code', monospace;">function render() { return null }</code>
+    </div>
+    <div class="mono-card" style="--font: 'Geist Mono', monospace;">
+      <div class="name">Geist Mono</div>
+      <code style="font-family: 'Geist Mono', monospace;">function render() { return null }</code>
+    </div>
+    <div class="mono-card" style="--font: 'Cascadia Code', monospace;">
+      <div class="name">Cascadia</div>
+      <code style="font-family: 'Cascadia Code', monospace;">function render() { return null }</code>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Implementation Notes</h2>
+  <pre style="font-family: var(--font-mono); font-size: 11px; line-height: 1.8; color: var(--color-neutral-5); background: var(--color-neutral-2); padding: 16px 20px; border-radius: 6px; border: 1px solid var(--color-border);">// Shiki.css tokens to use:
+--shiki-bg: var(--color-root-bg)          // or neutral-2
+--shiki-border: var(--color-border)
+--shiki-radius: 8px
+--shiki-shadow: (see .shd class above)
+--shiki-header-bg: var(--color-neutral-2)
+--shiki-header-border: var(--color-border)
+--shiki-accent-soft: var(--color-accent-soft)
+--shiki-font-mono: var(--font-mono)
+--shiki-font-filename: var(--font-serif)
+
+// Key behaviors:
+// - File header: serif italic filename, accent dot, hover-reveal copy btn
+// - Language pill: absolute, opacity-0 → group-hover:opacity-1
+// - Focus line: bg accent-soft + 2px accent left border
+// - No rounded-full, no glassmorphism, no accent for hover states
+// - Card hover shadow follows design language: 0 2px 12px rgba(0,0,0,0.04)</pre>
+</div>
+
+</body>
+</html>

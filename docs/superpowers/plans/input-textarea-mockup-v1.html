@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Input / Textarea Mockup v1</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: "Instrument Sans", "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --font-mono: "IBM Plex Mono", "SFMono-Regular", monospace;
+      --bg: #fcfaf5;
+      --paper: #fffefb;
+      --paper-soft: #f7f3ea;
+      --paper-mute: #f2eee5;
+      --text: #201c18;
+      --text-soft: #5f594f;
+      --text-faint: #928b81;
+      --line: rgba(0, 0, 0, 0.06);
+      --line-soft: rgba(0, 0, 0, 0.035);
+      --accent: #33a6b8;
+      --accent-soft: rgba(51, 166, 184, 0.08);
+      --accent-line: rgba(51, 166, 184, 0.75);
+      --warm: rgba(255, 228, 180, 0.18);
+      --error: #bb6c60;
+      --error-soft: rgba(187, 108, 96, 0.08);
+      --shadow-paper: 0 1px 1px rgba(0, 0, 0, 0.015), 0 8px 22px rgba(0, 0, 0, 0.025);
+      --shadow-inline: 0 1px 1px rgba(0, 0, 0, 0.01), 0 4px 14px rgba(0, 0, 0, 0.02);
+      --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 228, 180, 0.24), transparent 22rem),
+        linear-gradient(180deg, #fffef8 0%, var(--bg) 100%);
+    }
+
+    .page {
+      width: min(1360px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 48px 0 80px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 10px;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 42px);
+      font-weight: 500;
+      letter-spacing: -0.025em;
+    }
+
+    .lede {
+      width: min(760px, 100%);
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.95;
+      color: var(--text-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.15fr 0.95fr;
+      gap: 24px;
+      margin-top: 34px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 24px;
+    }
+
+    .panel {
+      overflow: hidden;
+      border-radius: 26px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      background:
+        radial-gradient(circle at top right, rgba(51, 166, 184, 0.035), transparent 14rem),
+        rgba(255, 255, 252, 0.86);
+      box-shadow: var(--shadow-paper);
+    }
+
+    .panel-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 20px 20px 12px;
+    }
+
+    .panel-id {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .panel-name {
+      display: block;
+      margin-top: 5px;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .panel-tag {
+      font-size: 11px;
+      color: #847d73;
+      white-space: nowrap;
+    }
+
+    .panel-body {
+      padding: 0 20px 20px;
+    }
+
+    .panel-note {
+      margin: 0 0 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-soft);
+    }
+
+    .article {
+      display: grid;
+      gap: 14px;
+      padding: 18px;
+      border-radius: 22px;
+      background: rgba(255, 254, 249, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.035);
+    }
+
+    .article p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.9;
+      color: #676158;
+    }
+
+    .cases {
+      display: grid;
+      gap: 16px;
+    }
+
+    .field-shell {
+      --field-line: var(--line);
+      --field-fill: rgba(255, 255, 255, 0.72);
+      --field-focus-fill: rgba(51, 166, 184, 0.045);
+      position: relative;
+      display: grid;
+      gap: 8px;
+    }
+
+    .field-meta {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .field-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: #474137;
+      letter-spacing: -0.01em;
+    }
+
+    .field-side {
+      font-size: 11px;
+      color: var(--text-faint);
+    }
+
+    .field-control {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      padding: 0 13px;
+      border-radius: 15px;
+      border: 1px solid var(--field-line);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(255, 255, 255, 0.72)),
+        var(--field-fill);
+      box-shadow: var(--shadow-inline);
+      transition:
+        border-color 220ms var(--ease),
+        background-color 220ms var(--ease),
+        box-shadow 220ms var(--ease),
+        transform 220ms var(--ease);
+    }
+
+    .field-control::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 10px;
+      bottom: 10px;
+      width: 2px;
+      border-radius: 999px;
+      background: transparent;
+      transition: background-color 220ms var(--ease);
+    }
+
+    .field-input,
+    .field-textarea {
+      width: 100%;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      outline: none;
+      color: var(--text);
+      font-family: var(--font-sans);
+      font-size: 14px;
+      line-height: 1.6;
+      letter-spacing: -0.01em;
+    }
+
+    .field-input::placeholder,
+    .field-textarea::placeholder {
+      color: #9b9489;
+    }
+
+    .field-textarea {
+      min-height: 108px;
+      resize: none;
+      padding: 12px 0 13px;
+    }
+
+    .field-icon {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 6px;
+      background: rgba(51, 166, 184, 0.08);
+      color: #5d8f97;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+    }
+
+    .field-action {
+      flex: none;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: #877f73;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .field-footer {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 18px;
+      padding: 0 2px;
+    }
+
+    .field-hint {
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-faint);
+    }
+
+    .field-counter {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+    }
+
+    .quiet .field-control:hover,
+    .note .field-control:hover {
+      border-color: rgba(0, 0, 0, 0.08);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.78));
+    }
+
+    .focus .field-control {
+      border-color: rgba(51, 166, 184, 0.18);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8)),
+        var(--field-focus-fill);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.01), 0 6px 18px rgba(51, 166, 184, 0.05);
+    }
+
+    .focus .field-control::before {
+      background: var(--accent-line);
+    }
+
+    .lined .field-control {
+      min-height: 40px;
+      padding: 0 0 1px;
+      border-radius: 0;
+      border: 0;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+      background: transparent;
+      box-shadow: none;
+    }
+
+    .lined .field-control::before {
+      display: none;
+    }
+
+    .lined .field-input {
+      font-size: 15px;
+    }
+
+    .lined.focus .field-control {
+      border-bottom-color: rgba(51, 166, 184, 0.72);
+      background: linear-gradient(180deg, transparent, rgba(51, 166, 184, 0.03));
+    }
+
+    .note .field-control {
+      align-items: flex-start;
+      min-height: 138px;
+      padding-top: 0;
+      padding-bottom: 0;
+      border-radius: 19px;
+      background:
+        linear-gradient(180deg, rgba(255, 250, 239, 0.72), rgba(255, 255, 255, 0.88) 24%),
+        rgba(255, 255, 255, 0.86);
+    }
+
+    .note .field-control::after {
+      content: "";
+      position: absolute;
+      left: 14px;
+      right: 14px;
+      bottom: 0;
+      height: 26px;
+      background: linear-gradient(180deg, transparent, rgba(255, 235, 205, 0.18));
+      pointer-events: none;
+    }
+
+    .note .field-footer {
+      margin-top: -2px;
+    }
+
+    .error .field-control {
+      border-color: rgba(187, 108, 96, 0.22);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.8)),
+        var(--error-soft);
+    }
+
+    .error .field-control::before {
+      background: rgba(187, 108, 96, 0.82);
+    }
+
+    .error .field-label,
+    .error .field-hint {
+      color: #8e5a51;
+    }
+
+    .disabled {
+      opacity: 0.6;
+    }
+
+    .disabled .field-control {
+      box-shadow: none;
+      background: rgba(244, 240, 232, 0.86);
+    }
+
+    .disabled .field-input,
+    .disabled .field-textarea,
+    .disabled .field-action {
+      cursor: not-allowed;
+    }
+
+    .compact-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .form-sheet {
+      display: grid;
+      gap: 18px;
+      padding: 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      background:
+        radial-gradient(circle at top left, rgba(255, 228, 180, 0.12), transparent 12rem),
+        rgba(255, 254, 250, 0.92);
+    }
+
+    .form-title {
+      display: grid;
+      gap: 5px;
+    }
+
+    .form-title strong {
+      font-size: 18px;
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .form-title span {
+      font-size: 12px;
+      color: var(--text-faint);
+      line-height: 1.75;
+    }
+
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.06), transparent);
+    }
+
+    .legend {
+      display: grid;
+      gap: 10px;
+      padding: 18px;
+      border-radius: 20px;
+      border: 1px solid rgba(0, 0, 0, 0.035);
+      background: rgba(255, 255, 252, 0.72);
+    }
+
+    .legend-row {
+      display: grid;
+      grid-template-columns: 80px 1fr;
+      gap: 12px;
+      font-size: 12px;
+      line-height: 1.75;
+    }
+
+    .legend-row strong {
+      color: #4f4940;
+      font-weight: 500;
+    }
+
+    @media (max-width: 980px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+
+      .compact-row {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Form Language</p>
+    <h1>Input / Textarea Mockup</h1>
+    <p class="lede">
+      方向上不做后台控件，也不做发光组件，统一成“正文里的可填写批注栏”。
+      单行输入更安静，多行输入更像一张展开的便笺；状态表达靠细线、纸面染色和边注，不靠厚重 ring。
+    </p>
+
+    <section class="grid">
+      <div class="stack">
+        <article class="panel">
+          <header class="panel-head">
+            <div>
+              <span class="panel-id">Core</span>
+              <strong class="panel-name">Quiet Input + Note Textarea</strong>
+            </div>
+            <span class="panel-tag">default family</span>
+          </header>
+          <div class="panel-body">
+            <p class="panel-note">
+              这一组最适合做默认基元。单行输入保持轻，长文本像纸面夹片，焦点态只在左侧压一根细 accent 线。
+            </p>
+
+            <div class="article cases">
+              <div class="field-shell quiet">
+                <div class="field-meta">
+                  <label class="field-label">Display Name</label>
+                  <span class="field-side">optional</span>
+                </div>
+                <div class="field-control">
+                  <input class="field-input" placeholder="How should the reader see you?" value="">
+                </div>
+                <div class="field-footer">
+                  <span class="field-hint">这类说明更像边注，不抢主内容。</span>
+                  <span class="field-counter">00/48</span>
+                </div>
+              </div>
+
+              <div class="field-shell quiet focus">
+                <div class="field-meta">
+                  <label class="field-label">Email</label>
+                  <span class="field-side">required</span>
+                </div>
+                <div class="field-control">
+                  <input class="field-input" placeholder="mail@example.com" value="contact@shiroi.dev">
+                </div>
+                <div class="field-footer">
+                  <span class="field-hint">focus 像墨迹加深，不像输入框开灯。</span>
+                  <span class="field-counter">verified</span>
+                </div>
+              </div>
+
+              <div class="field-shell note">
+                <div class="field-meta">
+                  <label class="field-label">Reply</label>
+                  <span class="field-side">Cmd+Enter to send</span>
+                </div>
+                <div class="field-control">
+                  <textarea class="field-textarea" placeholder="Leave a note beneath the article, not a system prompt.">The tone should still feel like part of the page, not a separate tool surface.</textarea>
+                </div>
+                <div class="field-footer">
+                  <span class="field-hint">适合评论、说说、写作辅助输入。</span>
+                  <span class="field-counter">124/500</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <div>
+              <span class="panel-id">Usage</span>
+              <strong class="panel-name">Field Shell Cases</strong>
+            </div>
+            <span class="panel-tag">real scenarios</span>
+          </header>
+          <div class="panel-body">
+            <p class="panel-note">
+              不是每个输入都需要 label 和说明。这里把“无 label 的轻量输入”和“带错误边注的输入”一起摆出来。
+            </p>
+
+            <div class="form-sheet">
+              <div class="form-title">
+                <strong>Contact Sheet</strong>
+                <span>同一个 shell 承担 label、hint、error、counter，`Input / Textarea` 只负责 control 本体。</span>
+              </div>
+
+              <div class="compact-row">
+                <div class="field-shell quiet">
+                  <div class="field-meta">
+                    <label class="field-label">Site</label>
+                    <span class="field-side">public</span>
+                  </div>
+                  <div class="field-control">
+                    <span class="field-icon">URL</span>
+                    <input class="field-input" placeholder="https://example.com" value="">
+                  </div>
+                </div>
+
+                <div class="field-shell quiet disabled">
+                  <div class="field-meta">
+                    <label class="field-label">Handle</label>
+                    <span class="field-side">locked</span>
+                  </div>
+                  <div class="field-control">
+                    <input class="field-input" placeholder="@shiroi" value="@innei" disabled>
+                  </div>
+                </div>
+              </div>
+
+              <div class="field-shell quiet error focus">
+                <div class="field-meta">
+                  <label class="field-label">Email</label>
+                  <span class="field-side">invalid</span>
+                </div>
+                <div class="field-control">
+                  <input class="field-input" placeholder="mail@example.com" value="wrong@email">
+                </div>
+                <div class="field-footer">
+                  <span class="field-hint">Please use a reachable email address.</span>
+                  <span class="field-counter">retry</span>
+                </div>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="field-shell quiet">
+                <div class="field-control">
+                  <input class="field-input" placeholder="Search posts, notes, projects...">
+                  <button class="field-action">Go</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="stack">
+        <article class="panel">
+          <header class="panel-head">
+            <div>
+              <span class="panel-id">Alt</span>
+              <strong class="panel-name">Lined Input</strong>
+            </div>
+            <span class="panel-tag">title / search</span>
+          </header>
+          <div class="panel-body">
+            <p class="panel-note">
+              这是更轻的版本，只适合搜索、标题、短字段。它几乎融进正文，不适合承载复杂提示、error 和右侧动作。
+            </p>
+
+            <div class="article cases">
+              <div class="field-shell lined">
+                <div class="field-meta">
+                  <label class="field-label">Title</label>
+                  <span class="field-side">lightweight</span>
+                </div>
+                <div class="field-control">
+                  <input class="field-input" placeholder="A line that reads almost like body copy">
+                </div>
+              </div>
+
+              <div class="field-shell lined focus">
+                <div class="field-meta">
+                  <label class="field-label">Search</label>
+                  <span class="field-side">focus</span>
+                </div>
+                <div class="field-control">
+                  <input class="field-input" value="Input language">
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="panel">
+          <header class="panel-head">
+            <div>
+              <span class="panel-id">Notes</span>
+              <strong class="panel-name">Decision Markers</strong>
+            </div>
+            <span class="panel-tag">what to keep</span>
+          </header>
+          <div class="panel-body">
+            <div class="legend">
+              <div class="legend-row">
+                <strong>Typography</strong>
+                <span>输入内容与 placeholder 都用 sans，避免 serif 带来的“伪文学化”过强气质。</span>
+              </div>
+              <div class="legend-row">
+                <strong>Focus</strong>
+                <span>优先用左侧细线或底线表达 focus，配 4% 到 6% 的 accent 染色即可。</span>
+              </div>
+              <div class="legend-row">
+                <strong>Error</strong>
+                <span>错误像编辑批注，不做整块红底，也不做夸张 warning 状态。</span>
+              </div>
+              <div class="legend-row">
+                <strong>Textarea</strong>
+                <span>建议默认比 Input 更有纸感，这样长文本输入在页面里有合理的语义重量。</span>
+              </div>
+              <div class="legend-row">
+                <strong>API</strong>
+                <span>后续实现时把 label / hint / error / counter 提升到 `FieldShell`，避免 `Input` 与 `Textarea` 各自维护状态 UI。</span>
+              </div>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

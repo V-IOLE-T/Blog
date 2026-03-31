@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Code Highlighter Mockup v7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20,400,0,0" rel="stylesheet">
+  <style>
+    :root {
+      --font-sans: "Instrument Sans", "Avenir Next", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --font-mono: "IBM Plex Mono", "JetBrains Mono", monospace;
+      --bg: #fcfaf5;
+      --paper: #fffefb;
+      --paper-soft: #f7f4ec;
+      --text: #1d1a17;
+      --text-soft: #625d55;
+      --text-faint: #938d82;
+      --line: rgba(0, 0, 0, 0.06);
+      --line-soft: rgba(0, 0, 0, 0.04);
+      --accent: #33a6b8;
+      --accent-soft: rgba(51, 166, 184, 0.08);
+      --warm: rgba(255, 228, 180, 0.18);
+      --shadow-inline: 0 1px 1px rgba(0, 0, 0, 0.01), 0 3px 10px rgba(0, 0, 0, 0.02);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-sans);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(255, 228, 180, 0.24), transparent 24rem),
+        linear-gradient(180deg, #fffef9 0%, var(--bg) 100%);
+    }
+
+    .material-symbols-outlined {
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 20;
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    .page {
+      width: min(1380px, calc(100vw - 40px));
+      margin: 0 auto;
+      padding: 48px 0 72px;
+    }
+
+    .eyebrow {
+      margin: 0 0 10px;
+      font-size: 10px;
+      letter-spacing: 0.34em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 4vw, 42px);
+      font-weight: 500;
+      letter-spacing: -0.02em;
+    }
+
+    .lede {
+      width: min(760px, 100%);
+      margin: 12px 0 0;
+      font-size: 14px;
+      line-height: 1.95;
+      color: var(--text-soft);
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 22px;
+      margin-top: 38px;
+    }
+
+    .variant {
+      overflow: hidden;
+      border-radius: 24px;
+      border: 1px solid rgba(0, 0, 0, 0.045);
+      background:
+        radial-gradient(circle at top right, rgba(51, 166, 184, 0.035), transparent 14rem),
+        rgba(255, 255, 252, 0.82);
+      box-shadow: 0 1px 1px rgba(0, 0, 0, 0.015), 0 8px 22px rgba(0, 0, 0, 0.028);
+    }
+
+    .variant-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 18px 18px 12px;
+    }
+
+    .variant-id {
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+
+    .variant-name {
+      display: block;
+      margin-top: 6px;
+      font-size: 18px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    .variant-tag {
+      font-size: 11px;
+      color: #857f75;
+      white-space: nowrap;
+    }
+
+    .variant-body {
+      padding: 0 18px 18px;
+    }
+
+    .variant-note {
+      margin: 0 0 16px;
+      font-size: 13px;
+      line-height: 1.8;
+      color: var(--text-soft);
+    }
+
+    .article {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 20px;
+      background: rgba(255, 254, 249, 0.9);
+      border: 1px solid rgba(0, 0, 0, 0.035);
+    }
+
+    .article p {
+      margin: 0;
+      font-size: 13px;
+      line-height: 1.9;
+      color: #645f57;
+    }
+
+    .code-card {
+      overflow: hidden;
+      border-radius: 18px;
+      border: 1px solid rgba(0, 0, 0, 0.04);
+      background:
+        linear-gradient(180deg, rgba(51, 166, 184, 0.028), rgba(255, 255, 255, 0) 22%),
+        var(--paper);
+      box-shadow: var(--shadow-inline);
+    }
+
+    .topline {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(51, 166, 184, 0.22) 16%, rgba(51, 166, 184, 0.08) 74%, transparent);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 11px 14px 10px;
+      min-height: 42px;
+    }
+
+    .header-left {
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .lang-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 7px;
+      background: rgba(51, 166, 184, 0.06);
+      color: #4f8e98;
+      flex: none;
+    }
+
+    .filename {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 13px;
+      font-weight: 500;
+      color: #2a2621;
+      letter-spacing: -0.01em;
+    }
+
+    .header-meta {
+      flex: none;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      color: #8b857a;
+    }
+
+    .lang-text {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: #9a9488;
+    }
+
+    .icon-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.7);
+      color: #777167;
+    }
+
+    .icon-button .material-symbols-outlined {
+      font-size: 16px;
+    }
+
+    .divider {
+      height: 1px;
+      margin: 0 14px;
+      background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.07) 14%, rgba(0, 0, 0, 0.07) 86%, transparent);
+    }
+
+    pre {
+      margin: 0;
+      overflow-x: auto;
+      padding: 10px 0 8px;
+    }
+
+    code {
+      display: grid;
+      gap: 1px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.88;
+      color: #2d2a25;
+    }
+
+    .line {
+      position: relative;
+      display: grid;
+      grid-template-columns: 32px 1fr;
+      gap: 12px;
+      padding: 0 14px;
+    }
+
+    .line-no {
+      text-align: right;
+      font-family: var(--font-sans);
+      font-size: 10px;
+      color: #c3beb4;
+      user-select: none;
+    }
+
+    .focus {
+      background: var(--accent-soft);
+    }
+
+    .focus::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0.28rem;
+      bottom: 0.28rem;
+      width: 2px;
+      background: var(--accent);
+    }
+
+    .tk-key { color: #9d65cf; }
+    .tk-fn { color: #2f7f88; }
+    .tk-str { color: #3a7c58; }
+    .tk-note { color: #9f8a66; font-style: italic; }
+    .tk-punc { color: #888178; }
+
+    .footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px 13px;
+      font-size: 11px;
+      color: #868076;
+    }
+
+    .footer em {
+      font-style: normal;
+      color: #988f82;
+    }
+
+    .unfold {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      white-space: nowrap;
+    }
+
+    .unfold::before {
+      content: "";
+      width: 16px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.4;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .chip {
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      background: rgba(255, 255, 255, 0.62);
+      font-size: 10px;
+      color: #888278;
+    }
+
+    .inline-meta .header {
+      padding-top: 10px;
+      padding-bottom: 8px;
+    }
+
+    .inline-meta .header-left {
+      gap: 8px;
+    }
+
+    .inline-meta .filename {
+      display: none;
+    }
+
+    .inline-meta .lang-text {
+      color: #7f796f;
+      letter-spacing: 0.2em;
+    }
+
+    .headerless {
+      position: relative;
+    }
+
+    .headerless .utility-row {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .headerless .utility-left,
+    .headerless .utility-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .headerless .utility-left {
+      color: #8d877c;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .headerless .utility-right .icon-button,
+    .headerless .utility-left .lang-icon {
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    .headerless pre {
+      padding-top: 38px;
+    }
+
+    .headerless .divider {
+      display: none;
+    }
+
+    @media (max-width: 1180px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        width: min(100vw - 20px, 1380px);
+        padding-top: 28px;
+      }
+
+      .variant {
+        border-radius: 20px;
+      }
+
+      .variant-head,
+      .variant-body {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .header,
+      .footer {
+        flex-wrap: wrap;
+      }
+
+      .line {
+        grid-template-columns: 26px 1fr;
+        gap: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <p class="eyebrow">Code Highlighter / Compact Header</p>
+    <h1>压缩 Header，并把 filename / language / copy 关系理顺</h1>
+    <p class="lede">
+      这一版直接沿你选的 `Header 3` 收：去掉 `snippet` 装饰，header 改成紧凑 sans，`language` 用 Material icon 挂到文件名左侧，`copy` 只保留 icon。下面同时放出无 filename 的两种 UI case。
+    </p>
+
+    <section class="grid">
+      <article class="variant">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">With Filename</span>
+            <span class="variant-name">Compact File Header</span>
+          </div>
+          <span class="variant-tag">主方案</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">header 只保留一个紧凑信息层：`language icon + filename` 在左，`copy icon` 在右，语言文本退成弱提示，不再和 copy 挤在一起。</p>
+          <div class="article">
+            <p>文件名存在时，最重要的是让它像代码页标题，而不是独立的组件头。这里的 header 已经压到接近正文注脚的尺度。</p>
+            <div class="code-card">
+              <div class="topline"></div>
+              <div class="header">
+                <div class="header-left">
+                  <span class="lang-icon" aria-hidden><span class="material-symbols-outlined">language</span></span>
+                  <span class="filename">CodeHighlighter.tsx</span>
+                </div>
+                <div class="header-meta">
+                  <span class="lang-text">tsx</span>
+                  <span class="icon-button" aria-hidden><span class="material-symbols-outlined">content_copy</span></span>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">export const</span> <span class="tk-fn">ShikiHighLighterWrapper</span> <span class="tk-punc">=</span> <span class="tk-punc">({</span> <span class="tk-note">...props</span> <span class="tk-punc">})</span> <span class="tk-punc">=&gt;</span> <span class="tk-punc">{</span></span></span>
+<span class="line"><span class="line-no">02</span><span>  <span class="tk-key">const</span> filename <span class="tk-punc">=</span> <span class="tk-fn">parseFilenameFromAttrs</span><span class="tk-punc">(</span>attrs <span class="tk-punc">||</span> <span class="tk-str">''</span><span class="tk-punc">)</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span>  <span class="tk-key">const</span> hasHeader <span class="tk-punc">=</span> <span class="tk-fn">Boolean</span><span class="tk-punc">(</span>filename<span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">04</span><span>  <span class="tk-key">return</span> <span class="tk-punc">&lt;</span>div <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"paper-code-card"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>header 已经足够轻，但 filename 仍然可感知。</em>
+                <span class="unfold">24 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">sans</span>
+              <span class="chip">compact</span>
+              <span class="chip">适合真实实现</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="variant">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">No Filename A</span>
+            <span class="variant-name">Inline Meta Row</span>
+          </div>
+          <span class="variant-tag">默认无文件名</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">没有 filename 时，不再硬保留“标题位”。直接退化成一条更短的 meta row：左边语言，右边 copy，整体还在正常文流里。</p>
+          <div class="article">
+            <p>这版最稳。它保留 header 节奏，但明显比有文件名场景更轻，不会出现“空标题”的感觉。</p>
+            <div class="code-card inline-meta">
+              <div class="topline"></div>
+              <div class="header">
+                <div class="header-left">
+                  <span class="lang-icon" aria-hidden><span class="material-symbols-outlined">language</span></span>
+                  <span class="lang-text">typescript</span>
+                </div>
+                <div class="header-meta">
+                  <span class="icon-button" aria-hidden><span class="material-symbols-outlined">content_copy</span></span>
+                </div>
+              </div>
+              <div class="divider"></div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">const</span> maskClassName <span class="tk-punc">=</span> <span class="tk-fn">useMaskScrollArea</span><span class="tk-punc">({</span> element <span class="tk-punc">})</span></span></span>
+<span class="line"><span class="line-no">02</span><span><span class="tk-key">if</span> <span class="tk-punc">(</span>isOverflow<span class="tk-punc">)</span> <span class="tk-fn">setIsCollapsed</span><span class="tk-punc">(</span><span class="tk-key">true</span><span class="tk-punc">)</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span><span class="tk-key">return</span> <span class="tk-punc">&lt;</span>CodeBlock <span class="tk-note">variant</span><span class="tk-punc">=</span><span class="tk-str">"insert"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>无 filename 时我更偏向这版。</em>
+                <span class="unfold">12 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">最平衡</span>
+              <span class="chip">实现简单</span>
+              <span class="chip">阅读阻力低</span>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="variant">
+        <div class="variant-head">
+          <div>
+            <span class="variant-id">No Filename B</span>
+            <span class="variant-name">Headerless Utility</span>
+          </div>
+          <span class="variant-tag">更内敛</span>
+        </div>
+        <div class="variant-body">
+          <p class="variant-note">彻底拿掉 header，语言和 copy 变成 code surface 上方的轻量工具标记。更像正文内嵌代码摘录，而不是一个“块级组件”。</p>
+          <div class="article">
+            <p>如果你希望无文件名场景几乎并入正文，这版会更自然。但它的控制感更弱，适合内容优先的地方。</p>
+            <div class="code-card headerless">
+              <div class="topline"></div>
+              <div class="utility-row">
+                <div class="utility-left">
+                  <span class="lang-icon" aria-hidden><span class="material-symbols-outlined">language</span></span>
+                  <span>tsx</span>
+                </div>
+                <div class="utility-right">
+                  <span class="icon-button" aria-hidden><span class="material-symbols-outlined">content_copy</span></span>
+                </div>
+              </div>
+              <pre><code>
+<span class="line"><span class="line-no">01</span><span><span class="tk-key">const</span> shouldCollapsed <span class="tk-punc">=</span> <span class="tk-fn">parseShouldCollapsedFromAttrs</span><span class="tk-punc">(</span>attrs<span class="tk-punc">)</span></span></span>
+<span class="line"><span class="line-no">02</span><span><span class="tk-key">return</span> <span class="tk-punc">&lt;</span>ShikiHighLighterWrapper <span class="tk-note">shouldCollapsed</span><span class="tk-punc">=</span><span class="tk-str">{true}</span> <span class="tk-punc">/&gt;</span></span></span>
+<span class="line focus"><span class="line-no">03</span><span><span class="tk-key">const</span> fallback <span class="tk-punc">=</span> <span class="tk-punc">&lt;</span>pre <span class="tk-note">className</span><span class="tk-punc">=</span><span class="tk-str">"bg-transparent"</span> <span class="tk-punc">/&gt;</span></span></span>
+              </code></pre>
+              <div class="footer">
+                <em>更像正文中的技术插注。</em>
+                <span class="unfold">8 lines hidden · unfold</span>
+              </div>
+            </div>
+            <div class="chips">
+              <span class="chip">最紧凑</span>
+              <span class="chip">几乎无 header</span>
+              <span class="chip">适合 excerpt</span>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

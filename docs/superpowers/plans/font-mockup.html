@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Font Mockup - 余白</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: #faf9f7;
+      color: #1a1a1a;
+      font-size: 14px;
+      line-height: 1.8;
+      padding: 48px;
+    }
+
+    .section {
+      margin-bottom: 64px;
+      padding-bottom: 48px;
+      border-bottom: 1px solid #e5e5e5;
+    }
+
+    h2 {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: #999;
+      margin-bottom: 16px;
+    }
+
+    .preview {
+      font-size: 32px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .sub {
+      font-size: 16px;
+      color: #666;
+      margin-bottom: 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: #aaa;
+    }
+
+    /* Font Specimens */
+    .sora { font-family: 'Sora', sans-serif; }
+    .dm-sans { font-family: 'DM Sans', sans-serif; }
+    .instrument { font-family: 'Instrument Sans', sans-serif; }
+    .newsreader { font-family: 'Newsreader', serif; }
+    .fraunces { font-family: 'Fraunces', serif; }
+
+    .chinese { font-family: 'Noto Serif SC', serif; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 32px;
+      margin-top: 32px;
+    }
+
+    .card {
+      background: white;
+      padding: 24px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .card h3 {
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .card .specimen {
+      font-size: 28px;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+    }
+
+    .card .weight {
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500&family=Fraunces:wght@400;500&family=Instrument+Sans:wght@400;500&family=Newsreader:wght@400;500&family=Sora:wght@300;400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<div class="section">
+  <h2>Current — Sora + Noto Serif SC</h2>
+  <div class="preview sora">余白 Yohaku</div>
+  <p class="sub sora chinese">留白之处，万物皆可呼吸</p>
+  <p class="meta sora">Sora — 几何无衬线，现代感强，字形偏宽</p>
+</div>
+
+<div class="section">
+  <h2>Option A — DM Sans + Noto Serif SC</h2>
+  <div class="preview dm-sans">余白 Yohaku</div>
+  <p class="sub dm-sans chinese">留白之处，万物皆可呼吸</p>
+  <p class="meta dm-sans">DM Sans — 圆润友好，屏幕优化，x-height 大</p>
+</div>
+
+<div class="section">
+  <h2>Option B — Instrument Sans + Noto Serif SC</h2>
+  <div class="preview instrument">余白 Yohaku</div>
+  <p class="sub instrument chinese">留白之处，万物皆可呼吸</p>
+  <p class="meta instrument">Instrument Sans — 精致版式感，字形修长，气质最合</p>
+</div>
+
+<div class="section">
+  <h2>Serif Options</h2>
+  <div class="grid">
+    <div class="card">
+      <h3 class="newsreader">Newsreader</h3>
+      <div class="specimen newsreader">Aa</div>
+      <p class="weight">Serif · 正文阅读优化</p>
+    </div>
+    <div class="card">
+      <h3 class="fraunces">Fraunces</h3>
+      <div class="specimen fraunces">Aa</div>
+      <p class="weight">Serif · 变量字体，表达力强</p>
+    </div>
+    <div class="card">
+      <h3 class="newsreader" style="font-style: italic;">Newsreader Italic</h3>
+      <div class="specimen newsreader" style="font-style: italic;">Aa</div>
+      <p class="weight">衬线斜体 · 标题点缀</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Comparative Grid</h2>
+  <div class="grid">
+    <div class="card">
+      <h3 class="sora">Sora</h3>
+      <div class="specimen sora">余白</div>
+      <p class="weight">300/400/500</p>
+    </div>
+    <div class="card">
+      <h3 class="dm-sans">DM Sans</h3>
+      <div class="specimen dm-sans">余白</div>
+      <p class="weight">400/500</p>
+    </div>
+    <div class="card">
+      <h3 class="instrument">Instrument Sans</h3>
+      <div class="specimen instrument">余白</div>
+      <p class="weight">400/500</p>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <h2>Body Text Comparison</h2>
+  <div class="grid">
+    <div class="card">
+      <h3 class="sora">Sora</h3>
+      <p style="font-size: 14px; line-height: 1.8;" class="sora">设计不该被填满。留白是一种克制，是对内容本身的尊重。空白之处，气韵流转。</p>
+    </div>
+    <div class="card">
+      <h3 class="dm-sans">DM Sans</h3>
+      <p style="font-size: 14px; line-height: 1.8;" class="dm-sans">设计不该被填满。留白是一种克制，是对内容本身的尊重。空白之处，气韵流转。</p>
+    </div>
+    <div class="card">
+      <h3 class="instrument">Instrument Sans</h3>
+      <p style="font-size: 14px; line-height: 1.8;" class="instrument">设计不该被填满。留白是一种克制，是对内容本身的尊重。空白之处，气韵流转。</p>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
