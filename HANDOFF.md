@@ -1,6 +1,6 @@
 # Blog 仓库 HANDOFF
 
-更新时间：2026-04-01 00:43（Asia/Shanghai）
+更新时间：2026-04-01 10:08（Asia/Shanghai）
 
 ## 先看这 11 句话
 
@@ -15,9 +15,9 @@
    - username：`zhenghanoo`
    - email：`z411622h@163.com`
    - password：用户指定值，已实测登录成功
-9. 2026-04-01 新排掉了一个真实线上 bug：后台“修改头像后不显示/看起来像保存不了”不是 Mongo 或保存接口坏了，而是后台上传返回旧的 `/objects/...` 路径，而当前服务真正公开的是 `/api/v2/files/...`。
-10. 已在服务器 `Caddyfile` 增加 `/objects/* -> /api/v2/files/*` 的兼容转发，并通过 `docker compose up -d --force-recreate caddy` 生效；现在旧头像 URL 在 `https://api.418122.xyz` 和 `https://418122.xyz` 下都返回 `200`。
-11. 下一位 agent 如果要继续，最有价值的动作不是重新部署，而是替换线上 placeholder 内容/配置，决定是否 push 当前分支，并考虑是否要从上游根治后台返回旧头像 URL 的问题。
+9. 2026-04-01 已确认并完成“头像上传仍返回旧 URL”的根因修复：根因不在本仓库，也不在 Mongo，而在上游 `mx-space/core` 仍把上传结果解析成旧 `/objects/...` 路径。
+10. 服务器 `app` 已不再跑 `innei/mx-server:latest`，而是通过 `/opt/mx-core-src` 源码构建并运行修复后的镜像 `blog-mx-server:11.0.7-avatar-fix`；真实上传 `POST /api/v2/files/upload?type=avatar` 已返回 `https://api.418122.xyz/files/avatar/...`。
+11. 仅修后端还不够，这轮还额外补了入口层：服务器 `Caddyfile` 现在同时兼容 `/objects/*` 和 `/files/*` 转发到 `/api/v2/files/*`，并已通过 `docker compose up -d --force-recreate caddy` 生效；旧路径兼容仍保留，新路径也已实测 `200` 可访问。
 
 ---
 
@@ -114,7 +114,10 @@
 
 - 当前分支：`codex/modify`
 - 接管提交：`9b0158e feat(blog): 切换到 Yohaku 前端源码`
-- 当前 `git status --short` 为空，工作树干净
+- 当前 `git status --short` 有 1 个已修改文件和 2 个未跟踪文件：
+  - `HANDOFF.md`
+  - `docs/superpowers/plans/2026-04-01-avatar-upload-url-root-cause-fix.md`
+  - `patches/mx-space-core-avatar-files-route.patch`
 
 ### 阶段 4：本地构建验证已经完成
 
@@ -269,12 +272,16 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 最近关键 commit：
   - `9b0158e feat(blog): 切换到 Yohaku 前端源码`
   - `b5fae84 chore(repo): 清空旧博客业务文件`
-- 当前 `git status --short` 为空，工作树干净
+- 当前 `git status --short` 有 1 个已修改文件和 2 个未跟踪文件：
+  - `HANDOFF.md`
+  - `docs/superpowers/plans/2026-04-01-avatar-upload-url-root-cause-fix.md`
+  - `patches/mx-space-core-avatar-files-route.patch`
 
 也就是说：
 
 - 本地真实代码已经到位
 - git 历史里已经记录了这次接管
+- 另外还有一份上游修复计划和一份 patch 尚未正式提交
 - 是否推送到原远端，还需要按用户意图决定
 
 ---
@@ -287,7 +294,7 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 - `yohaku` -> `blog-yohaku:latest`
 - `mx-caddy` -> `caddy:2-alpine`
-- `mx-server` -> `innei/mx-server:latest`
+- `mx-server` -> `blog-mx-server:11.0.7-avatar-fix`
 - `mongo` -> `mongo:7`
 - `redis` -> `redis:alpine`
 
@@ -295,9 +302,11 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 - compose / Caddy：
   - `/opt/mxspace/docker-compose.yml`
+  - `/opt/mxspace/docker-compose.override.yml`
   - `/opt/mxspace/Caddyfile`
 - 源码：
   - `/opt/yohaku-src`
+  - `/opt/mx-core-src`
 - 备份：
   - `/opt/backups/yohaku-20260331/`
 
@@ -321,7 +330,7 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 ---
 
-## 2026-04-01 新增进展：账号与头像
+## 2026-04-01 新增进展：账号、头像与上游根治
 
 ### Owner 账号已经替换成用户指定值
 
@@ -337,7 +346,7 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - `owner_profiles.readerId = ObjectId("69cbbe672b60836536a13af5")`
 - `accounts.userId = ObjectId("69cbbe672b60836536a13af5")`
 
-### 头像 bug 的根因、有效修复、以及什么没用
+### 第一阶段：头像 bug 的真实根因与“只做兼容”的临时修复
 
 用户报告的现象：
 
@@ -393,6 +402,166 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 真正的长期方案不是再修 Caddy，而是找到上游 `mx-server` / admin 为何仍返回旧 `/objects/...` URL，并在源码或镜像层修正
 - 在长期方案落地前，保留这个 Caddy 兼容映射是对的
 
+### 第二阶段：已经从上游根治，不再停留在 `/objects` 兼容
+
+这一步不是推测，已经定位到上游源码并完成线上部署。
+
+根因定位结论：
+
+- 当前 `Blog` / `Yohaku` 仓库不是生成旧头像 URL 的地方
+- `mx-admin` 上传确实走的是 `/files/upload`
+- 但它直接信任后端返回的 `res.url`
+- 真正返回旧地址的是上游 `mx-space/core`
+
+已定位到的上游问题点：
+
+- `/tmp/mx-space-core-tar/apps/core/src/modules/file/file.service.ts`
+  - `resolveFileUrl()` 仍返回 `.../objects/${type}/${name}`
+- `/tmp/mx-space-core-tar/apps/core/src/modules/file/file-reference.service.ts`
+  - 只识别 `/objects/image/`
+- `/tmp/mx-space-core-tar/apps/core/src/modules/link/link-avatar.service.ts`
+  - 只把 `/objects/avatar/` 当作内部链接
+
+本地已完成的上游修复物：
+
+- 计划文档：
+  - `docs/superpowers/plans/2026-04-01-avatar-upload-url-root-cause-fix.md`
+- patch：
+  - `patches/mx-space-core-avatar-files-route.patch`
+- 上游源码临时副本：
+  - `/tmp/mx-space-core-tar`
+
+上游修复内容：
+
+- `resolveFileUrl()` 从 `/objects/${type}/${name}` 改为 `/files/${type}/${name}`
+- `file-reference.service.ts` 同时兼容 `/objects/image/` 和 `/files/image/`
+- `link-avatar.service.ts` 同时兼容 `/objects/avatar/` 和 `/files/avatar/`
+
+本地针对上游修复已跑过的定向验证：
+
+```bash
+pnpm -C apps/core exec vitest run --config vitest.root-cause.config.mts \
+  test/src/modules/file/file.service.spec.ts \
+  test/src/modules/file/file-reference.service.spec.ts \
+  test/src/modules/link/link-avatar.service.spec.ts
+```
+
+结果：
+
+- `3 passed`
+- `14 passed`
+
+### 第三阶段：服务器已部署上游修复，不用再重新 build 一遍找状态
+
+服务器侧这轮已经完成：
+
+- 将修过的 `mx-space/core` 源码打包上传到：
+  - `/opt/mx-core-src-patched.tar.gz`
+- 解压到：
+  - `/opt/mx-core-src`
+- 新增 compose override：
+  - `/opt/mxspace/docker-compose.override.yml`
+- override 内容的关键作用：
+  - 让 `app` 改为从 `/opt/mx-core-src/dockerfile` 构建
+  - 生成镜像 `blog-mx-server:11.0.7-avatar-fix`
+
+已经真实执行且成功的部署链路：
+
+```bash
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
+  cd /opt/mxspace &&
+  docker compose build app
+'
+
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
+  cd /opt/mxspace &&
+  docker compose up -d --no-deps app
+'
+```
+
+已确认结果：
+
+- `mx-server` 当前镜像是 `blog-mx-server:11.0.7-avatar-fix`
+- `docker logs --tail 120 mx-server` 显示 `Nest application successfully started`
+- `curl -s https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`
+
+### 第四阶段：部署后又发现一个新坑，且已经一起修掉
+
+仅修上游后端还不算闭环。我在真实上传验证时发现：
+
+- `POST https://api.418122.xyz/api/v2/files/upload?type=avatar` 已经返回新 URL：
+  - `https://api.418122.xyz/files/avatar/<name>`
+- 但第一轮访问这个新 URL 返回的是：
+  - `{"ok":0,"message":"Cannot GET /files/avatar/<name>"}`
+
+这说明：
+
+- 后端返回值已经修对了
+- 但入口层 Caddy 当时只兼容了 `/objects/*`
+- `/files/*` 还没有被转发到 `/api/v2/files/*`
+
+这个坑的有效修复：
+
+- 在 `418122.xyz, www.418122.xyz` 和 `api.418122.xyz` 两个站点块里都新增：
+  - `/files/*` -> `uri replace /files /api/v2/files` -> `reverse_proxy app:2333`
+- 然后再次执行：
+
+```bash
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
+  cd /opt/mxspace &&
+  docker compose up -d --force-recreate caddy
+'
+```
+
+为什么这里必须重建 `mx-caddy` 而不是只 reload：
+
+- 因为 `/opt/mxspace/Caddyfile:/etc/caddy/Caddyfile:ro` 是单文件 bind mount
+- 之前已经确认过：只改宿主机文件、甚至 `caddy reload`，都可能因为 inode 没更新而让容器继续吃旧配置
+- 对这个部署形态，最稳的是改完后直接 `docker compose up -d --force-recreate caddy`
+
+### 第五阶段：真实行为验证已经闭环
+
+这部分是最重要的新鲜上下文，下一位 agent 不需要再猜。
+
+我这轮做过的真实验证：
+
+1. 临时在 Mongo 的 `mx-space.apikey` 中写入一个 owner API key，只用于验证上传接口
+2. 用这个 key 调 `GET /api/v2/auth/token`，确认 token 生效
+3. 直接上传一个 1x1 PNG 到：
+   - `POST https://api.418122.xyz/api/v2/files/upload?type=avatar`
+4. 检查返回 JSON 的 `url`
+5. 再直接访问返回的 `/files/avatar/...` URL
+6. 最后删除临时 API key 和测试文件，避免污染环境
+
+验证结论：
+
+- 真实上传返回的已经是：
+  - `https://api.418122.xyz/files/avatar/mw5m1c0g5ja68bsubw.png`
+- 该 URL 实测返回 `HTTP/2 200`
+- 对应的 `/api/v2/files/avatar/...` 也返回 `HTTP/2 200`
+- 临时 API key 已清理；当前 `db.apikey.find({})` 为空
+- 验证用测试头像文件也已从服务器删除
+
+这轮踩过但没用、或者只修了一半的尝试：
+
+- 只加 `/objects/*` 兼容映射：
+  - 有用，但只能兜住旧 URL，不能解决后端继续返回旧 URL 的根因
+- 只部署上游 `mx-space/core` 修复、不补 `/files/*` 转发：
+  - 会让上传返回值变成对的 `/files/...`
+  - 但公网访问这个 URL 仍会 `404`
+- 并行删除“临时 token”和“临时测试文件”：
+  - 我试过一次，结果 token 先删掉，文件删除 API 返回“令牌无效”
+  - 最后改成直接在服务器文件系统定点删除测试文件，才收尾干净
+
+给下一位 agent 的直接结论：
+
+- “头像上传仍返回旧 `/objects/...` URL”的问题，现在已经从上游根治并部署到线上，不需要重复查根因
+- 当前线上不只是“旧路径兼容可用”，而是“新上传返回新 `/files/...` URL，且新 URL 真实可访问”
+- `/objects/*` 兼容映射建议暂时保留，用来兜住历史数据；没必要立刻删除
+- 如果后续要提交或同步这次修复，优先看：
+  - `patches/mx-space-core-avatar-files-route.patch`
+  - `docs/superpowers/plans/2026-04-01-avatar-upload-url-root-cause-fix.md`
+
 ---
 
 ## 什么有效
@@ -406,6 +575,9 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 先本机验证 `http://127.0.0.1:2323` 返回 `200`，再切 Caddy，是对的。
 - 切完后用公网 `curl` 和日志双重验证，而不是只看容器状态。
 - 对单文件 bind mount 的 Caddy 配置，改完后重建容器，是有效做法。
+- 对头像问题，先用 Caddy 兼容 `/objects/*` 兜底，再去上游 `mx-space/core` 找 `resolveFileUrl()`，这条排障路径是对的。
+- 用临时 owner API key 直接调真实上传接口验证返回值，比只盯前端页面更快、更准。
+- 部署完上游修复后，再反向验证 `/files/*` 是否真的被入口层暴露出来，这一步很关键。
 
 ---
 
@@ -416,6 +588,9 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 不要再花大量时间修老的 `innei/shiro:1.2.3` 镜像。
 - 不要只改宿主机 Caddyfile 然后 `caddy reload` 就以为切流完成；单文件 bind mount 会坑你。
 - 不要再从 Cloudflare / nameserver / 腾讯云基础 onboarding 重新开始。
+- 不要再重复开新的 `docker compose build app` 去猜上次 build 成没成；这轮已经构建成功并上线了。
+- 不要以为“后端上传返回 `/files/...` 就一定公网可访问”；如果入口层没配 `/files/*` 转发，还是会 `404`。
+- 不要再把头像问题继续归因为 Mongo、文件写盘失败或前端单纯不刷新，这些方向都已经被排掉。
 
 ---
 
@@ -437,6 +612,15 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 2. 决定是否迁移旧内容
 3. 再做 SEO / 资源 / 域名细节收尾
 
+### 如果目标是“把这次上游修复沉淀出去”
+
+优先做这个：
+
+1. 查看 `patches/mx-space-core-avatar-files-route.patch`
+2. 基于它整理上游 PR 或补丁说明
+3. 决定是否把服务器上的 `/opt/mx-core-src` 改造成更长期的可追踪部署来源
+4. 在确认历史数据都不再依赖旧路径前，不要急着移除 `/objects/*` 兼容
+
 ### 如果只是排障
 
 优先复核这些命令：
@@ -449,6 +633,8 @@ curl -I -s https://www.418122.xyz
 curl -s https://api.418122.xyz/api/v2/ping
 ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker logs --tail 80 yohaku'
 ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker logs --tail 80 mx-caddy'
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker logs --tail 120 mx-server'
+curl -sS -m 15 https://api.418122.xyz/api/v2/ping
 ```
 
 ---
@@ -460,15 +646,18 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker logs --tail 80 mx-caddy'
 当前真实状态是：
 
 - 私有 Yohaku 源码已经进了当前 `Blog` 仓库工作树
-- 本地接管 commit 已存在，且工作树干净
+- 本地接管 commit 已存在，当前还有一份 patch 和一份 plan 未提交
 - 本地构建通过
 - 服务器源码构建通过
 - 根域名已经切到 Yohaku
 - API 正常
 - 后台头像旧路径兼容已修复
+- 上游 `mx-space/core` 已修复并部署，上传返回值已从旧 `/objects/...` 改为 `/files/...`
+- 新 `/files/...` 公开访问链路也已补齐，不再是“返回值对了但公网 404”
 - 最大未收口项是：
   - 线上仍是 placeholder 内容，还不是最终正式内容
   - 当前分支是否 push 到原远端还没最终决定
-  - 后台上传头像为什么仍返回旧 `/objects/...` 路径，还没有从上游根治
+  - 上游修复还没有正式回传到上游仓库/发布链路，目前服务器是本地定制镜像
+  - 当前仓库里的 patch / plan 还没整理成正式提交
 
 如果时间有限，只看本文件就足够继续。
