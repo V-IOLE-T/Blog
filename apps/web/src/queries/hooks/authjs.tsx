@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { m } from 'motion/react'
 import Image from 'next/image'
-import { useLocale } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import type { FC } from 'react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
@@ -20,8 +20,8 @@ import {
 import { apiClient } from '~/lib/request'
 import { useAggregationSelector } from '~/providers/root/aggregation-data-provider'
 
-export const useAuthProviders = () => {
-  const { data } = useQuery({
+export const useAuthProvidersQuery = () =>
+  useQuery({
     queryKey: ['providers'],
     queryFn: () =>
       apiClient.proxy.auth.providers
@@ -34,8 +34,9 @@ export const useAuthProviders = () => {
       persist: true,
     },
   })
-  return data
-}
+
+export const useAuthProviders = () => useAuthProvidersQuery().data
+
 export const useHasProviders = () => {
   const providers = useAuthProviders()
   return !!providers?.length
@@ -70,7 +71,8 @@ function openOAuthPopup(url: string) {
 export const AuthProvidersRender: FC<{ onSuccess?: () => void }> = ({
   onSuccess,
 }) => {
-  const providers = useAuthProviders()
+  const t = useTranslations('common')
+  const { data: providers, fetchStatus } = useAuthProvidersQuery()
   const queryClient = useQueryClient()
   const locale = useLocale()
   const isMobile = useIsMobile()
@@ -109,79 +111,90 @@ export const AuthProvidersRender: FC<{ onSuccess?: () => void }> = ({
     return () => clearInterval(timer)
   }, [authProcessingLockSet.size, queryClient, onSuccess])
 
+  if (fetchStatus === 'fetching' && !providers) {
+    return (
+      <div className="flex min-h-10 items-center justify-center">
+        <div className="loading loading-spinner" />
+      </div>
+    )
+  }
+
+  if (!providers?.length) {
+    return (
+      <div className="py-2 text-center text-sm text-neutral-9/60">
+        {t('auth_login_unavailable')}
+      </div>
+    )
+  }
+
   return (
-    <>
-      {providers && (
-        <ul className="flex items-center justify-center gap-3">
-          {providers.map((provider) => (
-            <li key={provider}>
-              <MotionButtonBase
-                disabled={authProcessingLockSet.has(provider)}
-                onClick={async () => {
-                  if (authProcessingLockSet.has(provider)) return
+    <ul className="flex items-center justify-center gap-3">
+      {providers.map((provider) => (
+        <li key={provider}>
+          <MotionButtonBase
+            disabled={authProcessingLockSet.has(provider)}
+            onClick={async () => {
+              if (authProcessingLockSet.has(provider)) return
 
-                  setAuthProcessingLockSet((prev) => {
-                    prev.add(provider)
-                    return new Set(prev)
-                  })
+              setAuthProcessingLockSet((prev) => {
+                prev.add(provider)
+                return new Set(prev)
+              })
 
-                  const localePrefix =
-                    locale === defaultLocale ? '' : `/${locale}`
-                  const callbackURL = `${window.location.origin}${localePrefix}/auth/social-callback`
-                  const res = await authClient.signIn.social({
-                    provider,
-                    callbackURL,
-                    disableRedirect: true,
-                  })
+              const localePrefix = locale === defaultLocale ? '' : `/${locale}`
+              const callbackURL = `${window.location.origin}${localePrefix}/auth/social-callback`
+              const res = await authClient.signIn.social({
+                provider,
+                callbackURL,
+                disableRedirect: true,
+              })
 
-                  const url = res.data?.url
-                  if (url) {
-                    if (isMobile) {
-                      try {
-                        sessionStorage.setItem(
-                          OAUTH_RETURN_PATH_STORAGE_KEY,
-                          `${window.location.pathname}${window.location.search}`,
-                        )
-                      } catch {
-                        // ignore
-                      }
-                      window.location.assign(url)
-                      return
-                    }
-                    const popup = openOAuthPopup(url)
-                    if (popup) {
-                      popupRef.current = popup
-                    } else {
-                      try {
-                        sessionStorage.setItem(
-                          OAUTH_RETURN_PATH_STORAGE_KEY,
-                          `${window.location.pathname}${window.location.search}`,
-                        )
-                      } catch {
-                        // ignore
-                      }
-                      window.location.assign(url)
-                    }
-                  } else {
-                    setAuthProcessingLockSet(new Set())
+              const url = res.data?.url
+              if (url) {
+                if (isMobile) {
+                  try {
+                    sessionStorage.setItem(
+                      OAUTH_RETURN_PATH_STORAGE_KEY,
+                      `${window.location.pathname}${window.location.search}`,
+                    )
+                  } catch {
+                    // ignore
                   }
-                }}
-              >
-                <div className="flex size-10 items-center justify-center rounded-full border bg-neutral-1 border-neutral-3">
-                  {!authProcessingLockSet.has(provider) ? (
-                    <AuthProviderBrandIcon provider={provider} />
-                  ) : (
-                    <div className="center flex">
-                      <i className="loading loading-spinner loading-xs opacity-50" />
-                    </div>
-                  )}
+                  window.location.assign(url)
+                  return
+                }
+                const popup = openOAuthPopup(url)
+                if (popup) {
+                  popupRef.current = popup
+                } else {
+                  try {
+                    sessionStorage.setItem(
+                      OAUTH_RETURN_PATH_STORAGE_KEY,
+                      `${window.location.pathname}${window.location.search}`,
+                    )
+                  } catch {
+                    // ignore
+                  }
+                  window.location.assign(url)
+                }
+              } else {
+                setAuthProcessingLockSet(new Set())
+              }
+            }}
+          >
+            <div className="flex size-10 items-center justify-center rounded-full border bg-neutral-1 border-neutral-3">
+              {!authProcessingLockSet.has(provider) ? (
+                <AuthProviderBrandIcon provider={provider} />
+              ) : (
+                <div className="center flex">
+                  <i className="loading loading-spinner loading-xs opacity-50" />
                 </div>
-              </MotionButtonBase>
-            </li>
-          ))}
-        </ul>
-      )}
-    </>
+              )}
+            </div>
+          </MotionButtonBase>
+        </li>
+      ))}
+    </ul>
   )
 }
 

@@ -40,6 +40,7 @@
   "auth_dashboard": "Quick Admin",
   "auth_console": "Console",
   "auth_login": "Login",
+  "auth_login_unavailable": "Login is currently unavailable",
   "auth_logout": "Logout",
   "not_support": "This feature is not available in your region",
   "loading_default": [

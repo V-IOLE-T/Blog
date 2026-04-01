@@ -23,8 +23,7 @@ const TapableLogo = () => {
   const session = useSessionReader()
   const presentOauthModal = useOauthLoginModal()
   const isAuthenticated = isOwner || !!session
-  const { canTriggerLogin, shouldHideLoginEntry } =
-    useLoginProvidersAvailability()
+  const { shouldHideLoginEntry } = useLoginProvidersAvailability()
 
   const avatarVariant = isOwner ? 'owner' : session ? 'reader' : 'guest'
   const avatarAlt = !isAuthenticated
@@ -40,7 +39,7 @@ const TapableLogo = () => {
       src={!isOwner ? session?.image || undefined : undefined}
       variant={avatarVariant}
       className={
-        canTriggerLogin || isAuthenticated ? 'cursor-pointer' : undefined
+        !shouldHideLoginEntry || isAuthenticated ? 'cursor-pointer' : undefined
       }
     />
   )
@@ -51,7 +50,6 @@ const TapableLogo = () => {
 
   const trigger = (
     <button
-      aria-disabled={!canTriggerLogin}
       className="rounded-full"
       title={t('auth_login')}
       type="button"
@@ -62,7 +60,7 @@ const TapableLogo = () => {
             ? t('aria_site_owner_avatar')
             : session?.name || t('auth_account')
       }
-      onClick={canTriggerLogin ? () => presentOauthModal() : undefined}
+      onClick={() => presentOauthModal()}
     >
       {avatar}
     </button>

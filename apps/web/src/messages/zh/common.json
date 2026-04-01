@@ -40,6 +40,7 @@
   "auth_dashboard": "轻管理",
   "auth_console": "控制台",
   "auth_login": "登录",
+  "auth_login_unavailable": "当前暂不可登录",
   "auth_logout": "登出",
   "not_support": "您当前所在地区暂不支持此功能",
   "loading_default": [

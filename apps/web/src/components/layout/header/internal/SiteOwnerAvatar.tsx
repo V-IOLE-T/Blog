@@ -39,6 +39,7 @@ export const SiteOwnerAvatar = ({
       ? src || ownerAvatar || '/enter.svg'
       : src || '/enter.svg'
   const isOwnerAvatar = variant === 'owner'
+  const isGuestAvatar = variant === 'guest'
   const isInteractiveLive = isOwnerAvatar && isLiving && showLiveAffordance
   const imageAlt =
     alt || (variant === 'guest' ? t('auth_login') : t('aria_site_owner_avatar'))
@@ -61,21 +62,29 @@ export const SiteOwnerAvatar = ({
             : isOwnerAvatar
               ? 'mask mask-squircle'
               : 'rounded-full',
-          'overflow-hidden',
+          isGuestAvatar ? 'overflow-visible' : 'overflow-hidden',
         )}
       >
         <Image
           alt={imageAlt}
-          className="ring-2 ring-neutral-3"
           height={40}
           src={avatar}
           width={40}
+          className={clsxm(
+            isGuestAvatar
+              ? 'scale-110 object-contain p-1'
+              : 'ring-2 ring-neutral-3',
+          )}
           style={
-            isOwnerAvatar && ownerStatus
+            isGuestAvatar
               ? {
-                  maskImage: `url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wIDBINDBWMjcuMzQyN0MzOC4zNSAyNS4zMDM3IDM1LjgyNzMgMjQgMzMgMjRDMjguMDI5NCAyNCAyNCAyOC4wMjk0IDI0IDMzQzI0IDM1LjgyNzMgMjUuMzAzNyAzOC4zNSAyNy4zNDI3IDQwSDBWMFoiIGZpbGw9IiNEOUQ5RDkiLz4KPC9zdmc+Cg==")`,
+                  objectFit: 'contain',
                 }
-              : undefined
+              : isOwnerAvatar && ownerStatus
+                ? {
+                    maskImage: `url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik0wIDBINDBWMjcuMzQyN0MzOC4zNSAyNS4zMDM3IDM1LjgyNzMgMjQgMzMgMjRDMjguMDI5NCAyNCAyNCAyOC4wMjk0IDI0IDMzQzI0IDM1LjgyNzMgMjUuMzAzNyAzOC4zNSAyNy4zNDI3IDQwSDBWMFoiIGZpbGw9IiNEOUQ5RDkiLz4KPC9zdmc+Cg==")`,
+                  }
+                : undefined
           }
         />
       </div>
