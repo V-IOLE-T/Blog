@@ -1,6 +1,9 @@
 # Blog 仓库 HANDOFF
 
-更新时间：2026-04-01 12:08（Asia/Shanghai）
+更新时间：2026-04-01 17:13（Asia/Shanghai）
+
+> 重要：本文件末尾新增了 `## [2026-04-01 17:13] GitHub Actions -> Vercel 已跑通，待完成域名 cutover`。
+> 该节是当前“可重复部署收口”的最新权威状态；若与前文冲突，以该节为准。
 
 ## 先看这 14 句话
 
@@ -1325,3 +1328,443 @@ curl -sS -m 15 https://api.418122.xyz/api/v2/ping
 3. 再执行 DNS/流量切换，让 `418122.xyz` 与 `www.418122.xyz` 指向 Vercel。
 4. 切换完成后，除了验证首页可访问，还必须验证此前出过问题的 `owner` 已登录 `控制台` 按钮链路是否正常。
 5. 完成上述验收后，再将 VPS `yohaku` 明确降级为 rollback 容量；除回退演练外，不再把它当主生产前端。
+
+## [2026-04-01 17:13] GitHub Actions -> Vercel 已跑通，待完成域名 cutover
+
+> 本节明确覆盖上一节中“GitHub Actions / Vercel / DNS 尚未完成”的旧状态。
+> 以本节为准：仓库侧的可重复部署链路已经被用户实际跑通，但域名绑定 / DNS 切流 / 上线验收还没在本文件中拿到最终实证。
+
+### 1) 当前目标
+
+- 收口目标已经从“把 Vercel workflow 配出来”变成：
+  - 保持 `GitHub Actions -> Vercel` 为默认正式前端发布链路
+  - 完成 `418122.xyz` 与 `www.418122.xyz` 的 Vercel 域名绑定与 DNS cutover
+  - 做一次切流后的真实验收
+- VPS `yohaku` 现在应视为：
+  - 仍可用的 legacy/live fallback
+  - 在域名正式切到 Vercel 并验收通过之前，不应贸然下线
+
+### 2) 当前已知真实状态
+
+- 本地仓库：
+  - 分支：`codex/modify`
+  - 当前 HEAD：`05ba7fd fix: 移除 Vercel 部署工作流的错误工作目录`
+  - `git status --short` 无输出，工作区干净
+- 仓库内已落地的文件：
+  - `.github/workflows/vercel-frontend-deploy.yml`
+  - `.github/workflows/trigger.yml`
+  - `docs/deployment/vercel-frontend.md`
+  - `README.md`
+- 用户已明确反馈：
+  - GitHub Actions 的 Vercel 部署“已经成功了，配置上了”
+  - 这表示至少有一条真实的 `GitHub Actions -> Vercel production deploy` 已成功跑完
+- 但当前 agent 尚未在 Vercel 控制面亲眼核验以下事实：
+  - 实际 Vercel team 名称 / slug
+  - 实际 project 名称
+  - `418122.xyz` 与 `www.418122.xyz` 当前在 Vercel Domains 页的绑定状态
+  - 当前公网根域名是否已经从 VPS 切到 Vercel
+- 因此，此处必须区分：
+  - “部署链路已跑通”是用户回传日志 + repo/workflow 演进可支持的事实
+  - “域名已切到 Vercel 且公网验收通过”目前还不是本文件中的已验证事实
+
+### 3) 这轮实际试了什么
+
+#### 仓库内已经做过并生效的修改
+
+- 新增/收口正式 workflow：`.github/workflows/vercel-frontend-deploy.yml`
+  - 固定 `pnpm@10.27.0`
+  - 固定 `vercel@47.0.5`
+  - 触发：`push` 到 `main` + `workflow_dispatch`
+  - 使用 secrets：
+    - `VERCEL_TOKEN`
+    - `VERCEL_ORG_ID`
+    - `VERCEL_PROJECT_ID`
+- 将旧 `.github/workflows/trigger.yml` 明确降级为 manual rollback only
+- 修掉了一个关键 workflow 路径 bug：
+  - 最初 workflow 里放了 `working-directory: apps/web`
+  - 导致 runner 上执行时报错：
+    - `ENOENT: no such file or directory, open '/home/runner/work/Blog/Blog/apps/web/apps/web/package.json'`
+  - 已通过 commit `05ba7fd` 移除错误工作目录设置
+
+#### 用户在 GitHub / Vercel 控制面已经实际完成的步骤
+
+- 用户已登录 GitHub 与 Vercel
+- 用户已创建或连接 Vercel 项目
+- 用户已配置 GitHub Actions secrets
+- 用户已至少触发并跑通一次生产部署
+
+### 4) 什么有效
+
+- 把 GitHub secrets 放在仓库级 `Settings -> Secrets and variables -> Actions`
+  - 不是 environment secrets
+  - 不是本地 shell 临时变量
+- Vercel 项目关键配置使用：
+  - Project Root Directory：`apps/web`
+  - Production Branch：`main`
+  - Vercel 项目里的 Node.js Version 改成 `22.x`
+- workflow 中从仓库根目录执行 Vercel CLI，而不是再额外 `cd apps/web` 或 `working-directory: apps/web`
+- 继续使用仓库里已经固定好的 CLI 版本：
+  - `pnpm dlx vercel@47.0.5`
+- 本地 build 验证命令仍然有效，可用于排除代码侧构建问题：
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 \
+NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz \
+pnpm --filter @shiro/web build
+```
+
+### 5) 什么没用、什么会误导
+
+- 用无效 token 跑：
+
+```bash
+pnpm dlx vercel@47.0.5 pull --yes --environment=production --token="$VERCEL_TOKEN"
+```
+
+  - 会得到：
+    - `Error: The specified token is not valid. Use vercel login to generate a new token.`
+  - 这不是代码问题，而是 secret 值本身不对，或放错了位置
+- 保持 Vercel Project Settings 中的 Node 版本为 `24.x`
+  - 会报：
+    - `Error: Found invalid Node.js Version: "24.x". Please set Node.js Version to 22.x`
+  - 这里应改 Vercel 控制面，不是改 workflow 的 setup-node 就能解决
+- 在 workflow 里额外设置 `working-directory: apps/web`
+  - 会把路径拼成 `apps/web/apps/web`
+  - 这正是导致 `package.json` 找不到的根因
+- 仅凭本地 build 通过，就推断 Vercel 生产部署一定没问题
+  - 本轮事实证明不够，控制面配置仍然会拦住部署
+- 依赖当前会话里不稳定的网页登录态去推断 Vercel 控制面现状
+  - 之前尝试过从网页侧检查，但 session 状态并不稳定，一度只看到 Vercel 登录页
+  - 因此这一轮关于“部署成功”的权威来源以用户回传日志为准，而不是此前那个不稳定的网页观察
+
+### 6) 已掌握的关键报错与对应修复
+
+- 报错 1：`The specified token is not valid`
+  - 修复：重新生成/重新填写正确的 `VERCEL_TOKEN`，并放到仓库级 GitHub Actions secrets
+- 报错 2：`Found invalid Node.js Version: "24.x"`
+  - 修复：去 Vercel Project Settings 把 Node.js Version 改为 `22.x`
+- 报错 3：`ENOENT ... /apps/web/apps/web/package.json`
+  - 修复：移除 workflow 中多余的 `working-directory: apps/web`
+  - 对应提交：`05ba7fd`
+
+### 7) 下一位 agent 不要重复排查的结论
+
+- 不要再把当前问题当成“代码 build 坏了”
+  - 代码侧构建已经验证过
+  - 当前剩余问题集中在 Vercel domain / DNS / acceptance，而不是 repo 内部构建
+- 不要再回头把 VPS `docker compose build yohaku` 当默认生产前端发布主线
+  - 它现在只承担回退价值
+- 不要再把“GitHub Actions 还没跑成功”当成待验证事项
+  - 这一点已经被用户明确确认完成
+  - 真正未完成的是域名和切流收口
+
+### 8) 下一位 agent 的最短继续路径
+
+1. 进入 Vercel 项目的 `Domains` 页面，核对并记录：
+   - project 名称
+   - team / scope 名称
+   - `418122.xyz`
+   - `www.418122.xyz`
+   - 各自状态是 `Valid Configuration`、`Pending Verification` 还是别的
+2. 若未添加域名，先添加 `418122.xyz` 与 `www.418122.xyz`。
+3. 按 Vercel Domains 页给出的真实 DNS 记录，在当前 DNS 服务商处逐条配置。
+4. 等域名状态就绪后，做一次验收：
+   - `https://418122.xyz`
+   - `https://www.418122.xyz`
+   - 页面请求 `https://api.418122.xyz/api/v2` 正常
+   - owner 登录正常
+   - 用户此前点过的 `控制台` 按钮链路正常
+5. 只有当上述验收都完成后，才把 VPS `yohaku` 明确标记为 rollback-only。
+
+### 9) 给下一位 agent 的一句话版本
+
+- 代码仓库、workflow、GitHub secrets、Vercel 生产部署本身已经跑通；不要再围绕 token / node version / `apps/web/apps/web` 这些旧坑兜圈子，直接去做 Domains + DNS + 切流验收。
+
+## [2026-04-01 17:40] VPS 已移除 apex/www 前端入口，前端正式脱离 VPS
+
+> 本节覆盖此前“VPS `yohaku` 仍可作为 live fallback 承载前端”的表述。
+> 以本节为准：VPS 现在只承载 API；`418122.xyz` / `www.418122.xyz` 的前端流量不应再经过 VPS。
+
+### 1) 这轮根因结论
+
+- 用户要求继续排查“为什么 `/` 仍经过 Caddy，而 `/en` / `/dashboard` 已走 Vercel”，目标是让前端彻底脱离 VPS。
+- 排查结果确认：
+  - **公网实时请求** 到 `https://418122.xyz/`、`/en`、`/dashboard` 已经都返回 `server: Vercel`
+  - 但 **VPS 上的 Caddy 仍保留**：
+    - `418122.xyz, www.418122.xyz -> reverse_proxy yohaku:2323`
+  - 我用：
+    - `curl -k -I --resolve 418122.xyz:443:43.153.75.156 https://418122.xyz`
+    - 可以稳定复现旧的：
+      - `via: 1.1 Caddy`
+      - `x-middleware-rewrite: /zh`
+- 这说明此前“根路径偶尔仍像走 VPS”不是凭空现象，而是：
+  - **公网切流已经发生**
+  - 但 **VPS 旧前端入口仍活着**
+  - 只要客户端/缓存/DNS 命中旧路径，就仍可能打到 VPS 上的 `yohaku`
+
+### 2) 这轮在 VPS 上实际做了什么
+
+- 服务器：
+  - `43.153.75.156`
+- SSH：
+  - `ssh -i ~/.ssh/macair4.pem root@43.153.75.156`
+- 先备份了旧 Caddy 配置：
+  - `/opt/mxspace/Caddyfile.bak-20260401-frontend-detach`
+- 然后把 `/opt/mxspace/Caddyfile` 改成 **只保留** `api.418122.xyz` 站点块
+- 不再让 Caddy 监听：
+  - `418122.xyz`
+  - `www.418122.xyz`
+- 用下面命令验证新配置合法并生效：
+
+```bash
+docker run --rm \
+  -v /opt/mxspace/Caddyfile:/etc/caddy/Caddyfile:ro \
+  caddy:2-alpine \
+  caddy validate --config /etc/caddy/Caddyfile
+
+cd /opt/mxspace && docker compose up -d --force-recreate caddy
+cd /opt/mxspace && docker compose stop yohaku
+```
+
+### 3) 当前 VPS 运行状态
+
+这轮收口后，服务器上的 `docker ps` 为：
+
+- `mx-caddy`
+- `mx-server`
+- `redis`
+- `mongo`
+
+已经 **没有** 运行中的：
+
+- `yohaku`
+
+也就是说：
+
+- VPS 现在只承载 API / Core / Redis / Mongo
+- 前端运行容器已经停掉
+
+### 4) 这轮实测验证结果
+
+#### 公网前端仍正常
+
+下面这些命令都返回 Vercel 响应头：
+
+```bash
+curl -I -sS https://418122.xyz/
+curl -I -sS https://418122.xyz/en
+curl -I -sS https://418122.xyz/dashboard
+```
+
+关键信号：
+
+- `server: Vercel`
+- `x-matched-path: /[locale]` 或 `/dashboard/[[...catch_all]]`
+
+#### API 仍正常
+
+```bash
+curl -I -sS https://api.418122.xyz/api/v2/ping
+```
+
+返回：
+
+- `HTTP/2 200`
+- `via: 1.1 Caddy`
+
+这符合预期，因为 API 现在仍由 VPS Caddy 反代到 `app:2333`
+
+#### 强制命中 VPS 时，前端已不可达
+
+这一步是本轮最关键的脱离证据：
+
+```bash
+curl -k -I -sS --resolve 418122.xyz:443:43.153.75.156 https://418122.xyz/
+```
+
+现在返回的是 TLS 握手失败：
+
+- `curl: (35) LibreSSL... tlsv1 alert internal error`
+
+这表示：
+
+- 即使强行把 `418122.xyz` 的 SNI/Host 打到 VPS
+- VPS 也已经不再对该 host 提供可用前端站点
+
+### 5) 对下一位 agent 的直接结论
+
+- 现在不要再把 VPS 当成前端 live fallback
+- `418122.xyz` / `www.418122.xyz` 的前端链路应视为 **正式脱离 VPS**
+- 若未来还想回退前端到 VPS：
+  - 需要恢复 `/opt/mxspace/Caddyfile.bak-20260401-frontend-detach`
+  - 并重新启动 `yohaku`
+- 当前若继续做验收，应重点关注：
+  - Vercel 前端功能完整性
+  - API 与前端跨域/登录链路
+  - 而不是再排查 VPS 前端容器
+
+## [2026-04-01 17:48] 默认 compose 也已去前端化，VPS 只保留 rollback profile
+
+> 本节补充上一节。
+> 上一节解决的是“VPS 不再对外提供 apex/www 前端”；
+> 本节继续解决“以后有人在 VPS 上跑 `docker compose up -d` 时，会不会又把 `yohaku` 带起来”。
+
+### 1) 这轮发现的剩余隐患
+
+- 虽然上一节已经：
+  - 从 `Caddyfile` 中移除了 `418122.xyz, www.418122.xyz`
+  - 停掉了 `yohaku`
+- 但 `docker-compose.yml` 当时仍然保留：
+  - `yohaku` 作为默认 service
+  - `caddy.depends_on: [app, yohaku]`
+- 这意味着：
+  - 只要有人在 VPS 上习惯性执行 `cd /opt/mxspace && docker compose up -d`
+  - `yohaku` 仍可能被重新启动
+  - 从“运维默认路径”角度看，前端还没有彻底退出 VPS
+
+### 2) 这轮在 VPS 上实际做了什么
+
+- 服务器：
+  - `43.153.75.156`
+- 备份原 compose：
+  - `/opt/mxspace/docker-compose.yml.bak-20260401-yohaku-rollback-profile`
+- 重新整理 `/opt/mxspace/docker-compose.yml`：
+  - 给 `yohaku` 增加：
+    - `profiles: [rollback]`
+  - 把 `caddy.depends_on` 从：
+    - `app + yohaku`
+    - 改成只依赖 `app`
+- 然后执行：
+
+```bash
+cd /opt/mxspace && docker compose config >/tmp/mxspace-compose-effective.yaml
+cd /opt/mxspace && docker compose up -d app mongo redis caddy
+docker rm -f yohaku >/dev/null 2>&1 || true
+```
+
+### 3) 关键验证结果
+
+#### 默认 compose up 不会再启动 yohaku
+
+这一步已经真实执行：
+
+```bash
+cd /opt/mxspace && docker compose up -d
+docker ps --format 'table {{.Names}}\t{{.Image}}\t{{.Status}}'
+```
+
+结果只剩：
+
+- `mx-caddy`
+- `mx-server`
+- `redis`
+- `mongo`
+
+没有 `yohaku`
+
+#### docker compose config 的默认有效编排也不含运行态前端依赖
+
+实测：
+
+```bash
+cd /opt/mxspace && docker compose config
+```
+
+当前有效配置中：
+
+- `caddy.depends_on` 只剩 `app`
+- `yohaku` 不再参与默认启动路径
+
+### 4) 这轮补做的烟测
+
+#### 公网前端
+
+以下都返回 `server: Vercel`：
+
+```bash
+curl -I -sS https://418122.xyz/
+curl -I -sS https://418122.xyz/en
+curl -I -sS https://418122.xyz/dashboard
+curl -I -sS https://418122.xyz/dashboard/site
+```
+
+#### API
+
+```bash
+curl -I -sS https://api.418122.xyz/api/v2/ping
+```
+
+返回：
+
+- `HTTP/2 200`
+- `via: 1.1 Caddy`
+
+符合“VPS 只承载 API”的当前目标
+
+#### 强制命中 VPS 的前端 host
+
+以下命令仍返回 TLS 握手失败：
+
+```bash
+curl -k -I -sS --resolve 418122.xyz:443:43.153.75.156 https://418122.xyz/
+curl -k -I -sS --resolve www.418122.xyz:443:43.153.75.156 https://www.418122.xyz/
+```
+
+这说明 VPS 仍然不对 apex/www 提供前端
+
+#### owner 链路
+
+浏览器实测：
+
+- `https://418122.xyz/dashboard/site` 可正常打开
+- 页面内能看到：
+  - `站点配置`
+  - `SEO`
+  - `Hero`
+  - `社交链接`
+  - `页脚链接`
+- owner 登录态下页面执行：
+
+```js
+fetch("https://api.418122.xyz/api/v2/config/url", { credentials: "include" })
+```
+
+返回 `200`
+
+- 前台用户菜单里的 `Console` 触发的仍是：
+  - `window.open("https://api.418122.xyz/proxy/qaqdmin", "_blank")`
+
+### 5) 给下一位 agent 的直接结论
+
+- 现在 VPS 已经不只是“流量上不再承载前端”
+- 而且在 **默认运维路径** 上也不再会把前端带起来
+- 若以后需要临时回退到 VPS 前端，可考虑：
+
+```bash
+cd /opt/mxspace
+docker compose --profile rollback up -d yohaku
+```
+
+但前提仍是：
+
+- 恢复 apex/www 的 Caddy 站点块
+- 明确这是人工回退动作，而不是默认发布路径
+
+### 6) 这轮额外沉淀的长期文档
+
+为了避免以后再误操作把前端带回 VPS，这轮已新增/更新长期文档：
+
+- 新增：
+  - `docs/deployment/vps-frontend-rollback.md`
+- 更新：
+  - `docs/deployment/vercel-frontend.md`
+  - `README.md`
+
+直接用途：
+
+- 日常发布看：
+  - `docs/deployment/vercel-frontend.md`
+- 需要临时回退 VPS 前端时看：
+  - `docs/deployment/vps-frontend-rollback.md`
+
+不要只依赖本 handoff 去执行长期运维动作；优先以这两份部署文档为准。
