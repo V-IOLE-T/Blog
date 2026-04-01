@@ -14,7 +14,6 @@ import {
 import { HeaderContent } from './internal/HeaderContent'
 import { HeaderDataConfigureProvider } from './internal/HeaderDataConfigureProvider'
 import { HeaderDrawerButton } from './internal/HeaderDrawerButton'
-import { UserAuth } from './internal/UserAuth'
 
 export const Header = () => (
   <ErrorBoundary>
@@ -47,9 +46,7 @@ const MemoedHeader = memo(() => {
           <HeaderContent />
         </HeaderCenterArea>
 
-        <div className="flex size-full items-center">
-          <UserAuth />
-        </div>
+        <div className="flex size-full items-center" />
       </div>
     </div>
   )

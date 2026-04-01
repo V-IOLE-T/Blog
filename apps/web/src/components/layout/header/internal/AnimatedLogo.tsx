@@ -2,60 +2,92 @@
 
 import { m } from 'motion/react'
 import { useTranslations } from 'next-intl'
-import { useCallback } from 'react'
 
-import { isOwnerLogged } from '~/atoms/hooks/owner'
-import { useResolveAdminUrl } from '~/atoms/hooks/url'
+import { useIsOwnerLogged } from '~/atoms/hooks/owner'
+import { useSessionReader } from '~/atoms/hooks/reader'
 import { useViewport } from '~/atoms/hooks/viewport'
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { useIsClient } from '~/hooks/common/use-is-client'
-import { useSingleAndDoubleClick } from '~/hooks/common/use-single-double-click'
-import { useRouter } from '~/i18n/navigation'
-import { noopObj } from '~/lib/noop'
-import { Routes } from '~/lib/route-builder'
-import { useAppConfigSelector } from '~/providers/root/aggregation-data-provider'
+import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
-import { useLiveQuery } from './useLiveQuery'
+import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
 
 const TapableLogo = () => {
-  const router = useRouter()
   const t = useTranslations('common')
+  const isOwner = useIsOwnerLogged()
+  const session = useSessionReader()
+  const presentOauthModal = useOauthLoginModal()
+  const isAuthenticated = isOwner || !!session
+  const { canTriggerLogin, shouldHideLoginEntry } =
+    useLoginProvidersAvailability()
 
-  const { data: isLiving } = useLiveQuery()
+  const avatarVariant = isOwner ? 'owner' : session ? 'reader' : 'guest'
+  const avatarAlt = !isAuthenticated
+    ? t('auth_login')
+    : isOwner
+      ? t('aria_site_owner_avatar')
+      : session?.name || t('auth_account')
 
-  const { liveId } = (useAppConfigSelector(
-    (config) => config.module?.bilibili,
-  ) || noopObj) as Bilibili
-
-  const goLive = useCallback(() => {
-    window.open(`https://live.bilibili.com/${liveId}`)
-  }, [liveId])
-
-  const resolveAdminUrl = useResolveAdminUrl()
-
-  const fn = useSingleAndDoubleClick(
-    () => {
-      if (isLiving) return goLive()
-      router.push(Routes.Home)
-    },
-    () => {
-      if (isOwnerLogged()) {
-        location.href = resolveAdminUrl()
-
-        return
+  const avatar = (
+    <SiteOwnerAvatar
+      alt={avatarAlt}
+      showLiveAffordance={false}
+      src={!isOwner ? session?.image || undefined : undefined}
+      variant={avatarVariant}
+      className={
+        canTriggerLogin || isAuthenticated ? 'cursor-pointer' : undefined
       }
-      router.push(
-        `${Routes.Login}?redirect=${encodeURIComponent(location.pathname)}`,
-      )
-    },
+    />
   )
 
-  return (
-    <button onClick={fn}>
-      <SiteOwnerAvatar className="cursor-pointer" />
-      <span className="sr-only">{t('aria_site_owner_avatar')}</span>
+  if (!isAuthenticated && shouldHideLoginEntry) {
+    return avatar
+  }
+
+  const trigger = (
+    <button
+      aria-disabled={!canTriggerLogin}
+      className="rounded-full"
+      title={t('auth_login')}
+      type="button"
+      aria-label={
+        !isAuthenticated
+          ? t('aria_login')
+          : isOwner
+            ? t('aria_site_owner_avatar')
+            : session?.name || t('auth_account')
+      }
+      onClick={canTriggerLogin ? () => presentOauthModal() : undefined}
+    >
+      {avatar}
     </button>
+  )
+
+  if (!isAuthenticated) {
+    return trigger
+  }
+
+  return (
+    <DropdownMenu modal={false}>
+      <DropdownMenuTrigger
+        aria-haspopup="menu"
+        className="rounded-full"
+        nativeButton={false}
+        aria-label={
+          isOwner
+            ? t('aria_site_owner_avatar')
+            : session?.name || t('auth_account')
+        }
+      >
+        {avatar}
+      </DropdownMenuTrigger>
+      <UserAuthMenuContent align="start" variant="entry" />
+    </DropdownMenu>
   )
 }
 export const AnimatedLogo = () => {

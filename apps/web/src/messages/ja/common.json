@@ -39,6 +39,7 @@
   "auth_account": "アカウント",
   "auth_dashboard": "簡易管理",
   "auth_console": "コンソール",
+  "auth_login": "ログイン",
   "auth_logout": "ログアウト",
   "not_support": "この機能はお住まいの地域ではご利用いただけません",
   "loading_default": [
