@@ -1,0 +1,150 @@
+--- /tmp/mx-space-core-pristine/apps/core/src/modules/file/file.service.ts	2026-03-31 15:23:30
++++ /tmp/mx-space-core-tar/apps/core/src/modules/file/file.service.ts	2026-04-01 02:03:37
+@@ -147,7 +147,7 @@
+ 
+   async resolveFileUrl(type: FileType, name: string) {
+     const { serverUrl } = await this.configService.get('url')
+-    return `${serverUrl.replace(/\/+$/, '')}/objects/${type}/${name}`
++    return `${serverUrl.replace(/\/+$/, '')}/files/${type}/${name}`
+   }
+ 
+   async renameFile(type: FileType, name: string, newName: string) {
+--- /tmp/mx-space-core-pristine/apps/core/src/modules/file/file-reference.service.ts	2026-03-31 15:23:30
++++ /tmp/mx-space-core-tar/apps/core/src/modules/file/file-reference.service.ts	2026-04-01 02:03:45
+@@ -25,6 +25,12 @@
+ @Injectable()
+ export class FileReferenceService {
+   private readonly logger = new Logger(FileReferenceService.name)
++
++  private isLocalImageFileUrl(fileUrl: string): boolean {
++    return (
++      fileUrl.includes('/objects/image/') || fileUrl.includes('/files/image/')
++    )
++  }
+ 
+   private isEnoent(err: unknown): boolean {
+     return (
+@@ -154,7 +160,7 @@
+             continue
+           }
+           await s3Uploader.deleteObject(file.s3ObjectKey)
+-        } else if (file.fileUrl.includes('/objects/image/')) {
++        } else if (this.isLocalImageFileUrl(file.fileUrl)) {
+           await this.unlinkLocalOrphanImage(file.fileName)
+         } else {
+           continue
+@@ -197,7 +203,7 @@
+         await s3Uploader.deleteObject(file.s3ObjectKey)
+         return true
+       }
+-      if (file.fileUrl.includes('/objects/image/')) {
++      if (this.isLocalImageFileUrl(file.fileUrl)) {
+         await this.unlinkLocalOrphanImage(file.fileName)
+         return true
+       }
+--- /tmp/mx-space-core-pristine/apps/core/src/modules/link/link-avatar.service.ts	2026-03-31 15:23:30
++++ /tmp/mx-space-core-tar/apps/core/src/modules/link/link-avatar.service.ts	2026-04-01 02:03:56
+@@ -38,6 +38,12 @@
+ export class LinkAvatarService {
+   private readonly logger: Logger
+ 
++  private isInternalAvatarUrl(avatar: string): boolean {
++    return (
++      avatar.includes('/objects/avatar/') || avatar.includes('/files/avatar/')
++    )
++  }
++
+   constructor(
+     @InjectModel(LinkModel)
+     private readonly linkModel: MongooseModel<LinkModel>,
+@@ -198,7 +204,7 @@
+     } catch {
+       return false
+     }
+-    if (avatar.includes('/objects/avatar/')) {
++    if (this.isInternalAvatarUrl(avatar)) {
+       return false
+     }
+ 
+--- /tmp/mx-space-core-pristine/apps/core/test/src/modules/file/file.service.spec.ts	2026-03-31 15:23:30
++++ /tmp/mx-space-core-tar/apps/core/test/src/modules/file/file.service.spec.ts	2026-04-01 01:58:30
+@@ -71,3 +71,17 @@
+     ).resolves.toBeUndefined()
+   })
+ })
++
++describe('FileService.resolveFileUrl', () => {
++  it('should return the public files route instead of legacy objects route', async () => {
++    const service = new FileService({
++      get: vi.fn().mockResolvedValue({
++        serverUrl: 'https://api.example.com/api/v2/',
++      }),
++    } as any)
++
++    await expect(service.resolveFileUrl('avatar' as any, 'owner.png')).resolves.toBe(
++      'https://api.example.com/api/v2/files/avatar/owner.png',
++    )
++  })
++})
+--- /tmp/mx-space-core-pristine/apps/core/test/src/modules/file/file-reference.service.spec.ts	2026-03-31 15:23:30
++++ /tmp/mx-space-core-tar/apps/core/test/src/modules/file/file-reference.service.spec.ts	2026-04-01 02:04:15
+@@ -156,7 +156,7 @@
+     it('should delete DB record when local file is already missing (ENOENT)', async () => {
+       const orphan = {
+         _id: 'ref_orphan',
+-        fileUrl: 'http://example.com/objects/image/gone.png',
++        fileUrl: 'http://example.com/files/image/gone.png',
+         fileName: 'gone.png',
+         status: FileReferenceStatus.Pending,
+         created: new Date(Date.now() - 120 * 60 * 1000),
+@@ -177,6 +177,32 @@
+       const result = await fileReferenceService.cleanupOrphanFiles(60)
+ 
+       expect(deleteOneSpy).toHaveBeenCalledWith({ _id: 'ref_orphan' })
++      expect(result.deletedCount).toBe(1)
++    })
++
++    it('should delete local orphan files tracked by the public files route', async () => {
++      const orphan = {
++        _id: 'ref_orphan_files',
++        fileUrl: 'http://example.com/files/image/local.png',
++        fileName: 'local.png',
++        status: FileReferenceStatus.Pending,
++        created: new Date(Date.now() - 120 * 60 * 1000),
++      }
++      mockReferences.push(orphan)
++
++      const model = fileReferenceService['fileReferenceModel'] as {
++        find: ReturnType<typeof vi.fn>
++        deleteOne: ReturnType<typeof vi.fn>
++      }
++      vi.spyOn(model, 'find').mockResolvedValue([orphan] as never)
++      const deleteOneSpy = vi.spyOn(model, 'deleteOne')
++
++      const result = await fileReferenceService.cleanupOrphanFiles(60)
++
++      expect(vi.mocked(unlink).mock.calls[0]?.[0]).toMatch(
++        /\/static\/image\/local\.png$/,
++      )
++      expect(deleteOneSpy).toHaveBeenCalledWith({ _id: 'ref_orphan_files' })
+       expect(result.deletedCount).toBe(1)
+     })
+   })
+--- /dev/null	2026-04-01 02:05:16
++++ /tmp/mx-space-core-tar/apps/core/test/src/modules/link/link-avatar.service.spec.ts	2026-04-01 01:58:49
+@@ -0,0 +1,15 @@
++import { describe, expect, it } from 'vitest'
++
++import { LinkAvatarService } from '~/modules/link/link-avatar.service'
++
++describe('LinkAvatarService internal avatar detection', () => {
++  const service = new LinkAvatarService({} as any, {} as any, {} as any, {} as any)
++
++  it('treats the public files avatar route as an internal avatar URL', () => {
++    expect(
++      (service as any).isExternalAvatar(
++        'https://api.example.com/api/v2/files/avatar/owner.png',
++      ),
++    ).toBe(false)
++  })
++})

@@ -47,7 +47,7 @@ jobs:
 
       - name: Build next.js app
         # change this if your site requires a custom build command
-        run: pnpm --filter @shiro/web build
+        run: pnpm analyze
 
       # Here's the first place where next-bundle-analysis' own script is used
       # This step pulls the raw bundle stats for the current bundle
@@ -70,7 +70,7 @@ jobs:
 
       - name: Compare with base branch bundle
         if: success() && github.event.number
-        run: ls -laR apps/web/.next/analyze/base && npx -p nextjs-bundle-analysis compare
+        run: ls -laR .next/analyze/base && npx -p nextjs-bundle-analysis compare
 
       - name: Upload analysis
         if: success() && github.event.number
@@ -81,11 +81,11 @@ jobs:
 
       - name: Save PR number
         if: ${{ always() }}
-        run: echo ${{ github.event.number }} > ./pr-id.txt
+        run: echo ${{ github.event.number }} > "$GITHUB_WORKSPACE/pr-id.txt"
 
       - name: Upload PR number
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: pr
-          path: ./pr-id.txt
+          path: pr-id.txt
