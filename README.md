@@ -18,9 +18,11 @@
 推荐主路径：前端托管到 Vercel，VPS 仅保留 API。
 
 - 前端部署与运维文档：[Vercel 前端部署与运维](./docs/deployment/vercel-frontend.md)
+- VPS 前端回退与运维手册：[VPS 前端回退与运维说明](./docs/deployment/vps-frontend-rollback.md)
 - 旧的私服 Docker 前端路径仅作为历史兼容或短期回退方案
 - 不再默认使用 `docker compose build yohaku` 作为前端发布主线
 - 不再依赖热更新运行中容器文件系统发布修复
+- 不再允许普通 `docker compose up -d` 把前端默认带回 VPS；如需回退，只能按回退手册执行
 
 ## 设计哲学
 
