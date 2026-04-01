@@ -11,12 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
 import { FloatPopover } from '~/components/ui/float-popover'
+import { GATEWAY_URL } from '~/constants/env'
 import { useIsClient } from '~/hooks/common/use-is-client'
 import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
-import { UserAuthMenuContent } from './UserAuth'
+import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
 
 const TapableLogo = () => {
   const t = useTranslations('common')
@@ -24,6 +25,7 @@ const TapableLogo = () => {
   const session = useSessionReader()
   const presentOauthModal = useOauthLoginModal()
   const isAuthenticated = isOwner || !!session
+  const { canTriggerLogin } = useLoginProvidersAvailability()
 
   const avatarVariant = isOwner ? 'owner' : session ? 'reader' : 'guest'
   const avatarAlt = !isAuthenticated
@@ -54,7 +56,16 @@ const TapableLogo = () => {
             ? t('aria_site_owner_avatar')
             : session?.name || t('auth_account')
       }
-      onClick={() => presentOauthModal()}
+      onClick={() => {
+        if (canTriggerLogin) {
+          presentOauthModal()
+          return
+        }
+
+        const gatewayUrl = GATEWAY_URL.replace(/\/$/, '')
+        const adminLoginUrl = `${gatewayUrl || ''}/proxy/qaqdmin`
+        window.location.assign(adminLoginUrl)
+      }}
     >
       {avatar}
     </button>
