@@ -68,6 +68,10 @@ import {
   config as saysConfig,
 } from '../../../../routes/says/index'
 import {
+  Component as SiteIndex,
+  config as siteConfig,
+} from '../../../../routes/site/index'
+import {
   Component as VueIndex,
   config as vueConfig,
 } from '../../../../routes/vue/index'
@@ -123,6 +127,10 @@ const nestedRouteMap: RouteItem[] = sortRouteItems([
   {
     path: '/says',
     config: saysConfig,
+  },
+  {
+    path: '/site',
+    config: siteConfig,
   },
   {
     path: '/passkey',
@@ -186,6 +194,7 @@ const routeConfig: RouteObject[] = [
       },
 
       { path: 'says', element: <SaysIndex /> },
+      { path: 'site', element: <SiteIndex /> },
       {
         path: 'passkey',
         element: <PasskeyLayout />,

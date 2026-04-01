@@ -14,3 +14,5 @@ export const webUrlAtom = atom<string | null>(null)
 export const getWebUrl = () => jotaiStore.get(webUrlAtom)
 export const setWebUrl = (url: string) => jotaiStore.set(webUrlAtom, url)
 export const getAdminUrl = () => jotaiStore.get(adminUrlAtom)
+export const setAdminUrl = (url: string | null) =>
+  jotaiStore.set(adminUrlAtom, url)
