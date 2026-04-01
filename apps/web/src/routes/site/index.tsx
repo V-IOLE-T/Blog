@@ -21,26 +21,15 @@ import {
   SectionCard,
   SocialLinksEditor,
 } from './sections'
-
-type ThemeSnippetRecord = {
-  id?: string
-  _id?: string
-  name: string
-  reference: string
-  type: string
-  private?: boolean
-  raw: string
-}
+import {
+  fetchThemeSnippetRecord,
+  THEME_SNIPPET_NAME,
+  THEME_SNIPPET_REFERENCE,
+} from './theme-snippet'
 
 const themeSnippetQueryOptions = {
-  queryKey: ['theme-snippet', 'shiro'],
-  queryFn: async () => {
-    const records = await apiClient.snippet
-      .proxy('group/theme')
-      .get<ThemeSnippetRecord[]>()
-    const record = records.find((item) => item.name === 'shiro')
-    return record ? { ...record, id: record.id || record._id } : null
-  },
+  queryKey: ['theme-snippet', THEME_SNIPPET_REFERENCE, THEME_SNIPPET_NAME],
+  queryFn: () => fetchThemeSnippetRecord(apiClient),
 }
 
 export const Component = () => {
@@ -63,12 +52,7 @@ export const Component = () => {
     setForm(initialState)
   }, [form, initialState])
 
-  if (
-    aggregationQuery.isLoading ||
-    snippetQuery.isLoading ||
-    !aggregationQuery.data ||
-    !form
-  ) {
+  if (aggregationQuery.isLoading || !aggregationQuery.data || !form) {
     return <PageLoading loadingText="正在加载站点配置…" />
   }
 
@@ -84,13 +68,17 @@ export const Component = () => {
     setIsSaving(true)
 
     try {
+      const existingThemeSnippet =
+        snippetQuery.data ||
+        (await queryClient.fetchQuery(themeSnippetQueryOptions))
+
       const payloads = buildSiteSettingsMutationPayloads({
         form,
-        previousThemeSnippet: snippetQuery.data || {
-          name: 'shiro',
+        previousThemeSnippet: existingThemeSnippet || {
+          name: THEME_SNIPPET_NAME,
           private: false,
           raw: '',
-          reference: 'theme',
+          reference: THEME_SNIPPET_REFERENCE,
           type: 'json',
         },
         previousThemeConfig: aggregationQuery.data.theme,
