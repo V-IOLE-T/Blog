@@ -1,12 +1,12 @@
 # Blog 仓库 HANDOFF
 
-更新时间：2026-04-01 10:08（Asia/Shanghai）
+更新时间：2026-04-01 12:08（Asia/Shanghai）
 
-## 先看这 11 句话
+## 先看这 14 句话
 
 1. 这份 handoff 不是只看 git 写出来的，结合了本地仓库状态、服务器实测结果，以及最近几小时的 Codex 会话记录：`~/.codex/sessions/2026/03/31/*.jsonl`。
 2. 用户已经明确决定：不要新建仓库，直接把当前 `Blog` 仓库改造成基于 `Innei-dev/Yohaku` 源码的新前端仓库，继续沿用现在这个仓库历史和远端。
-3. 当前 `Blog` 仓库已经完成 Yohaku 接管并本地提交，分支仍是 `codex/modify`，现有 `.git` 历史和远端保持不变。
+3. 当前 `Blog` 仓库已经完成 Yohaku 接管并继续沿用原 `.git` 历史和远端；当前分支仍是 `codex/modify`，最新本地 HEAD 是 `83dec24`。
 4. 上游拉取与构建已验证：临时克隆目录是 `/tmp/yohaku-import.jBOASL`，上游分支 `main`，确认过的快照 commit 是 `58a53b7`。
 5. 本地验证已经通过：`pnpm install` 成功，`NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz pnpm --filter @shiro/web build` 成功；接管提交已落在本地 commit `9b0158e feat(blog): 切换到 Yohaku 前端源码`。
 6. 服务器已经从源码构建并运行新的 `yohaku` 容器，当前公网 `https://418122.xyz` 和 `https://www.418122.xyz` 都已切到 Yohaku，新前端实际在线。
@@ -18,6 +18,9 @@
 9. 2026-04-01 已确认并完成“头像上传仍返回旧 URL”的根因修复：根因不在本仓库，也不在 Mongo，而在上游 `mx-space/core` 仍把上传结果解析成旧 `/objects/...` 路径。
 10. 服务器 `app` 已不再跑 `innei/mx-server:latest`，而是通过 `/opt/mx-core-src` 源码构建并运行修复后的镜像 `blog-mx-server:11.0.7-avatar-fix`；真实上传 `POST /api/v2/files/upload?type=avatar` 已返回 `https://api.418122.xyz/files/avatar/...`。
 11. 仅修后端还不够，这轮还额外补了入口层：服务器 `Caddyfile` 现在同时兼容 `/objects/*` 和 `/files/*` 转发到 `/api/v2/files/*`，并已通过 `docker compose up -d --force-recreate caddy` 生效；旧路径兼容仍保留，新路径也已实测 `200` 可访问。
+12. 当前本地仓库现在是干净的：`git status --short` 无输出；并且 `origin/codex/modify` 已存在，之前 handoff 里“还有 3 个未提交文件”“是否 push 仍待决定”的描述已经过期。
+13. 当前线上公开聚合数据里，`seo.title = "OO's blog"`、`seo.description = "Welcome!"`；这些值不是代码里写死的，而是用户已通过现有 WebUI 改过。
+14. 但首页 Hero 区域仍然使用 `theme.config.hero.description = "An initialized placeholder site for Mix Space Core and Shiro."`；用户明确反馈：当前 WebUI 里没找到这个字段，所以“首页可配置内容的轻量编辑入口”仍未完成，是最新待办。
 
 ---
 
@@ -28,6 +31,8 @@
 - 当前仓库：`/Users/zhenghan/Documents/GitHub/Blog`
 - `git status --short`
 - `git branch --show-current`
+- `git rev-parse --short HEAD`
+- `git log --oneline --all --decorate --max-count 10`
 - `UPSTREAM.md`
 - `docs/superpowers/specs/2026-03-31-yohaku-takeover-design.md`
 - `docs/superpowers/plans/2026-03-31-yohaku-takeover.md`
@@ -60,6 +65,23 @@
   - `curl -I -s https://418122.xyz`
   - `curl -I -s https://www.418122.xyz`
   - `curl -s https://api.418122.xyz/api/v2/ping`
+
+### D. 2026-04-01 上午新增的线上 / 本地核对
+
+- `curl -sS -m 20 https://api.418122.xyz/api/v2/aggregate/site`
+- `curl -sS -m 20 'https://api.418122.xyz/api/v2/aggregate?theme=shiro'`
+- `curl -sS -m 20 https://418122.xyz`
+- `curl -sS -m 20 https://418122.xyz/dashboard`
+- 当前仓库内对以下位置的代码阅读：
+  - `apps/web/src/routes/vue/index.tsx`
+  - `apps/web/src/app/(dashboard)/dashboard/[[...catch_all]]/router.tsx`
+  - `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+  - `apps/web/src/app/layout.tsx`
+  - `apps/web/src/app.default.theme-config.ts`
+  - `apps/web/src/app.config.d.ts`
+  - `apps/web/src/providers/root/index.tsx`
+  - `apps/web/src/providers/root/aggregation-data-provider.tsx`
+  - `apps/web/node_modules/@mx-space/api-client/dist/index.d.mts`
 
 ---
 
@@ -270,19 +292,23 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 当前远端仍是原 Blog 远端，没有改 repo：
   - `origin = https://github.com/V-IOLE-T/Blog.git`
 - 最近关键 commit：
+  - `83dec24 Fix PR comment workflow artifact downloads`
+  - `0b15b72 Fix bundle analysis workflow and update handoff`
+  - `4786e2c docs: 更新 handoff 记录接管进展与头像修复`
   - `9b0158e feat(blog): 切换到 Yohaku 前端源码`
   - `b5fae84 chore(repo): 清空旧博客业务文件`
-- 当前 `git status --short` 有 1 个已修改文件和 2 个未跟踪文件：
-  - `HANDOFF.md`
-  - `docs/superpowers/plans/2026-04-01-avatar-upload-url-root-cause-fix.md`
-  - `patches/mx-space-core-avatar-files-route.patch`
+- 当前 `git status --short`：
+  - 无输出，工作区干净
+- 当前分支远端状态：
+  - `origin/codex/modify` 已存在
+  - 本地 `HEAD` 已对齐到 `origin/codex/modify`
 
 也就是说：
 
 - 本地真实代码已经到位
 - git 历史里已经记录了这次接管
-- 另外还有一份上游修复计划和一份 patch 尚未正式提交
-- 是否推送到原远端，还需要按用户意图决定
+- 之前 handoff 里“还有 patch / plan 未提交”“是否推送到原远端还待决定”的描述已经过期
+- 但“上游头像修复还没正式回传到上游仓库/发布链路”这个判断仍然成立
 
 ---
 
@@ -325,8 +351,14 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 当前返回的是：
 
 - Yohaku / Next.js
-- 站点标题为“我的小世界呀 - 哈喽~欢迎光临”
-- 使用的是之前已接受的“最小占位 / placeholder”思路
+- 公开 SEO 当前是：
+  - `seo.title = "OO's blog"`
+  - `seo.description = "Welcome!"`
+- 用户明确反馈：上面这两个 SEO 值已经在现有 WebUI 里手动改过
+- 但首页 Hero 仍是 placeholder：
+  - `theme.config.hero.description = "An initialized placeholder site for Mix Space Core and Shiro."`
+  - Hero title template 里仍含 `Temporary <MixSpace />`
+- footer / Hero / 部分首页展示内容仍明显是初始化占位内容，而不是最终正式站配置
 
 ---
 
@@ -564,6 +596,130 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 ---
 
+## 2026-04-01 上午新增进展：首页配置入口调查
+
+### 用户最新真实意图
+
+用户已经明确：
+
+- 不想把旧 Blog 的 branding 直接迁回 Yohaku
+- 更想要的是：在当前前端里补一个“轻量 WebUI 配置入口”
+- 目标范围不是只改 SEO，而是“把首页的可配置内容都放过去”
+- 用户最后选定的范围是：
+  - 首页 + 页脚常用内容
+  - 不是只做 Hero，也不是做一个笼统的全站 JSON 编辑器
+
+### 这轮已经确认的真实事实
+
+1. 当前公开接口已经能证明：首页内容不是主要写死在仓库里，而是来自聚合数据 / theme config
+2. `seo.title` / `seo.description` 来自 `aggregate/site`
+3. 首页 Hero 读取的是 `theme.config.hero`
+4. footer 也来自 `theme` / aggregate 返回值，而不是当前 repo 的静态文案常量
+5. 用户明确反馈：
+   - 现有 WebUI 里已经能改 `seo.title` / `seo.description`
+   - 但没找到 `hero.description`
+
+### 我具体读过哪些代码，得出了什么
+
+- `apps/web/src/app/layout.tsx`
+  - 这里会请求 `aggregate/site`
+  - 页面 `<title>`、`description`、OG、Twitter 元数据都来自 `seo`
+- `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+  - 首页 Hero 的 `title` 和 `description` 直接读取 `config.hero`
+- `apps/web/src/app.default.theme-config.ts`
+  - 只提供 theme 默认结构
+  - 不是线上真实数据源
+- `apps/web/src/app.config.d.ts`
+  - 类型里明确有 `Hero.description`
+- `apps/web/src/app/(dashboard)/dashboard/[[...catch_all]]/router.tsx`
+  - 当前 dashboard 只有首页、文章、日记、评论、Passkey、`/vue`
+  - 没有现成 `site` / `settings` / `appearance` 编辑页
+- `apps/web/src/routes/vue/index.tsx`
+  - 菜单文案是“完整功能与其他设置”
+  - 逻辑是尝试跳转到外部 `adminUrl`
+- `apps/web/src/providers/root/index.tsx`、`apps/web/src/providers/root/aggregation-data-provider.tsx`
+  - 当前快照里能看到 `webUrl` 被写入，但没直接看到是谁在给 `adminUrlAtom` 注值
+- `apps/web/node_modules/@mx-space/api-client/dist/index.d.mts`
+  - 类型层确认后端配置模型里有 `seo`、`url.adminUrl`、`adminExtra`
+  - 但没看到现成 typed controller 暴露一个“theme / hero 编辑”接口
+
+### 这轮我实际试了什么
+
+#### 有效的路径
+
+- 用公开接口直接看线上真实配置：
+
+```bash
+curl -sS -m 20 https://api.418122.xyz/api/v2/aggregate/site
+curl -sS -m 20 'https://api.418122.xyz/api/v2/aggregate?theme=shiro'
+```
+
+这一步有效，因为它直接回答了：
+
+- SEO 现在是什么
+- Hero / footer 现在是不是 placeholder
+- 首页数据源到底偏向 `seo` 还是 `theme.config`
+
+- 读当前 dashboard 路由，而不是猜：
+  - 这一步有效，因为它确认了当前前端快照里没有现成“站点配置页”
+
+- 读 `api-client` 类型定义，而不是只看业务代码：
+  - 这一步有效，因为它确认了后端至少存在 `seo`、`url.adminUrl` 这种配置模型
+
+#### 没用、或只解决了一半的路径
+
+- 只在当前 dashboard 里找表单入口：
+  - 不够，因为现有 dashboard 本来就偏内容管理，不等于后端没有别的设置 UI
+
+- 只根据 `/dashboard/vue` 存在，就断言“admin 入口一定完全配好”：
+  - 不够稳，因为当前快照里只能看到“尝试用 `adminUrl` 跳走”的逻辑，没在本地代码里直接找到 `adminUrl` 的写入链路
+
+- 只根据没找到 `hero.description` 的现成 WebUI 字段，就假设它写死在前端：
+  - 这是错方向
+  - 公开 `aggregate?theme=shiro` 已经证明它来自 theme config，而不是写死在 JSX
+
+### 当前最接近真实的结论
+
+- 现在不是“首页文案写死了，所以只能改代码”
+- 更准确地说是：
+  - 线上已有一部分 WebUI 能改 SEO
+  - 但当前用户可见入口里没有把首页 Hero / footer 常用内容暴露出来
+  - 当前前端快照里也没有现成轻量编辑页
+- 所以下一个 agent 不应该继续争论“要不要从旧博客迁移 branding”
+- 真正该做的是：
+  - 在当前 Yohaku 前端里新加一个轻量 `site config` 页面
+  - 第一版覆盖首页 + 页脚常用字段
+  - 然后把这些字段写回它们真实的数据来源
+
+### 这件事当前真正的阻塞点
+
+现在最大的未知不是前端页面怎么写，而是：
+
+- 后端当前到底提供了哪条“写回 SEO / theme / footer / hero”的真实接口
+- 其中哪些已经能用
+- 哪些需要走通用 `apiClient.proxy(...)`
+- 哪些如果后端根本没暴露，就必须同步补后端或走现有 admin 接口
+
+### 给下一位 agent 的最短执行建议
+
+如果要继续完成“轻量首页配置入口”，下一步按这个顺序最省时间：
+
+1. 先不要再纠结旧 Blog branding，要以“补配置入口”为主线
+2. 先找真实可写接口，再写前端表单
+3. 优先验证这几类数据的写回路径：
+   - `seo.title` / `seo.description`
+   - `theme.config.hero.title`
+   - `theme.config.hero.description`
+   - `theme.footer.linkSections`
+   - 首页社交链接对应的数据源
+4. 如果后端已有现成 admin / settings 接口：
+   - 前端新增 `/dashboard/site` 之类的轻量页面即可
+5. 如果后端没有直接暴露 theme 写接口：
+   - 不要硬写一个只改本地 state 的假表单
+   - 先补通写接口，再落 UI
+
+---
+
 ## 什么有效
 
 这些路径已被真实验证有效：
@@ -578,6 +734,169 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 对头像问题，先用 Caddy 兼容 `/objects/*` 兜底，再去上游 `mx-space/core` 找 `resolveFileUrl()`，这条排障路径是对的。
 - 用临时 owner API key 直接调真实上传接口验证返回值，比只盯前端页面更快、更准。
 - 部署完上游修复后，再反向验证 `/files/*` 是否真的被入口层暴露出来，这一步很关键。
+- 对首页配置问题，先看 `aggregate/site` 和 `aggregate?theme=shiro` 的真实返回值，再决定该改 `seo`、`theme.config.hero` 还是 `footer`，这条定位路径是对的。
+- 用户口头反馈“我在 WebUI 改过 SEO，但没找到 Hero 字段”是非常关键的新鲜上下文；下一位 agent 应直接沿着“补轻量配置入口”推进，而不是重新讨论是否迁回旧 branding。
+
+---
+
+## 2026-04-01 中午新增进展：轻量配置页已本地完成，但线上还没切过去
+
+### 这轮已经真实完成了什么
+
+- 已经在本地仓库里实现了第一版轻量 `site config` 页面：
+  - 新增 dashboard 一级路由 `/dashboard/site`
+  - 覆盖 `SEO`、`Hero`、`社交链接`、`页脚链接`
+  - 保存时拆成三条真实后端写链：
+    - `PATCH /api/v2/config/seo`
+    - `PATCH /api/v2/owner`
+    - `snippets/theme/shiro` 对应的 `POST/PUT /api/v2/snippets`
+- 已补本地设计/计划文档：
+  - `docs/superpowers/specs/2026-04-01-site-config-dashboard-design.md`
+  - `docs/superpowers/plans/2026-04-01-site-config-dashboard.md`
+- 已补本地 helper 单测：
+  - `apps/web/src/routes/site/form-state.test.ts`
+- 已做过的本地验证都通过：
+  - `pnpm exec vitest run apps/web/src/routes/site/form-state.test.ts`
+  - `pnpm --filter @shiro/web exec tsc --noEmit`
+  - `pnpm --filter @shiro/web build`
+
+### 这轮真正确认清楚的接口事实
+
+这些现在已经不是“未知”，而是读过本地/服务器源码后确认过的事实：
+
+- 后端 `config/options` 写接口存在：
+  - 服务器源码 `apps/core/src/modules/option/controllers/base.option.controller.ts`
+  - 关键接口：
+    - `GET /api/v2/config/form-schema`
+    - `GET /api/v2/config/:key`
+    - `PATCH /api/v2/config/:key`
+- `owner` 写接口存在：
+  - 服务器源码 `apps/core/src/modules/owner/owner.controller.ts`
+  - 关键接口：
+    - `GET /api/v2/owner`
+    - `PATCH /api/v2/owner`
+- `theme` 公开读取来自 snippet，而不是硬编码常量：
+  - 服务器源码 `apps/core/src/modules/aggregate/aggregate.controller.ts`
+  - 内部是 `snippetService.getPublicSnippetByName(name, 'theme')`
+- `theme` 的真实写回也不是单独的 `theme` controller，而是 `snippets` 资源：
+  - 服务器源码 `apps/core/src/modules/snippet/snippet.controller.ts`
+  - 关键接口：
+    - `GET /api/v2/snippets/group/theme`
+    - `POST /api/v2/snippets`
+    - `PUT /api/v2/snippets/:id`
+- 另外确认了一个很关键的安全细节：
+  - `aggregate` 公开返回会主动 `omit(url.adminUrl)`，所以当前前端不能指望从聚合接口自然拿到 admin 跳转地址
+
+### 这轮我具体试了什么
+
+#### 有效的路径
+
+- 本地先实现并验证轻量配置页，是有效的：
+  - 新页面已经写进本地工作树
+  - 相关新文件主要在：
+    - `apps/web/src/routes/site/`
+    - `apps/web/src/app/(dashboard)/dashboard/[[...catch_all]]/router.tsx`
+- 用 SSH 直接读服务器上 `/opt/mx-core-src` 源码，确认真实接口，比猜 API 快很多：
+  - `apps/core/src/modules/option/controllers/base.option.controller.ts`
+  - `apps/core/src/modules/owner/owner.controller.ts`
+  - `apps/core/src/modules/snippet/snippet.controller.ts`
+  - `apps/core/src/modules/aggregate/aggregate.controller.ts`
+- 直接打公网接口验证也有效：
+  - `curl -sS -m 20 https://api.418122.xyz/api/v2/config/form-schema`
+    - 返回 `{"ok":0,"code":15008,"message":"未登录"}`
+    - 这能证明接口存在，只是需要登录
+  - `curl -sS -m 20 https://api.418122.xyz/api/v2/snippets/theme/shiro`
+    - 能直接拿到当前公开的 theme JSON
+  - `curl -sS -m 20 'https://api.418122.xyz/api/v2/aggregate?theme=shiro'`
+    - 能看到当前 Hero / footer / SEO 的线上真实值
+- 把本地新代码同步到服务器源码目录也是成功的：
+  - `apps/web/src/routes/site/` 已通过 `rsync` 同步到 `/opt/yohaku-src/apps/web/src/routes/site/`
+  - `router.tsx` 因远端路径含括号，最后是通过：
+    - `ssh ... "cat > '/opt/yohaku-src/.../router.tsx'" < local-file`
+    - 成功覆盖过去
+
+#### 没用、或只解决了一半的路径
+
+- 只完成本地实现和本地构建，不会自动让线上生效：
+  - 这是这轮最关键的现实问题
+  - 用户刷新页面没变化，不是“页面没写”，而是“新镜像还没上线”
+- 用普通 `rsync` 推送带括号路径的单文件会失败：
+  - 远端 shell 会把 `apps/web/src/app/(dashboard)/...` 里的括号当成特殊字符
+  - 这条命令实际报过：
+    - `bash: -c: line 1: syntax error near unexpected token '('`
+- 直接反复跑 `docker compose up -d --build yohaku` 不是好路径：
+  - 这轮实际残留过多条 compose 进程
+  - 容易互相干扰，也很难判断当前到底是哪一条在生效
+- `nohup docker compose up -d --build yohaku > /tmp/yohaku-deploy.log 2>&1 &` 也不稳：
+  - 这次 `/tmp/yohaku-deploy.log` 最终出现：
+    - `canceled`
+    - `exit status 130`
+  - 说明后台那条部署并没有真正把新镜像构建完
+
+### 当前线上为什么还没有更新
+
+这件事到现在最重要的结论是：
+
+- 新前端代码已经写在本地
+- 新代码也已经同步到了服务器源码目录 `/opt/yohaku-src`
+- 但是新的 `blog-yohaku:latest` 镜像还没有产出
+- 所以运行中的 `yohaku` 容器仍然是旧镜像，用户刷新当然不会看到新入口
+
+这不是猜测，是已经验证过的：
+
+- `docker images blog-yohaku:latest --format 'table {{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}\t{{.ID}}'`
+  - 仍显示：`13 hours ago`
+- `docker inspect yohaku --format '{{.Image}} {{.State.StartedAt}}'`
+  - 仍指向旧 image digest：`sha256:5ae85da63be1...`
+  - 启动时间还是：`2026-03-31T14:49:20.562119966Z`
+- `docker ps`
+  - `yohaku` 仍然是 `Up 13 hours`
+
+### 这轮真正卡住的位置
+
+当前最新、最真实的阻塞点已经不是“接口未知”，而是：
+
+- 服务器上的 `docker compose build yohaku` / `docker compose up -d --build yohaku` 在构建 `blog-yohaku:latest` 时卡住，没有产出新镜像
+- 从现象上看，它不是早早失败，而是长时间卡在 build 中后段
+- 目前最可疑的位置是 `Dockerfile` 的 builder 阶段：
+  - `COPY --from=deps /app/ .`
+  - 或其后的 `RUN pnpm turbo run build --filter=@shiro/web`
+- 但注意：这只是最接近真实的推断，不是已经被源码或日志铁证锁死的唯一根因
+
+### 到这个时间点为止，我手上掌握的服务器证据
+
+- 服务器当前仍有一条 build 进程在挂着：
+  - `docker compose build yohaku`
+  - 我最后一次看到的 PID 是 `559154`
+- 但当时并没有看到对应的 `next build` / `turbo build` / `node` 子进程在持续跑
+- `docker stats --no-stream` 里现有运行容器的 CPU 都很低，`yohaku` 还是旧容器，没有新容器接管
+
+### 给下一位 agent 的最短继续建议
+
+如果下一位 agent 要继续把这件事真正收口，请不要从“重新读需求”开始，直接做下面几件事：
+
+1. 先承认一个事实：
+   - 轻量配置页代码已经本地完成
+   - 当前唯一没收口的是“服务器前端镜像没成功切过去”
+2. 先检查服务器当前有没有残留 build 进程：
+   - `ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'ps -eo pid,etime,pcpu,pmem,command | grep -E "docker compose build yohaku|docker compose up -d --build yohaku|next build|turbo build" | grep -v grep'`
+3. 再检查旧镜像/旧容器是否仍在：
+   - `ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker images blog-yohaku:latest --format "table {{.Repository}}\t{{.Tag}}\t{{.CreatedSince}}\t{{.ID}}"'`
+   - `ssh -i ~/.ssh/macair4.pem root@43.153.75.156 'docker inspect yohaku --format "{{.Image}} {{.State.StartedAt}}"'`
+4. 如果确认 build 还在卡：
+   - 不要继续无脑叠加新的 `docker compose up -d --build yohaku`
+   - 先把旧的残留 compose/build 进程清干净，再只保留一条可观察的 build
+5. 更稳的路径建议优先顺序：
+   - A. 单独 `docker compose build yohaku`，盯完整输出，确认到底卡在哪一步
+   - B. 如果 build 完成，再单独 `docker compose up -d yohaku`
+   - C. build 结束后第一时间复核镜像创建时间与容器启动时间是否更新
+6. 如果还卡在 Docker build：
+   - 直接在服务器上对 `Dockerfile` 所在阶段做更细粒度排查
+   - 尤其关注 `COPY --from=deps /app/ .` 之后到 `pnpm turbo run build --filter=@shiro/web` 这一段
+7. 只有当以下三件事同时成立，才能告诉用户“线上已经更新”：
+   - `blog-yohaku:latest` 创建时间变成最新
+   - `yohaku` 容器启动时间变成最新
+   - 公网 `/dashboard` 实测能看到新的 `站点` 入口
 
 ---
 
@@ -591,6 +910,10 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 - 不要再重复开新的 `docker compose build app` 去猜上次 build 成没成；这轮已经构建成功并上线了。
 - 不要以为“后端上传返回 `/files/...` 就一定公网可访问”；如果入口层没配 `/files/*` 转发，还是会 `404`。
 - 不要再把头像问题继续归因为 Mongo、文件写盘失败或前端单纯不刷新，这些方向都已经被排掉。
+- 不要再根据当前 repo 里没找到 Hero 配置表单，就误判“用户没有任何 WebUI 可用”；用户已经明确说过 SEO 是在 WebUI 里改掉的。
+- 不要把“SEO 可编辑”和“首页全部可编辑”混为一谈；目前已知只是前者成立，后者还没落地。
+- 不要直接把旧 Blog branding 生搬硬套回新站；用户已经明确说不想走这条路。
+- 不要在服务器上并发叠加多条 `docker compose up -d --build yohaku`；这轮已经证明这样很容易把状态弄乱，还会让你误判“是不是还在构建”。
 
 ---
 
@@ -608,9 +931,11 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 '
 
 优先做这个：
 
-1. 替换当前 placeholder 站点文案、owner、主题配置
-2. 决定是否迁移旧内容
-3. 再做 SEO / 资源 / 域名细节收尾
+1. 不要重复实现 UI；本地轻量配置页已经写好
+2. 先把服务器 `blog-yohaku:latest` 真正构建出来并切到新容器
+3. 然后再用公网验证 `/dashboard` 是否出现新的 `站点` 入口
+4. 确认入口存在后，再让用户自己通过 WebUI 改 Hero / footer / 社交链接等配置
+5. 不要默认迁移旧 Blog branding；只有用户再次明确要求时再做
 
 ### 如果目标是“把这次上游修复沉淀出去”
 
@@ -646,7 +971,7 @@ curl -sS -m 15 https://api.418122.xyz/api/v2/ping
 当前真实状态是：
 
 - 私有 Yohaku 源码已经进了当前 `Blog` 仓库工作树
-- 本地接管 commit 已存在，当前还有一份 patch 和一份 plan 未提交
+- 本地接管 commit 已存在，且当前工作区干净
 - 本地构建通过
 - 服务器源码构建通过
 - 根域名已经切到 Yohaku
@@ -654,10 +979,349 @@ curl -sS -m 15 https://api.418122.xyz/api/v2/ping
 - 后台头像旧路径兼容已修复
 - 上游 `mx-space/core` 已修复并部署，上传返回值已从旧 `/objects/...` 改为 `/files/...`
 - 新 `/files/...` 公开访问链路也已补齐，不再是“返回值对了但公网 404”
+- 用户已经能通过现有 WebUI 改 SEO
+- 首页 Hero / footer 常用内容的轻量编辑入口已经在本地实现，但还没有成功部署到线上
 - 最大未收口项是：
-  - 线上仍是 placeholder 内容，还不是最终正式内容
-  - 当前分支是否 push 到原远端还没最终决定
-  - 上游修复还没有正式回传到上游仓库/发布链路，目前服务器是本地定制镜像
-  - 当前仓库里的 patch / plan 还没整理成正式提交
+  - 服务器上的 `blog-yohaku:latest` 新镜像还没成功构建出来
+  - 运行中的 `yohaku` 容器仍然是旧镜像，所以公网还看不到新入口
+  - 首页 Hero 与 footer 仍是 placeholder 内容，还不是最终正式内容
+  - 上游修复还没有正式回传到上游仓库/发布链路，目前服务器仍是本地定制镜像
 
 如果时间有限，只看本文件就足够继续。
+
+---
+
+## 2026-04-01 最新补充：控制台按钮修复、热更新上线、部署结论
+
+这部分是比上面更晚的新鲜上下文。若与上文旧结论冲突，以本节为准。
+
+### 这轮用户真实诉求
+
+- 用户反馈：前台已登录页面里，右上角菜单的 `控制台` 按钮点击没反应
+- 目标不是再解释 UI 在哪，而是把线上按钮真正修好
+
+### 根因已经查清
+
+- 前台按钮逻辑在：
+  - `apps/web/src/components/layout/header/internal/UserAuth.tsx`
+- 这里会调用 `getAdminUrl()`，只有拿到非空 `adminUrl` 才会 `window.open(...)`
+- `adminUrlAtom` 定义在：
+  - `apps/web/src/atoms/url.ts`
+- 旧代码里 `adminUrlAtom` 默认是 `null`，而且本地代码里没有任何稳定赋值路径
+- `AggregationProvider` 只写入 `webUrl`，没有写 `adminUrl`
+- 后端公开聚合接口会主动省略 `url.adminUrl`
+  - 这一点前面已经在 `mx-core` 源码确认过：公开 aggregate 会 `omit(url.adminUrl)`
+- 但 owner 登录后，可以通过：
+  - `GET /api/v2/config/url`
+  - 拿到 `adminUrl`
+
+一句话根因：
+
+- 前台“控制台”按钮坏掉，不是菜单没渲染，而是 owner 登录后前端从未把 `adminUrl` 拉回并写进状态，所以点击时一直是空值
+
+### 这轮本地代码改了什么
+
+- `apps/web/src/atoms/url.ts`
+  - 新增：
+    - `setAdminUrl(url: string | null)`
+- `apps/web/src/providers/root/auth-session-provider.ts`
+  - 无 session 时：
+    - `setIsOwnerLogged(false)`
+    - `setSessionReader(null)`
+    - `setAdminUrl(null)`
+  - 有 session 且 `role !== 'owner'` 时：
+    - `setIsOwnerLogged(false)`
+    - `setAdminUrl(null)`
+  - 有 session 且 `role === 'owner'` 时：
+    - 调 `apiClient.proxy('config/url').get()`
+    - 成功则把 `response.data.adminUrl` 写入 atom
+    - 失败则清空 atom
+
+### 本地验证结果
+
+- 下面两条都实际跑过并通过：
+  - `pnpm --filter @shiro/web exec tsc --noEmit`
+  - `pnpm --filter @shiro/web build`
+
+### 线上链路这轮查到了什么
+
+- 之前前台跨域去 `api.418122.xyz` 拿 `config/url` 会有 CORS 问题
+- 服务器 `/opt/mxspace/docker-compose.yml` 里，`mx-server` 的：
+  - `ALLOWED_ORIGINS`
+  - 已经从错误写法修成：
+    - `418122.xyz,www.418122.xyz`
+- `mx-server` 已重启，当前已确认：
+  - `https://api.418122.xyz/api/v2/config/url`
+  - 对来自 `https://418122.xyz` 的请求会返回：
+    - `Access-Control-Allow-Origin: https://418122.xyz`
+    - `Access-Control-Allow-Credentials: true`
+- 未登录请求该接口时，当前返回：
+  - `401 {"ok":0,"code":15008,"message":"未登录"}`
+  - 但 CORS 头是正确的
+
+这说明：
+
+- owner 登录态下，前台再去请求 `config/url`，链路本身已经不再被 CORS 挡住
+
+### 这轮部署到底做了什么
+
+#### 先试过但不稳/不推荐的路径
+
+- 继续在服务器上直接跑：
+  - `docker compose build yohaku`
+- 这条路再次出现“长时间静默像卡死”的现象
+- 当时服务器现场还存在残留进程：
+  - `docker compose build yohaku`
+  - `docker-compose compose build yohaku`
+  - `pnpm turbo run build --filter=@shiro/web`
+  - `node /app/apps/web/.next/build/postcss.js ...`
+- 这类残留会让人误判“到底有没有在真正构建”
+
+#### 这轮真正有效的上线方式
+
+- 没继续赌服务器现编，而是改走“热更新当前运行容器”
+- 具体做法：
+  - 本地先构建通过
+  - 从本地构建产物里提取运行时必须文件
+  - 起初打过一个较大的 hotfix 包，但发现里面混进了：
+    - Darwin `node_modules`
+    - `._*` AppleDouble 垃圾文件
+  - 这条包不适合直接覆盖 Linux 容器
+- 后来重新打了“干净热更新包”，只包含：
+  - `apps/web/server.js`
+  - `apps/web/.next/server`
+  - `apps/web/.next/static`
+  - `apps/web/.next` 顶层关键 manifest / BUILD_ID
+- 明确没有覆盖：
+  - 容器里的 `node_modules`
+- 干净包推到服务器后：
+  - 解压到 `/tmp/yohaku-hotfix-clean-live`
+  - 用 tar 管道把上述文件覆盖到 `yohaku:/app`
+  - 然后 `docker restart yohaku`
+
+#### 热更新后的实际结果
+
+- `yohaku` 成功重启并恢复 `running`
+- 容器日志显示 Next.js 正常 ready
+- 当前复核到的现场：
+  - `docker images blog-yohaku:latest`
+    - `IMAGE ID = 7b6a0f6e6671`
+    - `Created = About an hour ago`
+  - `docker inspect yohaku`
+    - `image=sha256:7b6a0f6e6671610ab2524bbaec2f3092685b2e52df8cd22fbe123d391dade6cf`
+    - `started=2026-04-01T05:32:51.353692876Z`
+    - `status=running`
+  - `docker ps`
+    - `yohaku -> blog-yohaku:latest -> Up`
+
+### 一个非常重要的现实提醒
+
+这轮“线上按钮恢复可用”的直接手段是：
+
+- 把修复后的构建产物热覆盖到当前运行容器
+
+所以必须明确写给下一位 agent：
+
+- 当前运行中的 `yohaku` 容器文件系统里，已经有这次修复
+- 我也验证过容器内 bundle 已经能搜到 `config/url` 这段 owner 拉取逻辑
+- 但这 **不等于** 已经严格证明：
+  - `blog-yohaku:latest` 镜像本身永久包含这次修复
+- 因为热更新写入的是容器运行层；如果未来直接删容器并从镜像重新创建，仍需重新验证修复是否还在
+
+也就是说：
+
+- 这轮是“功能已上线、链路已恢复”
+- 但从可重复部署角度看，仍然偏临时，不是最理想的正式发布形态
+
+### 这轮命令级验证证据
+
+- 本地：
+  - `pnpm --filter @shiro/web exec tsc --noEmit`
+  - `pnpm --filter @shiro/web build`
+- 线上：
+  - `curl -I -sS https://418122.xyz`
+    - 返回 `HTTP/2 200`
+  - `curl -i -sS -H 'Origin: https://418122.xyz' https://api.418122.xyz/api/v2/config/url`
+    - 返回 `HTTP/2 401`
+    - 同时带正确 CORS 头
+  - `docker inspect yohaku --format 'image={{.Image}} started={{.State.StartedAt}} status={{.State.Status}}'`
+    - 当前容器为 running
+
+### 这轮关于部署方式的新结论
+
+这次已经基本可以确认：
+
+- 反复让小规格 VPS 自己 `docker compose build yohaku`，不是好主链路
+- 根因不是单一业务 bug，而是部署方式太脆弱
+
+我这轮额外查到的服务器事实：
+
+- 服务器资源偏紧：
+  - `Mem: 1.9Gi`
+  - 一度只剩 `68Mi free`
+  - `/` 磁盘只剩 `3.2G`
+  - 磁盘使用率 `92%`
+- 当前 `Dockerfile` 每次构建都很重：
+  - `pnpm install`
+  - `pnpm turbo run build --filter=@shiro/web`
+  - runner 阶段还会联网下载字体
+- 这类流程对小机子非常不友好，容易表现为：
+  - 长时间静默
+  - build 像卡死
+  - 残留子进程
+  - 状态混乱
+
+### 我给用户的后续建议
+
+不是继续优化“服务器现编前端”，而是把前端发布链路改掉。优先级如下：
+
+1. 最推荐：
+   - 前端迁移到 Vercel
+   - `api.418122.xyz` 继续留在当前 VPS
+   - 以后前端改完直接 git push -> Vercel 自动部署
+2. 次优：
+   - CI / 本地先构建镜像
+   - 服务器只做 `pull/load + restart`
+3. 最不推荐但可临时保留：
+   - 继续让 VPS 自己 build
+   - 但必须重构 Dockerfile、加 cache、拆 build / up、避免并发、并增加机器资源
+
+### 关于 Vercel 的结论
+
+- 用户问：“是不是用 Vercel 更好，因为作者推荐 Vercel”
+- 我的结论是：
+  - 对当前这个项目和用户现在的痛点来说，**大概率是更好**
+- 理由：
+  - 当前最痛的是生产机现编不稳
+  - 项目本质上仍是标准 Next.js 前端
+  - 前后端已能分离：
+    - 前端调 `https://api.418122.xyz/api/v2`
+    - 后端继续留在 VPS
+- 但要注意一条原则：
+  - 如果未来引入真正的 Next custom server，就不能直接按 Vercel 标准路径部署
+- 当前仓库里看到的是：
+  - `output: 'standalone'`
+  - 以及 Docker/standalone 运行方式
+  - 暂时没有看到必须依赖自定义 Node 网关才能跑的硬证据
+
+### 给下一位 agent 的最短继续建议
+
+如果接手后目标是“彻底收口，不再反复卡 Docker”，优先做这个：
+
+1. 先读本节，不要再被上文旧的“新镜像还没产出”误导
+2. 承认当前事实：
+   - 线上功能已经恢复
+   - `控制台` 按钮修复代码已本地完成并已通过热更新上线
+   - 当前公网不是“没修”，而是“修复已在运行容器里”
+3. 若要验证用户侧体验：
+   - 让用户在 owner 已登录页面强刷后，再点右上角菜单里的 `控制台`
+4. 若要做正式长期方案：
+   - 不要再以“继续直接 `docker compose build yohaku`”为默认主线
+   - 优先推进：
+     - Vercel 前端部署
+     - 或 CI 构建镜像、服务器只 pull
+5. 若短期内仍需保留当前 VPS 前端：
+   - 至少把这次修复重新做成可重复镜像发布
+   - 然后再删除/重建一次 `yohaku` 容器，确认不是只存在于容器 overlay 里
+
+### 这轮哪些东西有效，哪些没用
+
+#### 有效
+
+- 从 owner 登录链路反推 `adminUrl` 的真实来源
+- 直接读本地/服务器源码确认：
+  - aggregate 不公开 `adminUrl`
+  - owner 可通过 `GET /api/v2/config/url` 拿到
+- 修正 `mx-server` 的 `ALLOWED_ORIGINS`
+- 在 `AuthSessionProvider` 中按 owner 登录态拉取 `config/url`
+- 本地构建后，按“只覆盖运行时产物、不碰 node_modules”的方式热更新容器
+
+#### 没用或不稳
+
+- 继续盲跑服务器 `docker compose build yohaku`
+- 把本机构建出来的 Darwin `node_modules` 一起打进 hotfix 包
+- 直接覆盖整包而不筛掉 `._*` AppleDouble 文件
+- 用“镜像大概已经是新的了”这类推断替代实际验证
+
+如果时间有限，只看这一节也足够继续。
+
+## [2026-04-01] 前端发布主链路定版（本节为部署指引最新权威结论）
+
+> 本节明确覆盖此前“可考虑 Vercel”的探索性表述。
+> 从本节开始，正式目标链路固定为：`GitHub Actions -> Vercel -> 418122.xyz / www.418122.xyz`。
+
+### 1) 当前正式目标与角色划分（必须按此执行）
+
+- 正式生产前端发布链路：`GitHub Actions -> Vercel -> 418122.xyz/www.418122.xyz`
+- 旧 `.github/workflows/trigger.yml` 已降级为：
+  - `workflow_dispatch` 手动触发
+  - 仅用于 legacy/manual rollback，不再是默认前端发布路径
+- 当前 VPS 前端容器 `yohaku` 的角色：
+  - 仅为短期回退与过渡承载
+  - 截至本次会话结束，由于 GitHub / Vercel 配置与 DNS cutover 都未执行，当前对公网提供服务的前端仍应视为 VPS `yohaku` 路径 / last-known live path
+  - 但不再应被视为主生产前端形态
+
+### 2) 本次会话已在仓库内完成的事项（代码侧完成）
+
+- 新增主发布工作流：`.github/workflows/vercel-frontend-deploy.yml`
+  - 触发：`push` 到 `main` + `workflow_dispatch`
+  - 使用 secrets：`VERCEL_TOKEN` / `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID`
+  - 已包含并发保护、固定版本 `pnpm@10.27.0`、`vercel@47.0.5`、最小权限
+- 调整旧工作流：`.github/workflows/trigger.yml`
+  - 已改为手动触发
+  - 已标注 legacy/manual rollback only
+  - 已补充 curl 失败显式处理
+- 文档已落仓：
+  - `docs/deployment/vercel-frontend.md`（主路径、域名、secrets、env、发布/回滚/冒烟）
+  - `README.md`（主路径更新为 Vercel 前端 + VPS API-only）
+
+### 3) 必须在 GitHub / Vercel 控制台手动完成的事项（本会话尚未完成）
+
+- GitHub Actions secrets（仓库设置）：
+  - `VERCEL_TOKEN`
+  - `VERCEL_ORG_ID`
+  - `VERCEL_PROJECT_ID`
+- Vercel 项目创建或链接：
+  - Project Root Directory = `apps/web`
+  - Production Branch = `main`
+  - Environment Variables：
+    - `NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2`
+    - `NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz`
+- Vercel 域名绑定：
+  - `418122.xyz`
+  - `www.418122.xyz`
+- DNS / 流量切换到 Vercel：本会话尚未执行
+- 本会话未核验的控制面事实：
+  - 未确认 Vercel 项目是否已经存在
+  - 未确认其实际 team / project 名称
+  - 未确认 `418122.xyz` 当前 DNS 托管方
+- 以上三项应作为下一位 agent 进入 GitHub / Vercel / DNS 控制面后的首批检查项，再决定如何 cutover
+
+### 4) 验证证据（本会话已执行）
+
+- workflow 格式检查：
+  - 命令：
+    - `pnpm exec prettier --check .github/workflows/vercel-frontend-deploy.yml .github/workflows/trigger.yml`
+  - 结果：
+    - `Checking formatting...`
+    - `All matched files use Prettier code style!`
+- workflow 差异空白检查：
+  - 命令：
+    - `git diff --check -- .github/workflows/vercel-frontend-deploy.yml .github/workflows/trigger.yml`
+  - 结果：无输出（通过）
+- 前端构建验证：
+  - 命令：
+    - `NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz pnpm --filter @shiro/web build`
+  - 结果：构建通过
+  - 备注：出现 Next.js workspace root 推断 warning（因 `/Users/zhenghan/package-lock.json` 存在额外 lockfile），不影响本次 build 成功
+- 本次验证边界：
+  - 新的 `GitHub Actions -> Vercel` 生产链路，本会话仅在仓库/workflow/config/build 层面完成本地验证
+  - 本会话尚未完成 GitHub Actions 实跑 + Vercel 生产部署的端到端验证
+
+### 5) 下一位 agent 的最短执行建议（按先后顺序）
+
+1. 先进入 GitHub / Vercel / DNS 控制面，确认 Vercel 项目是否已存在、其 team/project 名称，以及 `418122.xyz` 当前 DNS 托管方；再完成 GitHub secrets 与 Vercel 项目/域名配置。
+2. 在 `main` 合入后触发 `.github/workflows/vercel-frontend-deploy.yml`，确认 Vercel 产物可访问，并确认 GitHub Actions + Vercel 生产部署端到端跑通。
+3. 再执行 DNS/流量切换，让 `418122.xyz` 与 `www.418122.xyz` 指向 Vercel。
+4. 切换完成后，除了验证首页可访问，还必须验证此前出过问题的 `owner` 已登录 `控制台` 按钮链路是否正常。
+5. 完成上述验收后，再将 VPS `yohaku` 明确降级为 rollback 容量；除回退演练外，不再把它当主生产前端。

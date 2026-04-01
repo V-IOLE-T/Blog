@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { nanoid } from 'nanoid'
 import { useEffect } from 'react'
 
+import { setAdminUrl } from '~/atoms'
 import { setIsOwnerLogged } from '~/atoms/hooks/owner'
 import { setSessionReader } from '~/atoms/hooks/reader'
 import type { authClient } from '~/lib/authjs'
@@ -22,16 +23,34 @@ export const AuthSessionProvider: Component = ({ children }) => {
       }),
   })
   useEffect(() => {
+    let disposed = false
+
     if (!session) {
       setIsOwnerLogged(false)
       setSessionReader(null)
+      setAdminUrl(null)
       return
     }
     const transformedData = simpleCamelcaseKeys(session)
+    const isOwner = transformedData.role === 'owner'
 
     setSessionReader(transformedData)
-    if (transformedData.role === 'owner') {
-      setIsOwnerLogged(true)
+    setIsOwnerLogged(isOwner)
+    if (!isOwner) {
+      setAdminUrl(null)
+    } else {
+      void apiClient
+        .proxy('config/url')
+        .get<{ data?: { adminUrl?: string | null } }>()
+        .then((response) => {
+          if (disposed) return
+          const urlConfig = simpleCamelcaseKeys(response.data || {})
+          setAdminUrl(urlConfig.adminUrl || null)
+        })
+        .catch(() => {
+          if (disposed) return
+          setAdminUrl(null)
+        })
     }
     const op = getOpenPanel()
     if (op) {
@@ -41,6 +60,9 @@ export const AuthSessionProvider: Component = ({ children }) => {
         lastName: transformedData.name,
         avatar: transformedData.avatar,
       })
+    }
+    return () => {
+      disposed = true
     }
   }, [session])
   return children

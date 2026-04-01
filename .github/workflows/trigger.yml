@@ -1,10 +1,11 @@
-name: Trigger Target Workflow
+name: Legacy Remote Deploy Trigger (Manual Rollback Only)
 
+# Legacy deploy chain: reserved for emergency manual rollback.
+# 主链路已迁移到 .github/workflows/vercel-frontend-deploy.yml。
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+
+permissions: {}
 
 jobs:
   trigger:
@@ -18,7 +19,7 @@ jobs:
           repo_name="shiroi-remote-deploy"
           event_type="trigger-workflow"
 
-          curl -L \
+          curl -L --fail-with-body --show-error --silent \
             -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.PAT }}" \

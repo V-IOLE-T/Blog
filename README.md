@@ -13,9 +13,14 @@
 > git checkout Shiroi
 > ```
 
-## 手动部署方式（私有服务器）
+## 生产部署建议
 
-参考：https://github.com/innei-dev/yohaku-deploy-action
+推荐主路径：前端托管到 Vercel，VPS 仅保留 API。
+
+- 前端部署与运维文档：[Vercel 前端部署与运维](./docs/deployment/vercel-frontend.md)
+- 旧的私服 Docker 前端路径仅作为历史兼容或短期回退方案
+- 不再默认使用 `docker compose build yohaku` 作为前端发布主线
+- 不再依赖热更新运行中容器文件系统发布修复
 
 ## 设计哲学
 
@@ -35,6 +40,9 @@
 
 ## :whale: 运行
 
+> [!NOTE]
+> 以下内容属于私有服务器 Docker 历史路径，仅用于兼容或短期回退，不是推荐生产主线。
+
 <!-- ### :hammer: 通过预构建运行
 
 ```sh
@@ -46,7 +54,7 @@ vim .env # 修改你的 ENV 变量
 export PORT=2323
 node server.js
 ``` -->
-<!-- 
+<!--
 ### :books: 推荐使用 Docker Compose
 
 ```sh
