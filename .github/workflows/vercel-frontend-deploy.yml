@@ -40,7 +40,6 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build and Deploy to Vercel (Production)
-        working-directory: apps/web
         run: |
           pnpm dlx vercel@47.0.5 pull --yes --environment=production --token="$VERCEL_TOKEN"
           pnpm dlx vercel@47.0.5 build --prod --token="$VERCEL_TOKEN"
