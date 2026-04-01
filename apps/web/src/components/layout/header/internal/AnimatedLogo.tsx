@@ -10,12 +10,13 @@ import {
   DropdownMenu,
   DropdownMenuTrigger,
 } from '~/components/ui/dropdown-menu'
+import { FloatPopover } from '~/components/ui/float-popover'
 import { useIsClient } from '~/hooks/common/use-is-client'
 import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
-import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
+import { UserAuthMenuContent } from './UserAuth'
 
 const TapableLogo = () => {
   const t = useTranslations('common')
@@ -23,7 +24,6 @@ const TapableLogo = () => {
   const session = useSessionReader()
   const presentOauthModal = useOauthLoginModal()
   const isAuthenticated = isOwner || !!session
-  const { shouldHideLoginEntry } = useLoginProvidersAvailability()
 
   const avatarVariant = isOwner ? 'owner' : session ? 'reader' : 'guest'
   const avatarAlt = !isAuthenticated
@@ -35,18 +35,12 @@ const TapableLogo = () => {
   const avatar = (
     <SiteOwnerAvatar
       alt={avatarAlt}
+      className="cursor-pointer"
       showLiveAffordance={false}
       src={!isOwner ? session?.image || undefined : undefined}
       variant={avatarVariant}
-      className={
-        !shouldHideLoginEntry || isAuthenticated ? 'cursor-pointer' : undefined
-      }
     />
   )
-
-  if (!isAuthenticated && shouldHideLoginEntry) {
-    return avatar
-  }
 
   const trigger = (
     <button
@@ -67,7 +61,11 @@ const TapableLogo = () => {
   )
 
   if (!isAuthenticated) {
-    return trigger
+    return (
+      <FloatPopover triggerElement={trigger} type="tooltip">
+        <span>{t('auth_login')}</span>
+      </FloatPopover>
+    )
   }
 
   return (
