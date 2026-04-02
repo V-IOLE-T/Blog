@@ -96,6 +96,13 @@ export const Component = () => {
         await apiClient.proxy('snippets').post({ data: snippetPayload })
       }
 
+      // Homepage/theme reads are server-cached for up to 10 minutes, so refresh
+      // aggregate caches immediately after a successful site settings save.
+      await fetch('/api/internal/revalidate-aggregate', {
+        method: 'POST',
+        credentials: 'include',
+      }).catch(() => null)
+
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['aggregation'] }),
         queryClient.invalidateQueries({
