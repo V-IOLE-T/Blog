@@ -2646,3 +2646,113 @@ pnpm --filter @shiro/web build
 4. 发布后优先请用户验证两点：
    - 修改 Hero 描述后，返回首页是否立即更新
    - dashboard 首页“今日诗句”是否能显示诗句或至少显示失败提示，而不是一直 loading
+
+### 追加：本轮已完成提交与部署
+
+- 本轮提交：
+  - `1fbeb5d`
+  - `fix(site): 修复描述保存与诗句降级`
+- 已 push：
+  - `origin/codex/modify`
+- GitHub Actions run：
+  - `23909667374`
+  - `https://github.com/V-IOLE-T/Blog/actions/runs/23909667374`
+- run 里确认抓到的 SHA：
+  - `1fbeb5d69db99616f54c4ea383a19bb878aae849`
+- Vercel deploy 日志中的地址：
+  - Inspect: `https://vercel.com/ni-chijous-projects/blog-web/217t9jC65TzdSvqbRyXAoytZQyBN`
+  - Production: `https://blog-fs2hkd1hd-ni-chijous-projects.vercel.app`
+
+### 追加：发布后验证现状
+
+- 已确认：
+  - `https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`
+- 这台机器上对站点域名做 smoke 时遇到本地 TLS/HTTPS 异常：
+  - `curl https://418122.xyz/` 与 `curl https://418122.xyz/dashboard` 返回 `LibreSSL ... tlsv1 alert internal error`
+  - `node fetch('https://418122.xyz/')` 也返回 `TypeError: fetch failed`
+- 这更像当前执行环境到站点 HTTPS 的握手问题，不是 workflow 部署失败，因为：
+  - GitHub Actions 已成功
+  - Vercel deploy step 已产出新的 production URL
+- 因此下一位 agent / 当前接手者若需要最终线上确认，优先从浏览器真实访问或换一台机器再次 smoke，不要仅凭这台机器的 TLS 结果判断部署失败
+
+## [2026-04-03 00:32] 轻管理新增首页一句话编辑 + 状态入口补强（以下新章节为准）
+
+### 用户这轮反馈
+
+- “点击设置状态之后没有反应”
+- 首页有一句固定文案：
+  - `当第一颗卫星飞向大气层外，我们便以为自己终有一日会征服宇宙。`
+- 用户希望能在轻管理面板里修改并保存这段文字
+
+### 本轮排查结论
+
+- 这句首页文案不是 Hero 标题/描述，而是 `Hero` 右下角的一句话：
+  - `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+  - 读取的是 `config.hero.hitokoto.custom`
+  - 如果 `custom` 为空，则回退到多语言文案：
+    - `apps/web/src/messages/zh/home.json` 的 `hero_default_hitokoto`
+- 之前 `/dashboard/site` 轻管理没有暴露这个字段，所以用户无法编辑
+- “设置状态”相关逻辑在：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+- 之前的问题更像 UX / 反馈不足：
+  - 没有状态时，popover 里只有“点击设置状态”文字，不是实际按钮
+  - 提交和重置缺少错误提示
+  - 成功后也没有本地状态立即更新，用户容易感觉“没反应”
+
+### 本轮代码改动
+
+- `apps/web/src/routes/site/form-state.ts`
+  - 新增 `heroQuote` 到轻管理表单状态
+  - 从 `theme.config.hero.hitokoto.custom` 读取初始值
+  - 保存时写回 `theme.config.hero.hitokoto.custom`
+  - 若填写了自定义文案，则强制 `random: false`，确保首页优先显示用户填写内容
+- `apps/web/src/routes/site/index.tsx`
+  - Hero 区域新增“首页一句话” `TextArea`
+  - 保存时同步读取当前 textarea DOM 值，避免遗漏最后一次输入
+- `apps/web/src/routes/site/form-state.test.ts`
+  - 更新测试，覆盖 `heroQuote` 的读取与保存
+- `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - 抽出 `openSettingModal`
+  - 无状态时，将 popover 中的“点击设置状态”改为真正可点击的按钮
+  - 给状态触发器补了键盘 Enter / Space 支持
+  - 设置 / 重置状态时增加错误提示
+  - 成功后立即 `setOwnerStatus(...)` 并刷新 `['shiro-status']`，减少“点击没反应”的感觉
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  apps/web/src/routes/site/form-state.test.ts \
+  apps/web/src/routes/site/theme-snippet.test.ts \
+  apps/web/src/components/modules/dashboard/home/Shiju.test.ts
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 10 个测试通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/routes/site/index.tsx`
+  - `apps/web/src/routes/site/form-state.ts`
+  - `apps/web/src/routes/site/form-state.test.ts`
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交本轮改动并 push 到 `origin/codex/modify`
+2. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+3. 发布后请用户优先验证：
+   - `/dashboard/site` 是否出现“首页一句话”，保存后首页是否更新
+   - 首页头像状态入口现在是否能打开设置弹窗并正常保存/重置

@@ -18,6 +18,7 @@ export type SiteSettingsFormState = {
   seoDescription: string
   heroTitle: string
   heroDescription: string
+  heroQuote: string
   socialLinks: SocialLinkField[]
   linkSections: EditableLinkSection[]
 }
@@ -43,6 +44,10 @@ type ThemeLike = {
         }>
       }
       description?: string
+      hitokoto?: {
+        random?: boolean
+        custom?: string
+      }
     }
     module?: Partial<AppConfig['module']>
     site?: Partial<AppConfig['site']>
@@ -81,6 +86,7 @@ export const createSiteSettingsFormState = (
     seoDescription: aggregate.seo?.description || '',
     heroTitle: heroTemplate.map((item) => item.text || '').join(''),
     heroDescription: theme.config?.hero?.description || '',
+    heroQuote: theme.config?.hero?.hitokoto?.custom || '',
     socialLinks: Object.entries(socialIds)
       .filter(([, value]) => !!value?.trim())
       .map(([key, value]) => ({ key, value })),
@@ -100,6 +106,7 @@ export const buildSiteSettingsMutationPayloads = ({
   const previousConfig = previousThemeConfig.config || {}
   const previousHero = previousConfig.hero || {}
   const previousFooter = previousThemeConfig.footer || {}
+  const nextHeroQuote = form.heroQuote.trim()
 
   const sanitizedSocialIds = Object.fromEntries(
     form.socialLinks
@@ -126,6 +133,11 @@ export const buildSiteSettingsMutationPayloads = ({
           ],
         },
         description: form.heroDescription.trim(),
+        hitokoto: {
+          ...previousHero.hitokoto,
+          random: nextHeroQuote ? false : previousHero.hitokoto?.random,
+          custom: nextHeroQuote || undefined,
+        },
       },
     },
     footer: {

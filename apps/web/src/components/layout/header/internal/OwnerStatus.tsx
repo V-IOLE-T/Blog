@@ -16,7 +16,9 @@ import { Select } from '~/components/ui/select'
 import { usePageIsActive } from '~/hooks/common/use-is-active'
 import { stopPropagation } from '~/lib/dom'
 import { apiClient } from '~/lib/request'
+import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
+import { queryClient } from '~/providers/root/react-query-provider'
 
 const EmojiPicker = dynamic(
   () =>
@@ -52,6 +54,12 @@ export const OwnerStatus = () => {
 
   const [mouseEnter, setMouseEnter] = useState(false)
   const { present } = useModalStack()
+  const openSettingModal = useCallback(() => {
+    present({
+      title: t('status_set'),
+      content: SettingStatusModalContent,
+    })
+  }, [present, t])
   const triggerElement = (
     <div
       role={isLogged ? 'button' : 'img'}
@@ -67,12 +75,19 @@ export const OwnerStatus = () => {
         isLogged
           ? (e) => {
               e.stopPropagation()
-              present({
-                title: t('status_set'),
-                content: SettingStatusModalContent,
-              })
+              openSettingModal()
             }
           : stopPropagation
+      }
+      onKeyDown={
+        isLogged
+          ? (e) => {
+              if (e.key !== 'Enter' && e.key !== ' ') return
+              e.preventDefault()
+              e.stopPropagation()
+              openSettingModal()
+            }
+          : undefined
       }
       onMouseEnter={() => {
         setMouseEnter(true)
@@ -113,7 +128,18 @@ export const OwnerStatus = () => {
           </>
         )}
 
-        {!ownerStatus && isLogged && <p>{t('status_click_to_set')}</p>}
+        {!ownerStatus && isLogged && (
+          <button
+            className="cursor-pointer text-left text-base text-accent"
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation()
+              openSettingModal()
+            }}
+          >
+            {t('status_click_to_set')}
+          </button>
+        )}
       </div>
     </FloatPopover>
   )
@@ -179,37 +205,55 @@ const SettingStatusModalContent = () => {
     if (!formRef.current) return
     const currentValues = formRef.current.getCurrentValues()
     setIsLoading(true)
+    const ttlSeconds =
+      currentValues.ttl *
+      {
+        m: 60,
+        s: 1,
+        h: 60 * 60,
+        d: 60 * 60 * 24,
+      }[timeType]
 
-    await apiClient.serverless.proxy.shiro.status
-      .post({
+    try {
+      await apiClient.serverless.proxy.shiro.status.post({
         data: {
           ...currentValues,
-          ttl:
-            currentValues.ttl *
-            {
-              m: 60,
-              s: 1,
-              h: 60 * 60,
-              d: 60 * 60 * 24,
-            }[timeType],
+          ttl: ttlSeconds,
         },
       })
-      .finally(() => {
-        setIsLoading(false)
-      })
-    toast.success(t('status_set_success'))
 
-    dismiss()
+      setOwnerStatus({
+        desc: currentValues.desc,
+        emoji: currentValues.emoji,
+        untilAt: Date.now() + ttlSeconds * 1000,
+      })
+      queryClient.invalidateQueries({
+        queryKey: ['shiro-status'],
+      })
+      toast.success(t('status_set_success'))
+      dismiss()
+    } catch (error) {
+      toast.error(getErrorMessageFromRequestError(error as any))
+    } finally {
+      setIsLoading(false)
+    }
   }, [dismiss, timeType, t])
 
   const handleReset = useCallback(async () => {
     setIsLoading(true)
-    await apiClient.serverless.proxy.shiro.status.delete().finally(() => {
+    try {
+      await apiClient.serverless.proxy.shiro.status.delete()
+      setOwnerStatus(null)
+      queryClient.invalidateQueries({
+        queryKey: ['shiro-status'],
+      })
+      toast.success(t('status_set_success'))
+      dismiss()
+    } catch (error) {
+      toast.error(getErrorMessageFromRequestError(error as any))
+    } finally {
       setIsLoading(false)
-    })
-    toast.success(t('status_set_success'))
-
-    dismiss()
+    }
   }, [dismiss, t])
 
   const wrapperRef = useRef<HTMLDivElement>(null)

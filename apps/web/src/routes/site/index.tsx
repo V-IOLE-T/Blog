@@ -40,6 +40,7 @@ export const Component = () => {
   const [isSaving, setIsSaving] = useState(false)
   const seoDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
   const heroDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
+  const heroQuoteRef = useRef<HTMLTextAreaElement | null>(null)
 
   const initialState = useMemo(() => {
     if (!aggregationQuery.data) return null
@@ -70,6 +71,7 @@ export const Component = () => {
     ...form,
     seoDescription: seoDescriptionRef.current?.value ?? form.seoDescription,
     heroDescription: heroDescriptionRef.current?.value ?? form.heroDescription,
+    heroQuote: heroQuoteRef.current?.value ?? form.heroQuote,
   })
 
   const save = async () => {
@@ -203,6 +205,23 @@ export const Component = () => {
               setForm((current) =>
                 current
                   ? { ...current, heroDescription: event.target.value }
+                  : current,
+              )
+            }
+          />
+        </div>
+        <div>
+          <FieldLabel
+            hint="首页右下角的一句话。留空则回退默认文案；填写后会优先使用这里的内容。"
+            title="首页一句话"
+          />
+          <TextArea
+            ref={heroQuoteRef}
+            value={form.heroQuote}
+            onChange={(event) =>
+              setForm((current) =>
+                current
+                  ? { ...current, heroQuote: event.target.value }
                   : current,
               )
             }

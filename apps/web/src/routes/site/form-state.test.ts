@@ -31,6 +31,9 @@ describe('site settings form state', () => {
             },
             description:
               'An initialized placeholder site for Mix Space Core and Shiro.',
+            hitokoto: {
+              custom: 'Orbit is only the beginning.',
+            },
           },
         },
         footer: {
@@ -47,6 +50,7 @@ describe('site settings form state', () => {
     expect(state).toEqual({
       heroDescription:
         'An initialized placeholder site for Mix Space Core and Shiro.',
+      heroQuote: 'Orbit is only the beginning.',
       heroTitle: 'Temporary <MixSpace />',
       linkSections: [
         {
@@ -67,6 +71,7 @@ describe('site settings form state', () => {
         seoDescription: 'Notes and posts',
         heroTitle: 'OO Journal',
         heroDescription: 'A calmer home page',
+        heroQuote: 'When satellites leave the sky, we dream of the cosmos.',
         socialLinks: [
           { key: 'github', value: 'https://github.com/V-IOLE-T' },
           { key: 'email', value: 'mailto:z411622h@163.com' },
@@ -97,6 +102,9 @@ describe('site settings form state', () => {
               template: [{ type: 'text', text: 'Temporary <MixSpace />' }],
             },
             description: 'Old hero',
+            hitokoto: {
+              random: true,
+            },
           },
           module: {},
           site: {
@@ -133,6 +141,10 @@ describe('site settings form state', () => {
       config: {
         hero: {
           description: 'A calmer home page',
+          hitokoto: {
+            custom: 'When satellites leave the sky, we dream of the cosmos.',
+            random: false,
+          },
           title: {
             template: [{ type: 'text', text: 'OO Journal' }],
           },
