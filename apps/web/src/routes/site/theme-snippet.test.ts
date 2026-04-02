@@ -41,6 +41,31 @@ describe('theme snippet helpers', () => {
     )
   })
 
+  it('unwraps data-wrapped snippet responses before normalizing fields', async () => {
+    const client = {
+      snippet: {
+        getByReferenceAndName: vi.fn().mockResolvedValue({
+          data: {
+            _id: 'wrapped-id',
+            name: 'shiro',
+            raw: '{"config":{}}',
+            reference: 'theme',
+            type: 'json',
+          },
+        }),
+      },
+    }
+
+    await expect(fetchThemeSnippetRecord(client as any)).resolves.toMatchObject(
+      {
+        id: 'wrapped-id',
+        name: 'shiro',
+        reference: 'theme',
+        type: 'json',
+      },
+    )
+  })
+
   it('rethrows non-404 errors from exact theme snippet lookup', async () => {
     const error = new RequestError(
       'Internal Server Error',

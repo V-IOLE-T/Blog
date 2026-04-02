@@ -22,9 +22,35 @@ type ThemeSnippetClientLike = {
 export const THEME_SNIPPET_REFERENCE = 'theme'
 export const THEME_SNIPPET_NAME = 'shiro'
 
+const unwrapThemeSnippetRecord = (
+  record: ThemeSnippetRecord | { data?: unknown } | null | undefined,
+): ThemeSnippetRecord | null => {
+  if (!record || typeof record !== 'object') return null
+
+  if (
+    'name' in record &&
+    'reference' in record &&
+    'type' in record &&
+    'raw' in record
+  ) {
+    return record as ThemeSnippetRecord
+  }
+
+  if ('data' in record) {
+    return unwrapThemeSnippetRecord(record.data as ThemeSnippetRecord | null)
+  }
+
+  return null
+}
+
 export const normalizeThemeSnippetRecord = (
-  record: ThemeSnippetRecord | null | undefined,
-) => (record ? { ...record, id: record.id || record._id } : null)
+  record: ThemeSnippetRecord | { data?: unknown } | null | undefined,
+) => {
+  const unwrappedRecord = unwrapThemeSnippetRecord(record)
+  return unwrappedRecord
+    ? { ...unwrappedRecord, id: unwrappedRecord.id || unwrappedRecord._id }
+    : null
+}
 
 export const fetchThemeSnippetRecord = async (
   client: ThemeSnippetClientLike,
