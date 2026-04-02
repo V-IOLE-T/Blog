@@ -1768,3 +1768,881 @@ docker compose --profile rollback up -d yohaku
   - `docs/deployment/vps-frontend-rollback.md`
 
 不要只依赖本 handoff 去执行长期运维动作；优先以这两份部署文档为准。
+
+## [2026-04-02 02:30] 头部登录入口收拢已发布，以下新节为准
+
+### 当前目标
+
+- 将前台站点 `418122.xyz` 的账号入口从右上角移除
+- 统一收拢到左上角头像/入口位
+- 完成本地提交、远端推送与一次真实可追踪的生产部署
+
+### 这轮做了什么
+
+- 本地功能改动已在 commit `b3c287b feat: 收拢头部登录入口到左上角头像`
+- 当前分支仍为 `codex/modify`
+- `origin/codex/modify` 已确认指向同一提交：
+
+```bash
+git rev-parse HEAD
+git rev-parse origin/codex/modify
+```
+
+- 两者都返回：
+  - `b3c287b963b5c7699cd213f5f2b54a462762f9a0`
+
+### 什么有效
+
+- 这次为了避开 lint-staged / eslint 被无关打包产物污染，只提交了目标文件，没有把以下未跟踪产物混入本次提交：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+- 本地构建与格式化验证在提交前已通过
+- 旧的 GitHub Actions run `23864141052` 实际绑定的是旧提交 `a489e91`，不能代表这次发布
+- 重新执行：
+
+```bash
+gh workflow run .github/workflows/vercel-frontend-deploy.yml --ref codex/modify
+```
+
+- 新 run `23864231971` 绑定的是正确提交 `b3c287b`
+- 由于 workflow 配置了：
+
+```yaml
+concurrency:
+  group: vercel-frontend-production
+  cancel-in-progress: true
+```
+
+- 所以旧 run `23864141052` 已自动取消，状态为：
+  - `completed/cancelled`
+- 新 run `23864231971` 已成功完成，状态为：
+  - `completed/success`
+
+### 真实部署证据
+
+- 成功 run：
+  - <https://github.com/V-IOLE-T/Blog/actions/runs/23864231971>
+- `gh run view 23864231971 --json status,conclusion,url,headSha` 返回：
+  - `status=completed`
+  - `conclusion=success`
+  - `headSha=b3c287b963b5c7699cd213f5f2b54a462762f9a0`
+- run 日志中可见：
+  - `Deploying ni-chijous-projects/blog-web`
+  - `Production: https://blog-ny3ogl0cf-ni-chijous-projects.vercel.app`
+
+### 什么没有完全验证
+
+- 从当前本机 shell 直接访问前台域名：
+
+```bash
+curl -I -sS https://418122.xyz
+```
+
+- 返回 TLS 握手错误：
+  - `curl: (35) ... tlsv1 alert internal error`
+- `openssl s_client -connect 418122.xyz:443 -servername 418122.xyz` 也显示服务端在握手阶段返回 `alert internal error`
+- 但 API 域名当前可正常返回：
+
+```bash
+curl --tlsv1.2 -I -sS https://api.418122.xyz/api/v2/ping
+```
+
+- 返回 `HTTP/2 200`
+- 因此本轮能确认的是：
+  - GitHub Actions 已把正确提交成功部署到 Vercel production
+- 还不能仅凭当前 shell 网络断言：
+  - apex 域名 `418122.xyz` 的外网访问链路一定完全正常
+
+### 给下一位 agent 的直接建议
+
+- 若用户只关心“这次改动是否已发版”，直接以 run `23864231971 success` 为准
+- 若用户反馈线上主域名仍看不到改动，优先排查：
+  - `418122.xyz` 是否仍正确指向当前 Vercel production
+  - 域名证书 / TLS 握手是否异常
+  - 是否存在 CDN / 浏览器缓存
+- 如需继续追站点可达性，可优先复用这些命令：
+
+```bash
+gh run view 23864231971 --log | tail -n 120
+curl -I -sS https://418122.xyz
+curl --tlsv1.2 -I -sS https://api.418122.xyz/api/v2/ping
+echo | openssl s_client -connect 418122.xyz:443 -servername 418122.xyz
+```
+
+## [2026-04-02 03:39] GitHub 社交登录已定位为后端 callback URL 拼接错误
+
+> 这一节是当前“GitHub provider 已配置但点击登录仍失败”的最新权威结论。若与前文冲突，以本节为准。
+
+### 当前目标
+
+- 排查并解释：为什么 GitHub OAuth App 已配置后，站点前台点击左上角登录入口仍然无法正常进入 GitHub 登录。
+
+### 已尝试路径
+
+- 复核线上前端运行时环境：
+  - `curl -I -sS https://418122.xyz`
+  - 结果显示当前前端由 `Vercel` 提供，`server: Vercel`
+- 复核页面注入环境变量：
+  - `curl -sS https://418122.xyz | grep -n "window.__ENV\\|NEXT_PUBLIC_API_URL\\|NEXT_PUBLIC_GATEWAY_URL"`
+  - 已确认页面注入：
+    - `NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2`
+    - `NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz`
+- 复核后端 provider 接口：
+  - `curl -sS -D - https://api.418122.xyz/api/v2/auth/providers`
+  - 返回 `HTTP/2 200`
+  - body: `{"data":["github"]}`
+- 复核匿名 session：
+  - `curl -sS -D - https://api.418122.xyz/api/v2/auth/session`
+  - 返回 `HTTP/2 200`
+  - body: `null`
+- 用 `web-access` 浏览器从匿名态真实点击左上角登录入口并进入 GitHub 授权页
+
+### 什么有效
+
+- 已确认问题**不在 provider 是否注册成功**：
+  - `/api/v2/auth/providers` 已返回 `github`
+- 已确认问题**不在前台运行时 API 环境变量**：
+  - 首页注入的 `NEXT_PUBLIC_API_URL` 是正确的 `https://api.418122.xyz/api/v2`
+- 已确认问题**不是“当前暂不可登录”那类 providers 为空问题**
+- 真实点击登录后，浏览器跳转到 GitHub OAuth 授权地址，说明前台触发链路已经走到 provider 授权步骤
+
+### 根因结论
+
+- 真实失败点发生在 GitHub OAuth 授权页，页面文案为：
+  - `The redirect_uri is not associated with this application.`
+- 真实打开的授权 URL 中，`redirect_uri` 是：
+  - `https://api.418122.xyz/auth/callback/github`
+- 但用户当前在 GitHub OAuth App 中配置的是：
+  - `https://api.418122.xyz/api/v2/auth/callback/github`
+- 两者不一致，导致 GitHub 直接报 `Invalid Redirect URI`
+
+### 代码级证据
+
+- 服务器源码路径：
+  - `/opt/mx-core-src/apps/core/src/modules/auth/auth.middleware.ts`
+- 当前实现会把 GitHub 回调地址拼成：
+
+```ts
+redirectURI: `${urls.serverUrl}/auth/callback/github`
+```
+
+- 但 Better Auth 在同项目中的 `basePath` 实际是：
+  - 开发环境：`/auth`
+  - 生产环境：`/api/v${API_VERSION}/auth`
+- 对应源码：
+  - `/opt/mx-core-src/apps/core/src/modules/auth/auth.implement.ts`
+
+```ts
+basePath: isDev ? '/auth' : `/api/v${API_VERSION}/auth`
+```
+
+- 因此当前后端在生产环境下把 OAuth callback URL 少拼了 `/api/v2`
+
+### 什么没有修
+
+- 本轮还**没有**修改服务器源码、重建镜像或重启 `mx-server`
+- 本轮也**没有**改动 GitHub OAuth App 配置
+
+### 下一步最推荐动作
+
+- 优先修后端源码，而不是改 GitHub 配置去迁就错误实现
+- 建议修法：
+  - 在 `/opt/mx-core-src/apps/core/src/modules/auth/auth.middleware.ts` 中，让 `redirectURI` 与 Better Auth 的 `basePath` 保持一致
+  - 生产环境应改为：
+    - `https://api.418122.xyz/api/v2/auth/callback/github`
+- 修完后需要：
+  - 重新构建 `mx-server`
+  - 重启服务
+  - 再验证一次左上角登录入口
+
+### 关键验证命令
+
+```bash
+curl -sS -D - https://api.418122.xyz/api/v2/auth/providers
+curl -sS -D - https://api.418122.xyz/api/v2/auth/session
+```
+
+- 若要在浏览器中再次复核，可关注 GitHub 授权页最终 URL 里的 `redirect_uri` 参数是否已变成：
+  - `https://api.418122.xyz/api/v2/auth/callback/github`
+
+### [2026-04-02 04:04] 本节补充：服务器已修 callback，当前剩余阻塞在 GitHub OAuth App / clientId 对应关系
+
+- 已直接在服务器源码中修复：
+  - 文件：`/opt/mx-core-src/apps/core/src/modules/auth/auth.middleware.ts`
+  - 改动：
+    - 新增 `import { API_VERSION } from '~/app.config'`
+    - 新增：
+
+```ts
+const authBasePath = isDev ? '/auth' : `/api/v${API_VERSION}/auth`
+```
+
+    - GitHub / Google 的 `redirectURI` 统一改为：
+
+```ts
+`${urls.serverUrl}${authBasePath}/callback/<provider>`
+```
+
+- 已重建镜像并替换线上 `mx-server`
+  - 新镜像 ID：
+    - `sha256:f4bf60cd0ee30f2bac5c412ace531ad2a73699aa95c578690ddd3294c76ee78b`
+  - 当前容器已运行该镜像：
+
+```bash
+docker inspect mx-server --format "{{.Image}}"
+```
+
+  - 返回：
+    - `sha256:f4bf60cd0ee30f2bac5c412ace531ad2a73699aa95c578690ddd3294c76ee78b`
+
+- 已做 fresh verification：
+
+```bash
+curl -sS -D - https://api.418122.xyz/api/v2/ping
+curl -sS -D - https://api.418122.xyz/api/v2/auth/providers
+```
+
+- 结果：
+  - `/api/v2/ping` -> `HTTP/2 200`
+  - `/api/v2/auth/providers` -> `HTTP/2 200`
+  - body: `{"data":["github"]}`
+
+- 再次用浏览器从匿名态真实点击登录按钮后，GitHub 授权 URL 中的 `redirect_uri` 已经变成：
+  - `https://api.418122.xyz/api/v2/auth/callback/github`
+
+- 但 GitHub 页面仍报：
+  - `The redirect_uri is not associated with this application.`
+
+- 当前最关键的新判断：
+  - 服务器 callback 路径问题已经修好
+  - 现在剩余问题大概率是：
+    1. GitHub OAuth App 页面里配置的 callback URL 与当前后端实际使用的 app 不一致
+    2. 或者后端 `oauth` 配置里的 `clientId/clientSecret` 对应的是另一套 GitHub OAuth App
+
+- 已从真实 GitHub 授权 URL 观察到后端当前使用的 `client_id` 是：
+  - `Ov23liSx4jsKbiVXeQnH`
+
+- 因此下一位 agent / 当前继续排查时，第一优先级是：
+  - 让用户核对其正在编辑的 GitHub OAuth App 的 **Client ID 是否正好是** `Ov23liSx4jsKbiVXeQnH`
+  - 并确认该 app 的 callback URL **精确等于**：
+    - `https://api.418122.xyz/api/v2/auth/callback/github`
+  - 注意不能有：
+    - 少 `/api/v2`
+    - 尾部多 `/`
+    - 多余 query
+    - 编辑的是另一套 OAuth App
+
+- 额外观察：
+  - `docker logs mx-server` 中有 Better Auth 警告：
+
+```text
+[better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable.
+```
+
+  - 它还没有阻止当前授权 URL 生成，但若后续 callback/redirect 仍异常，可补：
+    - `BETTER_AUTH_URL=https://api.418122.xyz/api/v2/auth`
+
+## [2026-04-02 04:29] 用户已重新配置 GitHub，当前 handoff 以本节为最新权威状态
+
+> 本节覆盖上面“clientId/clientSecret 仍不匹配”的中间态描述。若与前文冲突，以本节为准。
+
+### 当前目标
+
+- 让下一位 agent 接手时，不需要重新从头排查 GitHub 社交登录链路。
+- 当前重点不再是“找根因”，而是基于已经完成的修复和用户最新反馈，继续做收尾验证、清理遗留风险，或处理新增问题。
+
+### 截至当前的真实状态
+
+- 用户最新反馈：`好了，现在配置好了。`
+- 当前线上后端服务仍在线，fresh verification：
+
+```bash
+curl -sS -D - https://api.418122.xyz/api/v2/ping
+curl -sS -D - https://api.418122.xyz/api/v2/auth/providers
+```
+
+- 实测结果：
+  - `/api/v2/ping` -> `HTTP/2 200`
+  - body: `{"data":"pong"}`
+  - `/api/v2/auth/providers` -> `HTTP/2 200`
+  - body: `{"data":["github","google"]}`
+
+- 与上一轮相比，一个重要变化是：
+  - providers 列表从之前的 `["github"]` 变成了 `["github","google"]`
+  - 说明后台 `oauth` 配置这轮被用户实际更新过，而且配置中心刷新已经生效
+
+- 当前运行的后端容器仍是我们修过 callback 的镜像：
+
+```bash
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 \
+  'docker inspect mx-server --format "{{.Image}}"'
+```
+
+- 返回：
+  - `sha256:f4bf60cd0ee30f2bac5c412ace531ad2a73699aa95c578690ddd3294c76ee78b`
+
+### 这次排查里试过什么
+
+#### 1. 先验接口验证
+
+- 验证过旧错误路径：
+
+```bash
+curl -sS -D - https://api.418122.xyz/api/v2/proxy/auth/providers
+curl -sS -D - https://api.418122.xyz/api/v2/proxy/auth/session
+```
+
+- 两者早先都返回 `404`
+- 这一步帮助确认：
+  - 真正可用的 auth 接口不在 `/proxy/auth/*`
+  - 线上应该以 `/api/v2/auth/*` 为准
+
+#### 2. 核对后端 provider 链路
+
+- 验证：
+
+```bash
+curl -sS -D - https://api.418122.xyz/api/v2/auth/providers
+curl -sS -D - https://api.418122.xyz/api/v2/auth/session
+```
+
+- 这一步有效，因为它把问题从“前端按钮没反应”收窄成了“provider 已注册，但 OAuth 授权 / token exchange 失败”
+
+#### 3. 服务器源码排查
+
+- 关键源码文件：
+  - `/opt/mx-core-src/apps/core/src/modules/auth/auth.middleware.ts`
+  - `/opt/mx-core-src/apps/core/src/modules/auth/auth.implement.ts`
+  - `/opt/mx-core-src/apps/core/src/modules/auth/auth.controller.ts`
+
+- 有效结论：
+  - provider 来自配置中心 `oauth` / `url`
+  - 不是通过 docker env 直接注入 GitHub provider
+  - 生产环境 Better Auth `basePath` 是 `/api/v2/auth`
+  - 原始代码却把 GitHub callback 拼成了 `/auth/callback/github`
+
+#### 4. 真实浏览器点击复现
+
+- 使用 `web-access` 独立浏览器从匿名态点击站点左上角登录入口
+- 这一步非常有效，因为它给了我们两段关键的一手证据：
+  - 第一阶段：GitHub 报 `Invalid Redirect URI`
+  - 第二阶段：修 callback 后，GitHub 改为报 `incorrect_client_credentials`
+
+### 什么有效
+
+- 直接查线上接口有效
+  - 比只看前端文案更快锁定 auth 链路真实状态
+- 直接看服务器日志有效
+  - 在 `docker logs mx-server` 中明确看到了 Better Auth 的一手报错
+- 修后端 callback 拼接有效
+  - 现在服务器发出的 `redirect_uri` 已与 GitHub App callback URL 对齐
+- 让用户重新核对 GitHub OAuth App 的 `Client ID / Client Secret` 有效
+  - 这是把错误从 `Invalid Redirect URI` 推进到“现在配置好了”的关键动作
+
+### 什么没用 / 容易误导
+
+- 只改 GitHub 回调 URL，不改后端 callback 拼接
+  - 无法解决问题
+- 盯着 `/api/v2/proxy/auth/*`
+  - 会把注意力带偏，这不是当前真实可用的 auth 路由
+- 只看前端按钮交互，不查 GitHub 授权页和服务器日志
+  - 无法知道到底是 callback 错、secret 错，还是 state/code 交换失败
+- 用自动化浏览器判断“最终登录一定成功”
+  - 不够可靠
+  - 原因是 OAuth 流程涉及 popup、GitHub 登录态、人工授权与站点 cookie 回写，CDP 自动化在这一步容易受 popup/user gesture 限制
+
+### 曾经出现过、但当前已不是最新结论的错误
+
+- `Invalid Redirect URI`
+  - 根因：后端 callback 少了 `/api/v2`
+  - 状态：已通过服务器源码修复
+- `incorrect_client_credentials`
+  - 根因：GitHub App 的 `client_id/client_secret` 与后端配置不匹配
+  - 状态：这是用户本轮“重新配置好”之前的最新阻塞；当前应视为历史中间态，不再是最新权威状态
+
+### 当前还能看到的日志信号
+
+- 在最近 20 分钟日志里仍能看到历史错误：
+  - `incorrect_client_credentials`
+  - `State not found undefined`
+  - `Cannot GET /?error=invalid_code`
+- 这些是前面几轮错误配置时留下的记录，不代表用户最新这轮配置后仍然必现
+- 同一批日志里还能看到：
+
+```text
+[better-auth] Base URL could not be determined. Please set a valid base URL using the baseURL config option or the BETTER_AUTH_URL environment variable.
+```
+
+- 这条警告目前仍存在，虽然它没有阻止 provider 列表正常返回，但它是后续最值得优先清理的遗留风险之一
+
+### 当前代码 / 部署 / 环境状态
+
+- 本地仓库：
+  - `/Users/zhenghan/Documents/GitHub/Blog`
+- 当前分支：
+  - `codex/modify`
+- 本地当前额外脏文件：
+  - `HANDOFF.md` 已修改
+  - 还有此前就存在的未跟踪打包产物，不要误处理：
+    - `bootstrap.js`
+    - `main-8X_hBwW2.js`
+    - `plugins-page-nmaiEpNu.js`
+    - `product-name-CswjKXkf.js`
+
+- 服务器：
+  - `ssh -i ~/.ssh/macair4.pem root@43.153.75.156`
+- 后端源码：
+  - `/opt/mx-core-src`
+- 线上运行容器：
+  - `mx-server`
+  - 当前镜像 digest：
+    - `sha256:f4bf60cd0ee30f2bac5c412ace531ad2a73699aa95c578690ddd3294c76ee78b`
+
+### 下一位 agent 最推荐先做什么
+
+1. 先不要重新排 callback 根因，这一段已经完成。
+2. 若用户说“现在已经能登录”，先做一次 end-to-end 验证，而不是继续猜。
+3. 最优先检查是否还需要补 `BETTER_AUTH_URL`：
+   - 建议值：
+     - `BETTER_AUTH_URL=https://api.418122.xyz/api/v2/auth`
+4. 若用户又报新的 OAuth 问题，先看 fresh logs：
+
+```bash
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 \
+  'docker logs --since 10m mx-server 2>&1 | tail -n 200'
+```
+
+5. 若要确认当前 provider 配置中心状态，可优先从后台 UI 或 `config/oauth` 相关接口入手，而不是再猜 env
+
+### 关键命令清单
+
+```bash
+curl -sS -D - https://api.418122.xyz/api/v2/ping
+curl -sS -D - https://api.418122.xyz/api/v2/auth/providers
+curl -sS -D - https://api.418122.xyz/api/v2/auth/session
+
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 \
+  'docker inspect mx-server --format "{{.Image}}"'
+
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156 \
+  'docker logs --since 10m mx-server 2>&1 | tail -n 200'
+```
+
+## [2026-04-02 04:43] 站点配置页 Snippet 已存在 + 首屏卡顿 已定位并本地修复
+
+> 若后续问题集中在 `/dashboard/site` 的首页配置保存或打开速度，这一节是最新权威状态。
+
+### 当前目标
+
+- 修复用户在站点配置页修改首页 Hero / Footer / Social 等配置时，保存报错 `Snippet 已存在`
+- 修复 `/dashboard/site` 页面打开时长时间 loading、体感卡顿的问题
+
+### 真实根因
+
+#### 1. `Snippet 已存在` 的根因
+
+- 文件：`apps/web/src/routes/site/index.tsx`
+- 旧实现不是精确读取当前主题 snippet，而是：
+  - 先请求 `GET /snippets/group/theme`
+  - 再在前端结果里 `find(item.name === 'shiro')`
+- 但保存时却是：
+  - 有 `id` -> `PUT /snippets/:id`
+  - 没 `id` -> `POST /snippets`
+- 这意味着只要 `group/theme` 没返回当前那条 `theme/shiro` 记录，前端就会误判成“snippet 不存在”，随后走 `POST /snippets`，最终撞到后端唯一约束并报 `Snippet 已存在`
+
+#### 2. 站点配置页打开卡顿的根因
+
+- 同一文件旧实现把页面 loading 条件写成：
+  - `aggregationQuery.isLoading || snippetQuery.isLoading || !aggregationQuery.data || !form`
+- 但页面表单初始值实际上只依赖 `aggregation.root()`，并不依赖 snippet 查询结果
+- 结果是：
+  - 即使 aggregate 已经拿到、表单已可构建
+  - 页面仍会被 `snippetQuery.isLoading` 卡住
+- 所以 `/dashboard/site` 的首屏体验被一个“仅用于保存时拿 snippet 元数据”的查询拖慢了
+
+### 这次做了什么
+
+- 新增精确 snippet helper：
+  - `apps/web/src/routes/site/theme-snippet.ts`
+- 将站点配置页的 snippet 查询改为：
+  - `apiClient.snippet.getByReferenceAndName('theme', 'shiro')`
+- 对 `404` 做显式处理：
+  - 仅在“精确确认不存在”时才返回 `null`
+  - 其他错误继续抛出，不吞掉真实异常
+- 去掉 `/dashboard/site` 首屏对 `snippetQuery.isLoading` 的阻塞
+- 保存时增加兜底：
+  - 若页面已渲染但 snippet query 还没完成，会在 `save()` 内再次 `fetchQuery(themeSnippetQueryOptions)`，确保真正决定 `PUT` 还是 `POST` 时拿到最新结果
+
+### 哪些文件被改了
+
+- `apps/web/src/routes/site/index.tsx`
+- `apps/web/src/routes/site/theme-snippet.ts`
+- `apps/web/src/routes/site/theme-snippet.test.ts`
+
+### 什么有效
+
+- 先读 `HANDOFF.md` 和 `apps/web/src/routes/site/*`
+  - 很快把问题收敛到首页配置入口而不是首页渲染组件本身
+- 对照 API client 源码有效
+  - `apps/web/node_modules/@mx-space/api-client/dist/index.mjs`
+  - 明确发现已经有 `snippet.getByReferenceAndName(reference, name)` 这个精确查询能力，旧代码只是没用
+- 把“页面是否能渲染”和“保存前是否拿到 snippet 元数据”拆开处理有效
+  - 这样同时解决了保存误判和首屏等待
+
+### 什么没用 / 容易误导
+
+- 继续依赖 `GET /snippets/group/theme` 再前端筛 `name === 'shiro'`
+  - 这正是误判根源
+- 认为页面必须等 snippet query 完成才能显示
+  - 不成立，表单初始值来自 aggregate，不来自 snippet raw
+- 只盯着首页 Hero 组件
+  - 当前问题不在 `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+  - 而在 dashboard 配置页的数据读写策略
+
+### 本地验证结果
+
+- 定向测试通过：
+
+```bash
+pnpm exec vitest run \
+  apps/web/src/routes/site/theme-snippet.test.ts \
+  apps/web/src/routes/site/form-state.test.ts
+```
+
+- 结果：
+  - `2` 个测试文件通过
+  - `5` 个测试通过
+
+- 构建通过：
+
+```bash
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - `next build` 成功
+  - 输出包含 `/dashboard/[[...catch_all]]`
+
+### 当前代码 / 环境状态
+
+- 本地仓库：
+  - `/Users/zhenghan/Documents/GitHub/Blog`
+- 当前分支：
+  - `codex/modify`
+- 当前与本轮直接相关的工作树变更：
+  - `apps/web/src/routes/site/index.tsx`
+  - `apps/web/src/routes/site/theme-snippet.ts`
+  - `apps/web/src/routes/site/theme-snippet.test.ts`
+- 仍有此前就存在、与本轮无关的脏文件，不要误处理：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一位 agent 最推荐先做什么
+
+1. 先让用户在真实后台 `/dashboard/site` 再试一次保存首页配置，确认线上是否还会报 `Snippet 已存在`
+2. 若用户仍反馈慢，优先在浏览器 Network 里对比：
+   - `aggregate?theme=shiro`
+   - `snippets/theme/shiro`
+   看是否还有后端接口本身偏慢
+3. 若线上仍存在旧行为，检查是否已经把这次前端修复部署到 Vercel / 当前实际站点
+4. 若后续要继续优化体验，可考虑把 snippet 元数据查询改成：
+   - 页面渲染后后台预取
+   - 或保存时首次按需获取
+   但当前这轮不需要继续扩大改动
+
+### 关键命令 / 证据
+
+```bash
+sed -n '1,260p' apps/web/src/routes/site/index.tsx
+sed -n '1,220p' apps/web/src/routes/site/form-state.ts
+sed -n '1,220p' apps/web/src/routes/site/theme-snippet.ts
+
+pnpm exec vitest run \
+  apps/web/src/routes/site/theme-snippet.test.ts \
+  apps/web/src/routes/site/form-state.test.ts
+
+pnpm --filter @shiro/web build
+
+curl -sS -m 20 'https://api.418122.xyz/api/v2/aggregate?theme=shiro' | jq '.theme.config.hero'
+curl -sS -m 20 https://api.418122.xyz/api/v2/snippets/group/theme
+```
+
+## [2026-04-02 04:55] 站点配置页修复已通过 GitHub Actions 发布到 Vercel
+
+> 若下一个 agent 需要确认“这次站点配置页修复是否已上线”，以本节为准。
+
+### 已上线的提交
+
+- 分支：`codex/modify`
+- 提交：`c9b2789`
+- commit message：`fix(site): 修复站点配置页 Snippet 查询`
+
+### 实际发布动作
+
+- 推送：
+
+```bash
+git push origin codex/modify
+```
+
+- 手动触发 workflow：
+
+```bash
+gh workflow run .github/workflows/vercel-frontend-deploy.yml --ref codex/modify
+```
+
+- 本次 run：
+  - `23870256064`
+  - URL:
+    - `https://github.com/V-IOLE-T/Blog/actions/runs/23870256064`
+
+### 发布结果
+
+- `gh run watch 23870256064 --exit-status` 返回成功
+- GitHub Actions 显示：
+  - workflow：`Deploy Frontend to Vercel`
+  - branch：`codex/modify`
+  - head sha：`c9b27896e431ca565f175a82057cfebe63c34d4c`
+  - job 用时：`2m44s`
+
+### Vercel 产物
+
+- Inspect：
+  - `https://vercel.com/ni-chijous-projects/blog-web/2Za2sstEx9WUeTXo6W2YRoXGvJht`
+- Production deployment：
+  - `https://blog-ifv2neqb1-ni-chijous-projects.vercel.app`
+
+### 发布后 smoke 结果
+
+- `curl -I -sS https://418122.xyz/`
+  - `HTTP/2 200`
+  - `server: Vercel`
+  - `x-vercel-cache: MISS`
+- `curl -I -sS https://418122.xyz/dashboard`
+  - `HTTP/2 200`
+  - `server: Vercel`
+  - `x-vercel-cache: MISS`
+- `curl -sS https://api.418122.xyz/api/v2/ping`
+  - `{"data":"pong"}`
+
+### 当前仍需注意
+
+- 这次是通过 `workflow_dispatch` 从 `codex/modify` 直接发的 production deploy，不是通过 `main` push
+- 站点基础可达已验证，但“后台保存首页配置后不再报 `Snippet 已存在`”这条还没有在真实登录态下做人工端到端回归
+- workflow 日志里仍有一条中长期提醒：
+  - GitHub Actions 上 `actions/checkout@v4` / `actions/setup-node@v4` / `pnpm/action-setup@v4` 仍运行在 Node.js 20 action runtime
+  - 从 `2026-06-02` 起默认会被切到 Node 24
+  - 这不是本次发布阻塞，但后续应择机升级 action 版本或验证兼容性
+
+## [2026-04-02 14:29] 修复 `name: Invalid input: expected string, received undefined` 并已重新发布
+
+> 若下一个 agent 需要确认“为什么 `Snippet 已存在` 修完后又变成 `name` 校验错误”，以本节为准。
+
+### 当前问题与根因
+
+- 用户在 `/dashboard/site` 保存配置时，线上报：
+  - `name: Invalid input: expected string, received undefined`
+- 根因不是保存 payload 拼接逻辑本身回退了，而是：
+  - `apps/web/src/routes/site/theme-snippet.ts`
+  - 新增的精确查询 `getByReferenceAndName('theme', 'shiro')`
+  - 实际返回形状可能是 `{ data: { ...snippet } }`
+- 之前 helper 直接把返回值当 snippet 本体来归一化，没有先解 `data`
+- 于是：
+  - `existingThemeSnippet` 是“包裹对象”
+  - fallback 没有生效
+  - `payloads.themeSnippet.name` 变成 `undefined`
+  - 后端 zod / DTO 校验报 `expected string, received undefined`
+
+### 这次做了什么
+
+- 文件：
+  - `apps/web/src/routes/site/theme-snippet.ts`
+  - `apps/web/src/routes/site/theme-snippet.test.ts`
+- 新增 `unwrapThemeSnippetRecord()`
+  - 先识别是否已经是 snippet 本体
+  - 如果是 `{ data: ... }` 包裹，就递归拆包
+- 再在 `normalizeThemeSnippetRecord()` 中统一基于拆包后的对象补 `id`
+
+### 新增/更新的测试
+
+- 新增测试：
+  - `unwraps data-wrapped snippet responses before normalizing fields`
+- 这条测试先红后绿，证明当前 helper 现在能兼容：
+
+```ts
+{
+  data: {
+    _id: 'wrapped-id',
+    name: 'shiro',
+    reference: 'theme',
+    type: 'json',
+    raw: '{"config":{}}',
+  },
+}
+```
+
+### 本地验证
+
+```bash
+pnpm exec vitest run \
+  apps/web/src/routes/site/theme-snippet.test.ts \
+  apps/web/src/routes/site/form-state.test.ts
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 2 个测试文件通过
+  - 6 个测试通过
+  - `@shiro/web build` 成功
+
+### 实际发布与竞态说明
+
+- 先推送了提交：
+  - `022ce48`
+  - `fix(site): 兼容 snippet 包装响应`
+- 第一次触发 workflow 时出现 git push / workflow_dispatch 竞态：
+  - run `23887086861`
+  - 实际抓到的还是旧 head sha：
+    - `c9b27896e431ca565f175a82057cfebe63c34d4c`
+  - 这条 run 虽然成功，但不是最新修复版本
+- 随后确认远端 `codex/modify` 已指向：
+  - `022ce486ceae82618484c986976a92b281a58b45`
+- 再次手动触发 workflow，得到真正有效的 production run：
+  - `23887164087`
+  - URL:
+    - `https://github.com/V-IOLE-T/Blog/actions/runs/23887164087`
+
+### 最终已上线版本
+
+- branch：`codex/modify`
+- head sha：`022ce486ceae82618484c986976a92b281a58b45`
+- Vercel inspect：
+  - `https://vercel.com/ni-chijous-projects/blog-web/GavvSqLu8KhQiFWj2Qekzr3mJkHp`
+- Vercel production deployment：
+  - `https://blog-7rdgrboq9-ni-chijous-projects.vercel.app`
+
+### 发布后 smoke
+
+- `curl -I -sS https://418122.xyz/`
+  - `HTTP/2 200`
+  - `server: Vercel`
+- `curl -I -sS https://418122.xyz/dashboard`
+  - `HTTP/2 200`
+  - `server: Vercel`
+- `curl -sS https://api.418122.xyz/api/v2/ping`
+  - `{"data":"pong"}`
+
+### 下一位 agent 最推荐先做什么
+
+1. 让用户在真实登录态下再次保存 `/dashboard/site` 配置
+2. 若仍报错，优先抓浏览器 Network 中这两个请求体/响应：
+   - `GET /api/v2/snippets/theme/shiro`
+   - `PUT /api/v2/snippets/:id` 或 `POST /api/v2/snippets`
+3. 若保存成功但用户仍觉得页面慢，再单独针对 `/dashboard/site` 做 Network timing 分析，而不要再回头猜 snippet 字段问题
+
+## [2026-04-02 23:58] Hero 描述保存与 dashboard 今日诗句修复（以下新章节为准）
+
+### 当前目标
+
+- 解决用户最后两个剩余问题：
+  - `/dashboard/site` 里 Hero 标题能保存，但 Hero 描述保存后首页仍不生效
+  - dashboard 首页里的“今日诗句”一直处于加载中
+
+### 这轮真实排查结论
+
+- Hero 标题链路已经正常：
+  - 首页 Hero 直接读 `apps/web/src/app/[locale]/(home)/components/Hero.tsx` 里的 `config.hero.description`
+  - `/dashboard/site` 保存逻辑也会把 `form.heroDescription` 写回 theme snippet
+- 公开聚合接口在本轮排查时返回：
+
+```bash
+curl -sS -m 20 'https://api.418122.xyz/api/v2/aggregate?theme=shiro' | jq '.theme.config.hero,.seo'
+```
+
+- 返回结果里：
+  - `hero.title.template[0].text = "Hi, I am Zheng Han(OO)👋"`
+  - `hero.description = "An ordinary independent developer with love."`
+- 说明：
+  - 站点公开读取链路本身是通的
+  - “描述改了但没生效”更像是 dashboard 编辑态里的 textarea 当前值没有稳定进入 save payload，而不是首页渲染错字段
+
+### 今日诗句根因
+
+- `apps/web/src/components/modules/dashboard/home/Shiju.tsx` 原先直接请求：
+  - `https://v2.jinrishici.com/one.json`
+- 在当前环境直接实测：
+
+```bash
+curl -I -sS -m 20 https://v2.jinrishici.com/one.json
+```
+
+- 结果：
+  - `curl: (28) Connection timed out after 20007 milliseconds`
+- 这解释了为什么 dashboard 上“今日诗句”会一直 loading：
+  - 组件没有超时控制
+  - 没有失败态
+  - 没有备用数据源
+
+### 这轮代码改动
+
+- `apps/web/src/routes/site/index.tsx`
+  - 给 `seoDescription` 与 `heroDescription` 两个 `TextArea` 增加 `ref`
+  - 点击“保存更改”时，优先用 textarea DOM 当前值同步描述字段，再构造 mutation payload
+  - 两个描述字段的 `setForm` 改为函数式更新，降低并发输入时旧 state 覆盖新值的风险
+- `apps/web/src/components/modules/dashboard/home/Shiju.data.ts`
+  - 新增纯数据 helper，便于测试
+  - 为今日诗句请求加入 4 秒超时
+  - 主数据源失败时降级到 `https://v1.hitokoto.cn/?c=i`
+- `apps/web/src/components/modules/dashboard/home/Shiju.tsx`
+  - 改为调用 `getDashboardPoem()`
+  - 主源可用时维持原有诗句 popover 展示
+  - 主源与备用源都失败时显示“今日诗句暂时不可用”，不再无限 loading
+- `apps/web/src/components/modules/dashboard/home/Shiju.test.ts`
+  - 新增 3 条测试，覆盖主源成功、备用源兜底、双失败返回 null
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  apps/web/src/routes/site/form-state.test.ts \
+  apps/web/src/routes/site/theme-snippet.test.ts \
+  apps/web/src/components/modules/dashboard/home/Shiju.test.ts
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 10 个测试通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 当前分支：
+  - `codex/modify`
+- 与本轮任务直接相关的文件：
+  - `apps/web/src/routes/site/index.tsx`
+  - `apps/web/src/components/modules/dashboard/home/Shiju.tsx`
+  - `apps/web/src/components/modules/dashboard/home/Shiju.data.ts`
+  - `apps/web/src/components/modules/dashboard/home/Shiju.test.ts`
+- 仍有与本轮无关的本地未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交本轮相关文件并 push 到 `origin/codex/modify`
+2. 手动触发 `.github/workflows/vercel-frontend-deploy.yml`
+3. 确认 workflow 抓到的 `headSha` 是这次新提交，而不是前一次 SHA
+4. 发布后优先请用户验证两点：
+   - 修改 Hero 描述后，返回首页是否立即更新
+   - dashboard 首页“今日诗句”是否能显示诗句或至少显示失败提示，而不是一直 loading

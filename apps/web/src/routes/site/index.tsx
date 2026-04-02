@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { PageLoading } from '~/components/layout/dashboard/PageLoading'
 import { defineRouteConfig } from '~/components/modules/dashboard/utils/helper'
@@ -38,6 +38,8 @@ export const Component = () => {
   const snippetQuery = useQuery(themeSnippetQueryOptions)
   const [form, setForm] = useState<SiteSettingsFormState | null>(null)
   const [isSaving, setIsSaving] = useState(false)
+  const seoDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
+  const heroDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
 
   const initialState = useMemo(() => {
     if (!aggregationQuery.data) return null
@@ -64,16 +66,23 @@ export const Component = () => {
       ),
     )
 
+  const getSyncedFormState = () => ({
+    ...form,
+    seoDescription: seoDescriptionRef.current?.value ?? form.seoDescription,
+    heroDescription: heroDescriptionRef.current?.value ?? form.heroDescription,
+  })
+
   const save = async () => {
     setIsSaving(true)
 
     try {
+      const syncedForm = getSyncedFormState()
       const existingThemeSnippet =
         snippetQuery.data ||
         (await queryClient.fetchQuery(themeSnippetQueryOptions))
 
       const payloads = buildSiteSettingsMutationPayloads({
-        form,
+        form: syncedForm,
         previousThemeSnippet: existingThemeSnippet || {
           name: THEME_SNIPPET_NAME,
           private: false,
@@ -159,9 +168,14 @@ export const Component = () => {
         <div>
           <FieldLabel title="站点描述" />
           <TextArea
+            ref={seoDescriptionRef}
             value={form.seoDescription}
             onChange={(event) =>
-              setForm({ ...form, seoDescription: event.target.value })
+              setForm((current) =>
+                current
+                  ? { ...current, seoDescription: event.target.value }
+                  : current,
+              )
             }
           />
         </div>
@@ -183,9 +197,14 @@ export const Component = () => {
         <div>
           <FieldLabel title="Hero 描述" />
           <TextArea
+            ref={heroDescriptionRef}
             value={form.heroDescription}
             onChange={(event) =>
-              setForm({ ...form, heroDescription: event.target.value })
+              setForm((current) =>
+                current
+                  ? { ...current, heroDescription: event.target.value }
+                  : current,
+              )
             }
           />
         </div>
