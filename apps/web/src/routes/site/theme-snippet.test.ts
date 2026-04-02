@@ -23,35 +23,42 @@ describe('theme snippet helpers', () => {
     })
   })
 
-  it('returns null when exact theme snippet does not exist', async () => {
+  it('returns null when theme metadata list does not contain shiro', async () => {
     const client = {
       snippet: {
-        getByReferenceAndName: vi
-          .fn()
-          .mockRejectedValue(
-            new RequestError('Not Found', 404, '/snippets/theme/shiro'),
-          ),
+        proxy: vi.fn().mockReturnValue({
+          get: vi.fn().mockResolvedValue([
+            {
+              _id: 'another-id',
+              name: 'notes',
+              raw: '{}',
+              reference: 'theme',
+              type: 'json',
+            },
+          ]),
+        }),
       },
     }
 
     await expect(fetchThemeSnippetRecord(client as any)).resolves.toBeNull()
-    expect(client.snippet.getByReferenceAndName).toHaveBeenCalledWith(
-      'theme',
-      'shiro',
-    )
+    expect(client.snippet.proxy).toHaveBeenCalledWith('group/theme')
   })
 
-  it('unwraps data-wrapped snippet responses before normalizing fields', async () => {
+  it('finds shiro metadata from data-wrapped group listing responses', async () => {
     const client = {
       snippet: {
-        getByReferenceAndName: vi.fn().mockResolvedValue({
-          data: {
-            _id: 'wrapped-id',
-            name: 'shiro',
-            raw: '{"config":{}}',
-            reference: 'theme',
-            type: 'json',
-          },
+        proxy: vi.fn().mockReturnValue({
+          get: vi.fn().mockResolvedValue({
+            data: [
+              {
+                _id: 'wrapped-id',
+                name: 'shiro',
+                raw: '{"config":{}}',
+                reference: 'theme',
+                type: 'json',
+              },
+            ],
+          }),
         }),
       },
     }
@@ -66,15 +73,32 @@ describe('theme snippet helpers', () => {
     )
   })
 
-  it('rethrows non-404 errors from exact theme snippet lookup', async () => {
-    const error = new RequestError(
-      'Internal Server Error',
-      500,
-      '/snippets/theme/shiro',
-    )
+  it('unwraps data-wrapped snippet responses before normalizing fields', () => {
+    expect(
+      normalizeThemeSnippetRecord({
+        data: {
+          _id: 'wrapped-id',
+          name: 'shiro',
+          raw: '{"config":{}}',
+          reference: 'theme',
+          type: 'json',
+        },
+      }),
+    ).toMatchObject({
+      id: 'wrapped-id',
+      name: 'shiro',
+      reference: 'theme',
+      type: 'json',
+    })
+  })
+
+  it('rethrows non-auth failures from theme metadata list lookup', async () => {
+    const error = new RequestError('Internal Server Error', 500, '/group/theme')
     const client = {
       snippet: {
-        getByReferenceAndName: vi.fn().mockRejectedValue(error),
+        proxy: vi.fn().mockReturnValue({
+          get: vi.fn().mockRejectedValue(error),
+        }),
       },
     }
 

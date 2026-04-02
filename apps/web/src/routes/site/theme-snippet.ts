@@ -12,10 +12,9 @@ export type ThemeSnippetRecord = {
 
 type ThemeSnippetClientLike = {
   snippet: {
-    getByReferenceAndName: (
-      reference: string,
-      name: string,
-    ) => Promise<ThemeSnippetRecord>
+    proxy: (path: string) => {
+      get: () => Promise<ThemeSnippetRecord[] | { data?: unknown }>
+    }
   }
 }
 
@@ -43,6 +42,24 @@ const unwrapThemeSnippetRecord = (
   return null
 }
 
+const unwrapThemeSnippetRecords = (
+  payload: ThemeSnippetRecord[] | { data?: unknown } | null | undefined,
+): ThemeSnippetRecord[] => {
+  if (Array.isArray(payload)) {
+    return payload
+      .map((item) => unwrapThemeSnippetRecord(item))
+      .filter((item): item is ThemeSnippetRecord => !!item)
+  }
+
+  if (payload && typeof payload === 'object' && 'data' in payload) {
+    return unwrapThemeSnippetRecords(
+      payload.data as ThemeSnippetRecord[] | null,
+    )
+  }
+
+  return []
+}
+
 export const normalizeThemeSnippetRecord = (
   record: ThemeSnippetRecord | { data?: unknown } | null | undefined,
 ) => {
@@ -56,9 +73,9 @@ export const fetchThemeSnippetRecord = async (
   client: ThemeSnippetClientLike,
 ) => {
   try {
-    const record = await client.snippet.getByReferenceAndName(
-      THEME_SNIPPET_REFERENCE,
-      THEME_SNIPPET_NAME,
+    const records = await client.snippet.proxy('group/theme').get()
+    const record = unwrapThemeSnippetRecords(records).find(
+      (item) => item.name === THEME_SNIPPET_NAME,
     )
 
     return normalizeThemeSnippetRecord(record)
