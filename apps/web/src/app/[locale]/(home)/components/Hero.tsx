@@ -357,9 +357,37 @@ const HeroSocialIcons = ({
 
 const HeroHitokoto = ({ shouldAnimate }: { shouldAnimate: boolean }) => {
   const t = useTranslations('home')
-  const { custom, random } = useAppConfigSelector(
+  const appConfigHitokoto = useAppConfigSelector(
     (config) => config.hero.hitokoto || {},
   )!
+  const { data: latestHitokotoConfig } = useQuery({
+    queryKey: ['hero-hitokoto-config'],
+    queryFn: async () => {
+      const response = await fetch('/api/hero-hitokoto', {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`)
+      }
+
+      const payload = (await response.json()) as {
+        data?: {
+          custom?: string
+          random?: boolean
+        } | null
+      }
+
+      return payload.data || null
+    },
+    staleTime: 0,
+    refetchOnMount: 'always',
+    meta: {
+      persist: false,
+    },
+  })
+  const custom = latestHitokotoConfig?.custom ?? appConfigHitokoto.custom
+  const random = latestHitokotoConfig?.random ?? appConfigHitokoto.random
 
   return (
     <div
