@@ -144,12 +144,12 @@ export const OwnerStatusPopoverContent = ({
   }
 
   return (
-    <div className="flex flex-col gap-1 text-lg">
+    <div className="w-fit max-w-[18rem] text-lg">
       <p className="text-neutral-9">
         {ownerStatus.emoji} {ownerStatus.desc}
       </p>
       {!!ownerStatus.untilAt && (
-        <p className="text-sm text-neutral-7">
+        <p className="mt-1 text-sm text-neutral-7">
           {t('status_until')} {formatDatetime(ownerStatus.untilAt)}
         </p>
       )}
