@@ -17,7 +17,10 @@ import { useIsClient } from '~/hooks/common/use-is-client'
 import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
-import { getOwnerStatusTooltipText } from './owner-status-tooltip'
+import {
+  getOwnerStatusPopoverClassNames,
+  getOwnerStatusTooltipText,
+} from './owner-status-tooltip'
 import { OwnerStatusPopoverContent } from './OwnerStatus'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
 import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
@@ -85,10 +88,9 @@ const TapableLogo = () => {
   return (
     <DropdownMenu modal={false}>
       <FloatPopover
-        asChild
         mobileAsSheet
         isDisabled={!isOwner && !ownerStatus}
-        popoverClassNames="min-w-[18rem]"
+        popoverClassNames={getOwnerStatusPopoverClassNames()}
         type="tooltip"
         triggerElement={
           <DropdownMenuTrigger

@@ -3179,6 +3179,83 @@ pnpm exec eslint \
 3. 触发 Vercel 部署
 4. 发布后让用户直接 hover 整颗头像确认文案是否出现
 
+## [2026-04-03 18:26] 点击状态点触发渲染错误，根因指向 `FloatPopover asChild` + 头像触发层耦合
+
+> 这一节是当前关于“点击右下角设置状态后页面渲染出错”和“未设置状态时提示框过长”的最新补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新反馈
+
+- 点击右下角状态点去设置状态时，会进入“页面渲染出错，请尝试刷新页面”。
+- 未设置状态时，大提示框过长，用户希望它只包裹住文字即可。
+
+### 根因判断
+
+- 未设置状态时提示框过长的直接原因很明确：
+  - `AnimatedLogo.tsx` 之前把大浮层写成了：
+    - `popoverClassNames="min-w-[18rem]"`
+  - 这会强制空状态提示框拉成过宽的最小宽度
+- 页面渲染错误更像交互层耦合导致，而不是状态数据本身：
+  - 当前大浮层是通过 `FloatPopover asChild` 直接克隆 `DropdownMenuTrigger`
+  - 同时头像内部还叠着 `OwnerStatus` 的右下角点击热点
+  - 这会让“头像 hover 提示 / 下拉菜单 trigger / 状态点点击设置”三套交互共享同一触发树
+  - 用户点击右下角设置状态时，更容易把这类复合触发关系打爆，最后落到 Header 的 ErrorBoundary
+
+### 本轮修复
+
+- 文件：
+  - `apps/web/src/components/layout/header/internal/AnimatedLogo.tsx`
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - `apps/web/src/components/layout/header/internal/owner-status-tooltip.ts`
+  - `apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts`
+
+### 实现细节
+
+- `OwnerStatus.tsx`
+  - 继续只负责右下角状态点和点击打开设置 modal
+  - 大浮层内容由 `OwnerStatusPopoverContent` 输出
+  - 空状态第一行文本加了：
+    - `w-fit`
+    - `whitespace-nowrap`
+  - 使提示框只包裹文字，不再被内容行本身拉伸
+- `AnimatedLogo.tsx`
+  - 大浮层仍保留在整颗头像上
+  - 但去掉 `asChild`
+  - 改成让 `FloatPopover` 用自己的普通 wrapper 处理 hover，而不是直接克隆 `DropdownMenuTrigger`
+  - 同时把大浮层宽度改成：
+    - `w-fit max-w-[18rem]`
+  - 不再使用强制 `min-w-[18rem]`
+- `owner-status-tooltip.ts`
+  - 新增 `getOwnerStatusPopoverClassNames()`，把提示框尺寸策略收敛到单点
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts'
+
+pnpm exec eslint \
+  'apps/web/src/components/layout/header/internal/AnimatedLogo.tsx' \
+  'apps/web/src/components/layout/header/internal/OwnerStatus.tsx' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.ts' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts'
+```
+
+- 结果：
+  - 测试通过
+  - eslint 通过
+
+### 下一步建议
+
+1. 提交本轮“保留大浮层 + 去掉过宽最小宽度 + 降低触发层耦合”的修复
+2. push 到 `origin/codex/modify`
+3. 触发 Vercel 部署
+4. 发布后请用户验证：
+   - 点击右下角状态点时，是否还会出现页面渲染错误
+   - 未设置状态时，大提示框是否只包裹文字
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈

@@ -137,7 +137,9 @@ export const OwnerStatusPopoverContent = ({
 
   if (!ownerStatus) {
     return isLogged ? (
-      <p className="text-base text-neutral-9">{t('status_click_to_set')}</p>
+      <p className="w-fit whitespace-nowrap text-base text-neutral-9">
+        {t('status_click_to_set')}
+      </p>
     ) : null
   }
 
