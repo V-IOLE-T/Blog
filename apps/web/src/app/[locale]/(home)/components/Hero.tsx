@@ -22,6 +22,7 @@ import {
 } from '~/providers/root/aggregation-data-provider'
 
 import { useHomeQueryData } from '../useHomeQueryData'
+import { resolveHeroHitokotoState } from './hero-hitokoto-state'
 
 // --- Helpers ---
 
@@ -360,34 +361,38 @@ const HeroHitokoto = ({ shouldAnimate }: { shouldAnimate: boolean }) => {
   const appConfigHitokoto = useAppConfigSelector(
     (config) => config.hero.hitokoto || {},
   )!
-  const { data: latestHitokotoConfig } = useQuery({
-    queryKey: ['hero-hitokoto-config'],
-    queryFn: async () => {
-      const response = await fetch('/api/hero-hitokoto', {
-        cache: 'no-store',
-      })
+  const { data: latestHitokotoConfig, isFetched: hasResolvedLatestHitokoto } =
+    useQuery({
+      queryKey: ['hero-hitokoto-config'],
+      queryFn: async () => {
+        const response = await fetch('/api/hero-hitokoto', {
+          cache: 'no-store',
+        })
 
-      if (!response.ok) {
-        throw new Error(`Request failed: ${response.status}`)
-      }
+        if (!response.ok) {
+          throw new Error(`Request failed: ${response.status}`)
+        }
 
-      const payload = (await response.json()) as {
-        data?: {
-          custom?: string
-          random?: boolean
-        } | null
-      }
+        const payload = (await response.json()) as {
+          data?: {
+            custom?: string
+            random?: boolean
+          } | null
+        }
 
-      return payload.data || null
-    },
-    staleTime: 0,
-    refetchOnMount: 'always',
-    meta: {
-      persist: false,
-    },
+        return payload.data || null
+      },
+      staleTime: 0,
+      refetchOnMount: 'always',
+      meta: {
+        persist: false,
+      },
+    })
+  const { custom, random } = resolveHeroHitokotoState({
+    appConfigHitokoto,
+    latestHitokotoConfig,
+    hasResolvedLatestHitokoto,
   })
-  const custom = latestHitokotoConfig?.custom ?? appConfigHitokoto.custom
-  const random = latestHitokotoConfig?.random ?? appConfigHitokoto.random
 
   return (
     <div
@@ -398,8 +403,8 @@ const HeroHitokoto = ({ shouldAnimate }: { shouldAnimate: boolean }) => {
     >
       {random ? (
         <RemoteHitokotoQuote />
-      ) : (
-        <>「{custom ?? t('hero_default_hitokoto')}」</>
+      ) : custom === null ? null : (
+        <>「{custom || t('hero_default_hitokoto')}」</>
       )}
     </div>
   )

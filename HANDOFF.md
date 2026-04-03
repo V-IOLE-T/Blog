@@ -2796,6 +2796,142 @@ pnpm --filter @shiro/web build
 4. 预期应不再出现 `max-age=10` 这一类缓存头
 5. 再让用户连续两次修改“首页一句话”做真实回归
 
+### 追加：本轮已完成提交与部署
+
+- 本轮提交：
+  - `c8868b3`
+  - `fix(site): 禁用公开接口短缓存`
+- 已 push：
+  - `origin/codex/modify`
+- GitHub Actions run：
+  - `23928923422`
+  - `https://github.com/V-IOLE-T/Blog/actions/runs/23928923422`
+- 运行结果：
+  - `completed`
+  - `success`
+- Vercel deploy：
+  - Inspect: `https://vercel.com/ni-chijous-projects/blog-web/51bvQ6GceHR9T7FEsFi7kbncpQPn`
+  - Production: `https://blog-lw34f8oi3-ni-chijous-projects.vercel.app`
+- 部署后线上复核：
+
+```bash
+curl -sS -D - https://418122.xyz/api/hero-hitokoto -o /tmp/hero-hitokoto-live.out
+curl -sS -D - https://418122.xyz/api/owner-status -o /tmp/owner-status-live.out
+```
+
+- 已确认两个接口现在都返回：
+
+```txt
+cache-control: no-store, no-cache, must-revalidate, max-age=0
+cdn-cache-control: no-store
+cloudflare-cdn-cache-control: no-store
+```
+
+- 也就是说：
+  - “首页一句话”二次连续修改后，公开读取接口不再被 10 秒 CDN 短缓存卡住
+  - “公开状态”读取也不再被同类短缓存延迟
+
+## [2026-04-03 15:24] 首屏旧一句话闪回 + 状态保存 Forbidden 二次收口
+
+> 这一节是当前关于“刷新时旧一句话闪一下”和“状态保存报 Forbidden”的最新补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新反馈
+
+- 首页一句话在刷新时会先出现旧内容约零点几秒，然后才切到新内容。
+- 修改状态时保存会报：
+  - `Forbidden`
+- 左上角 hover 后“点击设置状态”的文字颜色当前偏 accent/red，用户希望改成黑色。
+
+### 根因结论
+
+- 首页一句话闪回不是保存失败，也不是公开 `/api/hero-hitokoto` 又被 CDN 缓存。
+- 当前真正的显示链路是：
+  - 首屏先用聚合数据里的 `config.hero.hitokoto.custom` 渲染
+  - 客户端挂载后再请求 `/api/hero-hitokoto`
+  - 当聚合数据仍是旧值、而公开接口已是新值时，就会出现“旧文案先闪一下，再被新文案覆盖”
+- 状态保存报 `Forbidden` 的根因在内部 owner 校验，不在弹窗提交本身：
+  - `auth/session` 的真实返回可能是 `{ data: session }`
+  - 之前 `requireOwnerSession()` 直接把整个返回体当 session 读 `session.role`
+  - 这样会把真实 owner 误判成非 owner，于是 `/api/internal/owner-status` 返回 `403 Forbidden`
+
+### 本轮代码改动
+
+- 新增：
+  - `apps/web/src/app/api/owner-status/session.ts`
+  - `apps/web/src/app/api/owner-status/session.test.ts`
+  - `apps/web/src/app/[locale]/(home)/components/hero-hitokoto-state.ts`
+  - `apps/web/src/app/[locale]/(home)/components/hero-hitokoto-state.test.ts`
+- 更新：
+  - `apps/web/src/app/api/owner-status/shared.ts`
+  - `apps/web/src/app/api/internal/revalidate-aggregate/route.ts`
+  - `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+
+### 本轮修复内容
+
+- 首页一句话：
+  - 抽出 `resolveHeroHitokotoState`
+  - 当本地聚合数据里存在 `custom`，但最新 `/api/hero-hitokoto` 结果尚未返回时，先不渲染这句文案
+  - 这样刷新时不会再先看到旧 `custom` 再跳到新 `custom`
+- 状态保存：
+  - 抽出 `normalizeOwnerSession`
+  - 兼容直接 session 和 `{ data: session }` 两种返回
+  - `requireOwnerSession()` 与内部 revalidate 路由都改成走这个归一化逻辑
+- 交互样式：
+  - 无状态 hover 时的“点击设置状态”按钮从 `text-accent` 改成中性黑色系
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  'apps/web/src/app/api/owner-status/session.test.ts' \
+  'apps/web/src/app/[locale]/(home)/components/hero-hitokoto-state.test.ts' \
+  'apps/web/src/app/api/owner-status/shared.test.ts'
+
+pnpm exec vitest run \
+  'apps/web/src/routes/site/form-state.test.ts' \
+  'apps/web/src/components/modules/dashboard/home/Shiju.test.ts'
+
+pnpm --filter @shiro/web build
+
+pnpm exec eslint \
+  'apps/web/src/app/api/owner-status/session.ts' \
+  'apps/web/src/app/api/owner-status/session.test.ts' \
+  'apps/web/src/app/api/owner-status/shared.ts' \
+  'apps/web/src/app/api/internal/revalidate-aggregate/route.ts' \
+  'apps/web/src/app/[locale]/(home)/components/hero-hitokoto-state.ts' \
+  'apps/web/src/app/[locale]/(home)/components/hero-hitokoto-state.test.ts' \
+  'apps/web/src/app/[locale]/(home)/components/Hero.tsx' \
+  'apps/web/src/components/layout/header/internal/OwnerStatus.tsx'
+```
+
+- 结果：
+  - 7 个新增/相关测试通过
+  - 原 site / shiju 定向测试通过
+  - `@shiro/web build` 成功
+  - eslint 无 error；`Hero.tsx` 仍有 2 个既有 warning：
+    - `@eslint-react/no-array-index-key`
+    - 这两个 warning 位于标题 template 渲染，非本轮新引入
+
+### 当前工作区状态
+
+- 当前尚未提交本轮修复。
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 在线上真实验证两件事：
+   - 修改首页一句话后直接刷新，确认不再闪旧文案
+   - 设置 / 重置状态，确认不再出现 `Forbidden`
+2. 若线上验证通过，再提交本轮修复并触发 Vercel 部署。
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈

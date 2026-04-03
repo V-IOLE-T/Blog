@@ -3,17 +3,11 @@ import type { NextRequest } from 'next/server'
 
 import { buildServerApiUrl, fetchServerApiJson } from '~/lib/server-api-fetch'
 
-import {
-  type OwnerStatusPayload,
-  parseOwnerStatusSnippet,
-} from './helpers'
+import { type OwnerStatusPayload, parseOwnerStatusSnippet } from './helpers'
+import { normalizeOwnerSession } from './session'
 
 export const OWNER_STATUS_REFERENCE = 'status'
 export const OWNER_STATUS_NAME = 'owner'
-
-type SessionPayload = {
-  role?: string
-} | null
 
 type SnippetRecord = {
   id?: string
@@ -88,13 +82,15 @@ export const requireOwnerSession = async (request: NextRequest) => {
   }
 
   const origin = new URL(request.url).origin
-  const session = simpleCamelcaseKeys<SessionPayload>(
-    await fetchServerApiJson('auth/session', {
-      headers: {
-        cookie,
-      },
-      origin,
-    }),
+  const session = normalizeOwnerSession(
+    simpleCamelcaseKeys(
+      await fetchServerApiJson('auth/session', {
+        headers: {
+          cookie,
+        },
+        origin,
+      }),
+    ),
   )
 
   if (!session || session.role !== 'owner') {

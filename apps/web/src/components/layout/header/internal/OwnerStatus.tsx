@@ -142,7 +142,7 @@ export const OwnerStatus = () => {
 
         {!ownerStatus && isLogged && (
           <button
-            className="cursor-pointer text-left text-base text-accent"
+            className="cursor-pointer text-left text-base text-neutral-9 transition-colors hover:text-neutral-8"
             type="button"
             onClick={(e) => {
               e.stopPropagation()

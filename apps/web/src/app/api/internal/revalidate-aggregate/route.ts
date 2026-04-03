@@ -4,11 +4,8 @@ import type { NextRequest } from 'next/server'
 import { NextServerResponse } from '~/lib/edge-function.server'
 import { fetchServerApiJson } from '~/lib/server-api-fetch'
 
+import { normalizeOwnerSession } from '../../owner-status/session'
 import { revalidateAggregatePaths } from '../../webhook/revalidate-aggregate'
-
-type SessionPayload = {
-  role?: string
-} | null
 
 export const POST = async (request: NextRequest) => {
   const response = new NextServerResponse()
@@ -22,12 +19,14 @@ export const POST = async (request: NextRequest) => {
   }
 
   try {
-    const session = simpleCamelcaseKeys<SessionPayload>(
-      await fetchServerApiJson('auth/session', {
-        headers: {
-          cookie,
-        },
-      }),
+    const session = normalizeOwnerSession(
+      simpleCamelcaseKeys(
+        await fetchServerApiJson('auth/session', {
+          headers: {
+            cookie,
+          },
+        }),
+      ),
     )
 
     if (!session || session.role !== 'owner') {
