@@ -3036,6 +3036,87 @@ pnpm exec eslint \
    - 设置状态是否还会报 `Forbidden`
    - 重置状态是否正常
 
+## [2026-04-03 17:23] 状态文案 hover 可见性补强 + 仓库默认交付约定更新
+
+> 这一节是当前关于“状态只看到表情，看不到文案”以及“完成功能后的默认交付动作”的最新补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新反馈
+
+- 状态表情已经能显示。
+- 但鼠标悬浮时看不到状态文案，希望 hover 时能看到自己设置的文字。
+- 用户额外要求：把“每改完一个功能自动提交并部署”写入仓库 `AGENTS.md`。
+
+### 根因结论
+
+- 当前状态文案并不是没保存。
+- 更接近真实问题的是：
+  - 右下角状态热点很小
+  - 自定义 `FloatPopover` 的 hover 体验在这个小触发区上不够稳定
+  - 用户实际悬浮时，容易只能看到表情，看不到 tooltip 内容
+
+### 本轮修复
+
+- 新增：
+  - `apps/web/src/components/layout/header/internal/owner-status-tooltip.ts`
+  - `apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts`
+- 更新：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - `AGENTS.md`
+
+### 实现细节
+
+- `OwnerStatus.tsx`
+  - 通过 `getOwnerStatusTooltipText(ownerStatus)` 生成 hover 文案
+  - 直接把文案挂到状态热点元素的：
+    - `title`
+    - `aria-label`
+  - 有状态时显示类似：
+    - `✍️ Writing`
+  - 无状态但 owner 已登录时，hover 兜底显示：
+    - `点击设置状态`
+- 这样即使自定义浮层在小热点上不稳定，浏览器原生 hover 提示仍会显示状态文案
+
+### AGENTS 约定更新
+
+- 仓库级 `AGENTS.md` 已新增 `## Delivery Default`
+- 当前约定变为：
+  - 功能 / bugfix 完成并通过直接相关验证后
+  - 默认自动：
+    - commit 当前分支
+    - push 当前分支
+    - 触发 `.github/workflows/vercel-frontend-deploy.yml`
+  - 除非用户明确说不要，或任务本身是只读 / 不打算发布
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts' \
+  'apps/web/src/components/layout/header/internal/status-snippet.test.ts' \
+  'apps/web/src/app/api/owner-status/shared.test.ts'
+
+pnpm exec eslint \
+  'apps/web/src/components/layout/header/internal/OwnerStatus.tsx' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.ts' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts'
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 7 个测试通过
+  - eslint 通过
+
+### 下一步建议
+
+1. 提交“状态 hover 文案可见性”修复与 `AGENTS.md` 更新
+2. push 到 `origin/codex/modify`
+3. 触发 Vercel 部署
+4. 发布后让用户验证：
+   - hover 状态表情时，是否能稳定看到状态文案
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈

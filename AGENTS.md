@@ -30,6 +30,15 @@ Instructions for AI coding agents working with this codebase.
 - If older conclusions are stale, explicitly mark the newer section as authoritative.
 - Write for a cold-start agent: assume they have no fresh memory beyond this file.
 
+## Delivery Default
+
+- In this repo, after completing a user-requested feature or bugfix and finishing the directly relevant verification, agents should default to:
+  - commit on the current branch
+  - push the current branch
+  - trigger `.github/workflows/vercel-frontend-deploy.yml`
+- Do this automatically unless the user explicitly says not to, or the task is analysis-only / intentionally left unshipped.
+- If verification is blocked or partially failing, report that honestly before deciding whether to commit or deploy.
+
 <!-- opensrc:start -->
 
 ## Source Code Reference

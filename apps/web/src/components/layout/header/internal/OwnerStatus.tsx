@@ -20,6 +20,7 @@ import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
 import { queryClient } from '~/providers/root/react-query-provider'
 
+import { getOwnerStatusTooltipText } from './owner-status-tooltip'
 import {
   buildStatusSnippetMutationPayload,
   fetchStatusSnippetRecord,
@@ -70,6 +71,9 @@ export const OwnerStatus = () => {
 
   const ownerStatus = useOwnerStatus()
   const isLogged = useIsOwnerLogged()
+  const tooltipText =
+    getOwnerStatusTooltipText(ownerStatus) ||
+    (isLogged ? t('status_click_to_set') : undefined)
 
   const [mouseEnter, setMouseEnter] = useState(false)
   const { present } = useModalStack()
@@ -81,8 +85,10 @@ export const OwnerStatus = () => {
   }, [present, t])
   const triggerElement = (
     <div
+      aria-label={tooltipText}
       role={isLogged ? 'button' : 'img'}
       tabIndex={isLogged ? 0 : -1}
+      title={tooltipText}
       className={clsx(
         'pointer-events-auto absolute bottom-0 right-0 z-10 flex size-4 cursor-default items-center justify-center rounded-full text-accent duration-200',
         isLogged && mouseEnter && !ownerStatus
