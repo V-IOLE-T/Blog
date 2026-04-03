@@ -15,8 +15,15 @@ import { useCurrentModal, useModalStack } from '~/components/ui/modal'
 import { Select } from '~/components/ui/select'
 import { usePageIsActive } from '~/hooks/common/use-is-active'
 import { stopPropagation } from '~/lib/dom'
+import { apiClient } from '~/lib/request'
+import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
 import { queryClient } from '~/providers/root/react-query-provider'
+
+import {
+  buildStatusSnippetMutationPayload,
+  fetchStatusSnippetRecord,
+} from './status-snippet'
 
 const EmojiPicker = dynamic(
   () =>
@@ -227,36 +234,36 @@ const SettingStatusModalContent = () => {
       }[timeType]
 
     try {
-      const response = await fetch('/api/internal/owner-status', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...currentValues,
-          ttl: ttlSeconds,
-        }),
+      const nextStatus = {
+        emoji: currentValues.emoji.trim(),
+        desc: currentValues.desc.trim(),
+        untilAt: Date.now() + ttlSeconds * 1000,
+      }
+      const existingSnippet = await fetchStatusSnippetRecord(apiClient)
+      const payload = buildStatusSnippetMutationPayload({
+        previousSnippet: existingSnippet,
+        status: nextStatus,
       })
 
-      const payload = (await response.json()) as {
-        data?: TOwnerStatus | null
-        message?: string
-        ok?: boolean
+      if (payload.id) {
+        await apiClient.proxy(`snippets/${payload.id}`).put({
+          data: payload,
+        })
+      } else {
+        const { id: _id, ...snippetPayload } = payload
+        await apiClient.proxy('snippets').post({
+          data: snippetPayload,
+        })
       }
 
-      if (!response.ok || payload.ok === false) {
-        throw new Error(payload.message || `Request failed: ${response.status}`)
-      }
-
-      setOwnerStatus(payload.data || null)
+      setOwnerStatus(nextStatus)
       queryClient.invalidateQueries({
         queryKey: ['shiro-status'],
       })
       toast.success(t('status_set_success'))
       dismiss()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error))
+      toast.error(getErrorMessageFromRequestError(error as any))
     } finally {
       setIsLoading(false)
     }
@@ -265,17 +272,21 @@ const SettingStatusModalContent = () => {
   const handleReset = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/internal/owner-status', {
-        method: 'DELETE',
-        credentials: 'include',
+      const existingSnippet = await fetchStatusSnippetRecord(apiClient)
+      const payload = buildStatusSnippetMutationPayload({
+        previousSnippet: existingSnippet,
+        status: null,
       })
-      const payload = (await response.json()) as {
-        message?: string
-        ok?: boolean
-      }
 
-      if (!response.ok || payload.ok === false) {
-        throw new Error(payload.message || `Request failed: ${response.status}`)
+      if (payload.id) {
+        await apiClient.proxy(`snippets/${payload.id}`).put({
+          data: payload,
+        })
+      } else {
+        const { id: _id, ...snippetPayload } = payload
+        await apiClient.proxy('snippets').post({
+          data: snippetPayload,
+        })
       }
 
       setOwnerStatus(null)
@@ -285,7 +296,7 @@ const SettingStatusModalContent = () => {
       toast.success(t('status_set_success'))
       dismiss()
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : String(error))
+      toast.error(getErrorMessageFromRequestError(error as any))
     } finally {
       setIsLoading(false)
     }

@@ -2932,6 +2932,110 @@ pnpm exec eslint \
    - 设置 / 重置状态，确认不再出现 `Forbidden`
 2. 若线上验证通过，再提交本轮修复并触发 Vercel 部署。
 
+## [2026-04-03 16:27] 状态保存继续报 Forbidden，根因不是 session 结构，而是 cookie 域不一致
+
+> 这一节是当前关于“状态保存依旧 Forbidden”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新反馈
+
+- 即使上一轮已经修了 `normalizeOwnerSession`，线上“设置状态 / 重置状态”仍然报：
+  - `Forbidden`
+
+### 新证据
+
+- 通过 `web-access` 浏览器直接读取线上页面 `window.__ENV`，真实值是：
+
+```json
+{
+  "API_URL": "",
+  "NEXT_PUBLIC_API_URL": "https://api.418122.xyz/api/v2",
+  "NEXT_PUBLIC_CLIENT_API_URL": "",
+  "NEXT_PUBLIC_GATEWAY_URL": "https://api.418122.xyz"
+}
+```
+
+- 这说明：
+  - 浏览器端 `apiClient` / auth 相关请求，默认直连的是 `https://api.418122.xyz/api/v2`
+  - 即 owner 登录态主要存在于 `api.418122.xyz` 这侧
+- 而此前状态保存走的是：
+  - `https://418122.xyz/api/internal/owner-status`
+- 这条链路会让浏览器把 `418122.xyz` 域的 cookie 带给 Next 内部路由，再由内部路由转发去后端。
+
+### 根因结论
+
+- 真正的根因不是“`auth/session` 返回结构仍然没兼容全”，而是：
+  - 前端 owner 登录态依赖 `api.418122.xyz` 域 cookie
+  - 状态保存却绕进了 `418122.xyz` 自己的内部路由
+  - 两边 cookie 域不一致，导致内部路由无法稳定拿到 owner 那套 auth cookie
+- 所以会出现：
+  - 页面上看起来 owner 已登录
+  - 但 `/api/internal/owner-status` 仍返回 `Forbidden`
+
+### 本轮修复策略
+
+- 不再让状态保存 / 重置依赖 Next 内部路由做 owner session 判断。
+- 改为和 dashboard 其他写操作保持一致：
+  - 浏览器侧直接使用 `apiClient` 调后端 `snippets` 相关接口
+  - 这样请求天然带上 `api.418122.xyz` 域的 auth cookie
+- 公开读取链路不改：
+  - 仍由 `/api/owner-status` 负责公开读取
+  - 仍走当前 no-store 读取逻辑
+
+### 本轮代码改动
+
+- 新增：
+  - `apps/web/src/components/layout/header/internal/status-snippet.ts`
+  - `apps/web/src/components/layout/header/internal/status-snippet.test.ts`
+- 更新：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+
+### 实现细节
+
+- `status-snippet.ts`
+  - 新增 snippet unwrap / normalize 辅助方法
+  - 新增 `fetchStatusSnippetRecord(apiClient)`
+  - 新增 `buildStatusSnippetMutationPayload(...)`
+- `OwnerStatus.tsx`
+  - `handleSubmit` 改为：
+    - 先通过 `apiClient` 读取现有 status snippet
+    - 再直接 `POST /snippets` 或 `PUT /snippets/:id`
+  - `handleReset` 同理，直接把 snippet raw 写成 `null`
+  - 错误展示统一改走 `getErrorMessageFromRequestError`
+- 也就是说：
+  - 这轮状态写入已不再依赖 `/api/internal/owner-status`
+  - 即使内部路由仍存在，它也不是当前状态保存的关键路径了
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  'apps/web/src/components/layout/header/internal/status-snippet.test.ts' \
+  'apps/web/src/app/api/owner-status/session.test.ts' \
+  'apps/web/src/app/api/owner-status/shared.test.ts'
+
+pnpm exec eslint \
+  'apps/web/src/components/layout/header/internal/OwnerStatus.tsx' \
+  'apps/web/src/components/layout/header/internal/status-snippet.ts' \
+  'apps/web/src/components/layout/header/internal/status-snippet.test.ts'
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 7 个测试通过
+  - eslint 无报错
+
+### 下一步建议
+
+1. 提交这一轮“直连后端保存状态”的修复
+2. push 到 `origin/codex/modify`
+3. 触发 Vercel 部署
+4. 发布后优先让用户验证：
+   - 设置状态是否还会报 `Forbidden`
+   - 重置状态是否正常
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈
