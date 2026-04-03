@@ -16,6 +16,7 @@ type SiteOwnerAvatarVariant = 'guest' | 'owner' | 'reader'
 type SiteOwnerAvatarProps = {
   alt?: string
   className?: string
+  showOwnerStatus?: boolean
   showLiveAffordance?: boolean
   src?: string
   variant?: SiteOwnerAvatarVariant
@@ -24,6 +25,7 @@ type SiteOwnerAvatarProps = {
 export const SiteOwnerAvatar = ({
   alt,
   className,
+  showOwnerStatus = true,
   showLiveAffordance = true,
   src,
   variant = 'owner',
@@ -88,7 +90,7 @@ export const SiteOwnerAvatar = ({
           }
         />
       </div>
-      {isOwnerAvatar && !isLiving && (
+      {showOwnerStatus && isOwnerAvatar && !isLiving && (
         <div
           className="pointer-events-auto"
           onClick={stopTriggerPropagation}

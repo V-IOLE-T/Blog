@@ -3256,6 +3256,80 @@ pnpm exec eslint \
    - 点击右下角状态点时，是否还会出现页面渲染错误
    - 未设置状态时，大提示框是否只包裹文字
 
+## [2026-04-03 19:03] 状态点继续触发渲染错误，根因确认为“状态点仍嵌在头像按钮树内”
+
+> 这一节是当前关于“点击右下角设置状态仍然页面渲染出错”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新反馈
+
+- 即使上一轮已经把大提示改成纯 CSS hover 卡片，点击右下角状态点仍会进入 Header 的 block ErrorBoundary。
+
+### 这轮根因结论
+
+- 上一轮虽然去掉了大提示的 `FloatPopover` 触发链，但：
+  - `OwnerStatus` 这个右下角状态点仍然内嵌在 `SiteOwnerAvatar` 内
+  - `SiteOwnerAvatar` 又被直接放进头像 trigger 里
+- 也就是说：
+  - 状态点实际上仍然是“头像按钮 DOM 树的一部分”
+  - 点击它时，依旧会和头像 trigger / dropdown menu 这一套交互共享同一棵树
+- 新增测试已经明确锁住了这个边界：
+  - `SiteOwnerAvatar` 需要支持 `showOwnerStatus={false}`
+  - 让头像本体和状态点真正拆成两个兄弟层，而不是继续嵌套
+
+### 本轮修复
+
+- 文件：
+  - `apps/web/src/components/layout/header/internal/SiteOwnerAvatar.tsx`
+  - `apps/web/src/components/layout/header/internal/AnimatedLogo.tsx`
+  - `apps/web/src/components/layout/header/internal/SiteOwnerAvatar.test.tsx`
+
+### 实现细节
+
+- `SiteOwnerAvatar.tsx`
+  - 新增 `showOwnerStatus?: boolean`
+  - 当 `showOwnerStatus={false}` 时，头像内部不再渲染 `OwnerStatus`
+- `AnimatedLogo.tsx`
+  - 传给头像：
+    - `showOwnerStatus={false}`
+  - 在头像 trigger 外层单独渲染：
+    - `<OwnerStatus />`
+  - 这样右下角状态点现在是头像 trigger 的兄弟层，而不是子层
+- 也就是说：
+  - 点击右下角状态点时，不再命中 dropdown trigger 这棵按钮树
+  - 这才是针对“页面渲染出错”的真正结构性修复
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  'apps/web/src/components/layout/header/internal/SiteOwnerAvatar.test.tsx' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts'
+
+pnpm exec eslint \
+  'apps/web/src/components/layout/header/internal/AnimatedLogo.tsx' \
+  'apps/web/src/components/layout/header/internal/SiteOwnerAvatar.tsx' \
+  'apps/web/src/components/layout/header/internal/OwnerStatus.tsx' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.ts' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts' \
+  'apps/web/src/components/layout/header/internal/SiteOwnerAvatar.test.tsx'
+```
+
+- 结果：
+  - 2 个测试文件通过
+  - 4 个测试通过
+  - eslint 通过
+
+### 下一步建议
+
+1. 提交这一轮“状态点移出头像 trigger 树”的修复
+2. push 到 `origin/codex/modify`
+3. 触发 Vercel 部署
+4. 发布后优先只验证一件事：
+   - 点击右下角状态点，是否还会出现“页面渲染出错”
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈
