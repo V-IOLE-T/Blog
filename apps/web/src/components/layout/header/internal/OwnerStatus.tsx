@@ -8,7 +8,6 @@ import { useIsOwnerLogged } from '~/atoms/hooks/owner'
 import { setOwnerStatus, useOwnerStatus } from '~/atoms/hooks/status'
 import type { OwnerStatus as TOwnerStatus } from '~/atoms/status'
 import { StyledButton } from '~/components/ui/button'
-import { FloatPopover } from '~/components/ui/float-popover'
 import type { FormContextType, InputFieldProps } from '~/components/ui/form'
 import { Form, FormInput } from '~/components/ui/form'
 import { useCurrentModal, useModalStack } from '~/components/ui/modal'
@@ -20,7 +19,6 @@ import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
 import { queryClient } from '~/providers/root/react-query-provider'
 
-import { getOwnerStatusTooltipText } from './owner-status-tooltip'
 import {
   buildStatusSnippetMutationPayload,
   fetchStatusSnippetRecord,
@@ -71,9 +69,6 @@ export const OwnerStatus = () => {
 
   const ownerStatus = useOwnerStatus()
   const isLogged = useIsOwnerLogged()
-  const tooltipText =
-    getOwnerStatusTooltipText(ownerStatus) ||
-    (isLogged ? t('status_click_to_set') : undefined)
 
   const [mouseEnter, setMouseEnter] = useState(false)
   const { present } = useModalStack()
@@ -85,10 +80,8 @@ export const OwnerStatus = () => {
   }, [present, t])
   const triggerElement = (
     <div
-      aria-label={tooltipText}
       role={isLogged ? 'button' : 'img'}
       tabIndex={isLogged ? 0 : -1}
-      title={tooltipText}
       className={clsx(
         'pointer-events-auto absolute bottom-0 right-0 z-10 flex size-4 cursor-default items-center justify-center rounded-full text-accent duration-200',
         isLogged && mouseEnter && !ownerStatus
@@ -130,43 +123,35 @@ export const OwnerStatus = () => {
   )
 
   if (!isLogged && !ownerStatus) return null
-  return (
-    <FloatPopover
-      asChild
-      mobileAsSheet
-      placement="bottom"
-      triggerElement={triggerElement}
-      type="tooltip"
-    >
-      <div className="flex flex-col gap-1 text-lg">
-        {ownerStatus && (
-          <>
-            <p className="font-bold">
-              {t('status_current')}
-              {ownerStatus?.emoji} {ownerStatus?.desc}
-            </p>
-            {!!ownerStatus.untilAt && (
-              <p className="text-sm text-neutral-7">
-                {t('status_until')} {formatDatetime(ownerStatus.untilAt)}
-              </p>
-            )}
-          </>
-        )}
+  return triggerElement
+}
 
-        {!ownerStatus && isLogged && (
-          <button
-            className="cursor-pointer text-left text-base text-neutral-9 transition-colors hover:text-neutral-8"
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation()
-              openSettingModal()
-            }}
-          >
-            {t('status_click_to_set')}
-          </button>
-        )}
-      </div>
-    </FloatPopover>
+export const OwnerStatusPopoverContent = ({
+  isLogged,
+  ownerStatus,
+}: {
+  isLogged: boolean
+  ownerStatus: TOwnerStatus | null
+}) => {
+  const t = useTranslations('common')
+
+  if (!ownerStatus) {
+    return isLogged ? (
+      <p className="text-base text-neutral-9">{t('status_click_to_set')}</p>
+    ) : null
+  }
+
+  return (
+    <div className="flex flex-col gap-1 text-lg">
+      <p className="text-neutral-9">
+        {ownerStatus.emoji} {ownerStatus.desc}
+      </p>
+      {!!ownerStatus.untilAt && (
+        <p className="text-sm text-neutral-7">
+          {t('status_until')} {formatDatetime(ownerStatus.untilAt)}
+        </p>
+      )}
+    </div>
   )
 }
 const formatDatetime = (ts: number) => {

@@ -18,6 +18,7 @@ import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
 import { getOwnerStatusTooltipText } from './owner-status-tooltip'
+import { OwnerStatusPopoverContent } from './OwnerStatus'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
 import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
 
@@ -57,7 +58,6 @@ const TapableLogo = () => {
     <button
       aria-label={triggerAriaLabel}
       className="rounded-full"
-      title={ownerStatusTooltip || t('auth_login')}
       type="button"
       onClick={() => {
         if (canTriggerLogin) {
@@ -84,15 +84,28 @@ const TapableLogo = () => {
 
   return (
     <DropdownMenu modal={false}>
-      <DropdownMenuTrigger
-        aria-haspopup="menu"
-        aria-label={triggerAriaLabel}
-        className="rounded-full"
-        nativeButton={false}
-        title={ownerStatusTooltip || undefined}
+      <FloatPopover
+        asChild
+        mobileAsSheet
+        isDisabled={!isOwner && !ownerStatus}
+        popoverClassNames="min-w-[18rem]"
+        type="tooltip"
+        triggerElement={
+          <DropdownMenuTrigger
+            aria-haspopup="menu"
+            aria-label={triggerAriaLabel}
+            className="rounded-full"
+            nativeButton={false}
+          >
+            {avatar}
+          </DropdownMenuTrigger>
+        }
       >
-        {avatar}
-      </DropdownMenuTrigger>
+        <OwnerStatusPopoverContent
+          isLogged={isOwner}
+          ownerStatus={ownerStatus}
+        />
+      </FloatPopover>
       <UserAuthMenuContent align="start" variant="entry" />
     </DropdownMenu>
   )
