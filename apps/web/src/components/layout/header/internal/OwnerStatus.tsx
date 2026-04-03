@@ -15,8 +15,6 @@ import { useCurrentModal, useModalStack } from '~/components/ui/modal'
 import { Select } from '~/components/ui/select'
 import { usePageIsActive } from '~/hooks/common/use-is-active'
 import { stopPropagation } from '~/lib/dom'
-import { apiClient } from '~/lib/request'
-import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
 import { queryClient } from '~/providers/root/react-query-provider'
 
@@ -33,7 +31,21 @@ export const OwnerStatus = () => {
   const pageIsActive = usePageIsActive()
   const { data: statusFromRequest, isLoading: statusLoading } = useQuery({
     queryKey: ['shiro-status'],
-    queryFn: () => apiClient.proxy.fn.shiro.status.get<TOwnerStatus | null>(),
+    queryFn: async () => {
+      const response = await fetch('/api/owner-status', {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`)
+      }
+
+      const payload = (await response.json()) as {
+        data: TOwnerStatus | null
+      }
+
+      return payload.data
+    },
     refetchOnWindowFocus: 'always',
     refetchOnMount: 'always',
     enabled: pageIsActive,
@@ -215,25 +227,36 @@ const SettingStatusModalContent = () => {
       }[timeType]
 
     try {
-      await apiClient.serverless.proxy.shiro.status.post({
-        data: {
+      const response = await fetch('/api/internal/owner-status', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
           ...currentValues,
           ttl: ttlSeconds,
-        },
+        }),
       })
 
-      setOwnerStatus({
-        desc: currentValues.desc,
-        emoji: currentValues.emoji,
-        untilAt: Date.now() + ttlSeconds * 1000,
-      })
+      const payload = (await response.json()) as {
+        data?: TOwnerStatus | null
+        message?: string
+        ok?: boolean
+      }
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.message || `Request failed: ${response.status}`)
+      }
+
+      setOwnerStatus(payload.data || null)
       queryClient.invalidateQueries({
         queryKey: ['shiro-status'],
       })
       toast.success(t('status_set_success'))
       dismiss()
     } catch (error) {
-      toast.error(getErrorMessageFromRequestError(error as any))
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setIsLoading(false)
     }
@@ -242,7 +265,19 @@ const SettingStatusModalContent = () => {
   const handleReset = useCallback(async () => {
     setIsLoading(true)
     try {
-      await apiClient.serverless.proxy.shiro.status.delete()
+      const response = await fetch('/api/internal/owner-status', {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      const payload = (await response.json()) as {
+        message?: string
+        ok?: boolean
+      }
+
+      if (!response.ok || payload.ok === false) {
+        throw new Error(payload.message || `Request failed: ${response.status}`)
+      }
+
       setOwnerStatus(null)
       queryClient.invalidateQueries({
         queryKey: ['shiro-status'],
@@ -250,7 +285,7 @@ const SettingStatusModalContent = () => {
       toast.success(t('status_set_success'))
       dismiss()
     } catch (error) {
-      toast.error(getErrorMessageFromRequestError(error as any))
+      toast.error(error instanceof Error ? error.message : String(error))
     } finally {
       setIsLoading(false)
     }

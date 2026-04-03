@@ -61,6 +61,8 @@ const buildUrl = (
   )
 }
 
+export const buildServerApiUrl = buildUrl
+
 export const fetchServerApiJson = async <T>(
   path: string,
   {

@@ -2667,6 +2667,114 @@ pnpm --filter @shiro/web build
 
 - 已确认：
   - `https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`
+
+## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
+
+### 用户最新反馈
+
+- “设置状态保存之后不会出现状态”
+- “不清楚设置后访客页面能否看见”
+- “首页一句话修改之后并未更新”
+
+### 这轮关键排查结论
+
+- 首页一句话其实已经保存成功，不是没写入：
+
+```bash
+curl -sS -m 20 'https://api.418122.xyz/api/v2/aggregate?theme=shiro' | jq '.theme.config.hero'
+```
+
+- 当前公开聚合里已经有：
+  - `hero.hitokoto.random = false`
+  - `hero.hitokoto.custom = "目的虽有，却无路可循；我们称之为路的，无非是踌躇。 —— 误入世界"`
+- 说明轻管理“首页一句话”保存链路是通的；若浏览器里仍看到旧句子，更像浏览器 / 路由缓存未刷新到最新页面
+
+- “设置状态”真正根因不是前端按钮，而是后端函数不存在：
+
+```bash
+curl -sS -m 20 'https://api.418122.xyz/api/v2/fn/shiro/status'
+```
+
+- 返回：
+  - `{"ok":0,"code":11017,"message":"函数不存在: serverless function is not exist, Path: /shiro/status"}`
+- 也就是说旧逻辑依赖：
+  - `GET /api/v2/fn/shiro/status`
+  - `serverless.proxy.shiro.status.post/delete`
+- 但线上 core 根本没有这个函数，所以状态永远不会真正保存出来
+
+### 本轮修复方案
+
+- 不再依赖失效的 `/fn/shiro/status`
+- 改为用公开 snippet 持久化 owner 状态：
+  - snippet reference：`status`
+  - snippet name：`owner`
+- 新增公开读路由：
+  - `apps/web/src/app/api/owner-status/route.ts`
+  - 面向所有访客返回当前 owner 状态
+- 新增 owner 写路由：
+  - `apps/web/src/app/api/internal/owner-status/route.ts`
+  - 先通过 `auth/session` 校验 owner 登录态
+  - 再写入 / 更新公开 snippet
+- 新增共享 helper：
+  - `apps/web/src/app/api/owner-status/helpers.ts`
+  - `apps/web/src/app/api/owner-status/shared.ts`
+- `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - 前台状态查询改为请求 `/api/owner-status`
+  - 设置 / 重置改为请求 `/api/internal/owner-status`
+  - 成功后立即更新本地状态并刷新 `['shiro-status']`
+  - 失败会直接 toast 报错，不再静默
+- `apps/web/src/lib/server-api-fetch.ts`
+  - 导出 `buildServerApiUrl`，供新 API 路由拼接 core API 地址
+
+### 访客能否看见状态
+
+- 修完后的逻辑是：能看见
+- 因为状态会存成公开 snippet，然后所有访客访问站点时都会走：
+  - `/api/owner-status`
+- 前台显示位置至少包括：
+  - 站点 owner 头像旁的小状态徽标 / tooltip
+  - 首页下拉内容里的 owner 状态文案
+- 只要状态未过期，访客和你自己看到的是同一份状态数据
+- 若已过期，公开路由会返回 `null`，前台就不显示状态
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  apps/web/src/routes/site/form-state.test.ts \
+  apps/web/src/routes/site/theme-snippet.test.ts \
+  apps/web/src/components/modules/dashboard/home/Shiju.test.ts \
+  apps/web/src/app/api/owner-status/shared.test.ts
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 4 个测试文件通过
+  - 13 个测试通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - `apps/web/src/app/api/owner-status/helpers.ts`
+  - `apps/web/src/app/api/owner-status/shared.ts`
+  - `apps/web/src/app/api/owner-status/route.ts`
+  - `apps/web/src/app/api/internal/owner-status/route.ts`
+  - `apps/web/src/app/api/owner-status/shared.test.ts`
+  - `apps/web/src/lib/server-api-fetch.ts`
+
+### 下一步建议
+
+1. 提交本轮状态修复
+2. push 到 `origin/codex/modify`
+3. 触发 Vercel 前端部署
+4. 发布后让用户优先验证：
+   - 设置状态后，自己页面和访客页面是否都能看到
+   - 首页一句话若保存后仍是旧句子，先做一次硬刷新再看
 - 这台机器上对站点域名做 smoke 时遇到本地 TLS/HTTPS 异常：
   - `curl https://418122.xyz/` 与 `curl https://418122.xyz/dashboard` 返回 `LibreSSL ... tlsv1 alert internal error`
   - `node fetch('https://418122.xyz/')` 也返回 `TypeError: fetch failed`
@@ -2756,3 +2864,21 @@ pnpm --filter @shiro/web build
 3. 发布后请用户优先验证：
    - `/dashboard/site` 是否出现“首页一句话”，保存后首页是否更新
    - 首页头像状态入口现在是否能打开设置弹窗并正常保存/重置
+
+### 追加：本轮已完成提交与部署
+
+- 本轮提交：
+  - `26cfe66`
+  - `fix(site): 支持编辑首页一句话`
+- 已 push：
+  - `origin/codex/modify`
+- GitHub Actions run：
+  - `23911102388`
+  - `https://github.com/V-IOLE-T/Blog/actions/runs/23911102388`
+- run 里确认抓到的 SHA：
+  - `26cfe667803a09704b11cb54ec5be73d14094218`
+- Vercel deploy 日志中的地址：
+  - Inspect: `https://vercel.com/ni-chijous-projects/blog-web/2Erdrje6eQHBfh8in4oBAizD7iEx`
+  - Production: `https://blog-n7o938hat-ni-chijous-projects.vercel.app`
+- 已确认：
+  - `https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`
