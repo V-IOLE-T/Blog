@@ -5,6 +5,7 @@ import { useTranslations } from 'next-intl'
 
 import { useIsOwnerLogged } from '~/atoms/hooks/owner'
 import { useSessionReader } from '~/atoms/hooks/reader'
+import { useOwnerStatus } from '~/atoms/hooks/status'
 import { useViewport } from '~/atoms/hooks/viewport'
 import {
   DropdownMenu,
@@ -16,6 +17,7 @@ import { useIsClient } from '~/hooks/common/use-is-client'
 import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
+import { getOwnerStatusTooltipText } from './owner-status-tooltip'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
 import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
 
@@ -23,20 +25,27 @@ const TapableLogo = () => {
   const t = useTranslations('common')
   const isOwner = useIsOwnerLogged()
   const session = useSessionReader()
+  const ownerStatus = useOwnerStatus()
   const presentOauthModal = useOauthLoginModal()
   const isAuthenticated = isOwner || !!session
   const { canTriggerLogin } = useLoginProvidersAvailability()
+  const ownerStatusTooltip = isOwner
+    ? getOwnerStatusTooltipText(ownerStatus)
+    : null
 
   const avatarVariant = isOwner ? 'owner' : session ? 'reader' : 'guest'
-  const avatarAlt = !isAuthenticated
+  const baseAriaLabel = !isAuthenticated
     ? t('auth_login')
     : isOwner
       ? t('aria_site_owner_avatar')
       : session?.name || t('auth_account')
+  const triggerAriaLabel = ownerStatusTooltip
+    ? `${baseAriaLabel} - ${ownerStatusTooltip}`
+    : baseAriaLabel
 
   const avatar = (
     <SiteOwnerAvatar
-      alt={avatarAlt}
+      alt={baseAriaLabel}
       className="cursor-pointer"
       showLiveAffordance={false}
       src={!isOwner ? session?.image || undefined : undefined}
@@ -46,16 +55,10 @@ const TapableLogo = () => {
 
   const trigger = (
     <button
+      aria-label={triggerAriaLabel}
       className="rounded-full"
-      title={t('auth_login')}
+      title={ownerStatusTooltip || t('auth_login')}
       type="button"
-      aria-label={
-        !isAuthenticated
-          ? t('aria_login')
-          : isOwner
-            ? t('aria_site_owner_avatar')
-            : session?.name || t('auth_account')
-      }
       onClick={() => {
         if (canTriggerLogin) {
           presentOauthModal()
@@ -83,13 +86,10 @@ const TapableLogo = () => {
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         aria-haspopup="menu"
+        aria-label={triggerAriaLabel}
         className="rounded-full"
         nativeButton={false}
-        aria-label={
-          isOwner
-            ? t('aria_site_owner_avatar')
-            : session?.name || t('auth_account')
-        }
+        title={ownerStatusTooltip || undefined}
       >
         {avatar}
       </DropdownMenuTrigger>

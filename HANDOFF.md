@@ -3117,6 +3117,68 @@ pnpm exec eslint \
 4. 发布后让用户验证：
    - hover 状态表情时，是否能稳定看到状态文案
 
+## [2026-04-03 17:52] 状态 hover 仍不可见，根因是文案绑在小热点而不是头像按钮
+
+> 这一节是当前关于“状态文案 hover 还是看不到”的最新补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新反馈
+
+- 即使上一轮已经给右下角状态点补了 `title` / `aria-label`，实际鼠标悬浮仍然看不到状态文案。
+
+### 新证据
+
+- 通过 `web-access` 直接检查线上页面 DOM：
+  - 头像外层实际可 hover 的按钮仍然只有：
+    - `aria-label="Han Zheng"`
+  - 没有状态文案
+- 同时页面里也没有包含状态 emoji/文案的 `title` 节点命中到整颗头像按钮。
+
+### 根因结论
+
+- 上一轮修复把状态文案挂在了右下角很小的状态热点元素上。
+- 但用户真实 hover 的大多是“整颗头像按钮”，不是那个 16px 左右的小热点。
+- 所以真正的问题不是 tooltip 文案缺失，而是：
+  - **文案绑错了可命中的交互层**
+
+### 本轮修复
+
+- 文件：
+  - `apps/web/src/components/layout/header/internal/AnimatedLogo.tsx`
+- 改动：
+  - `TapableLogo` 读取 `useOwnerStatus()`
+  - 复用 `getOwnerStatusTooltipText(ownerStatus)`
+  - 当 owner 有状态时，把状态文案直接挂到：
+    - 登录按钮 `button.title`
+    - owner 头像菜单触发器 `DropdownMenuTrigger.title`
+    - 两者的 `aria-label`
+- 这样用户 hover **整颗头像** 时就能看到状态文案，而不需要精准命中右下角小状态点
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts'
+
+pnpm exec eslint \
+  'apps/web/src/components/layout/header/internal/AnimatedLogo.tsx' \
+  'apps/web/src/components/layout/header/internal/OwnerStatus.tsx' \
+  'apps/web/src/components/layout/header/internal/owner-status-tooltip.ts'
+```
+
+- 结果：
+  - 测试通过
+  - eslint 通过
+
+### 下一步建议
+
+1. 提交这一轮 `AnimatedLogo` hover 绑定修复
+2. push 到 `origin/codex/modify`
+3. 触发 Vercel 部署
+4. 发布后让用户直接 hover 整颗头像确认文案是否出现
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈
