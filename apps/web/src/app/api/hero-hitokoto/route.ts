@@ -4,6 +4,15 @@ import { NextServerResponse } from '~/lib/edge-function.server'
 import { fetchServerApiJson } from '~/lib/server-api-fetch'
 
 export const dynamic = 'force-dynamic'
+export const revalidate = 0
+export const fetchCache = 'force-no-store'
+
+const noStoreHeaders = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+  'CDN-Cache-Control': 'no-store',
+  'Cloudflare-CDN-Cache-Control': 'no-store',
+  'Vercel-CDN-Cache-Control': 'no-store',
+}
 
 type HeroHitokotoPayload = {
   custom?: string
@@ -11,7 +20,7 @@ type HeroHitokotoPayload = {
 }
 
 export const GET = async (request: NextRequest) => {
-  const response = new NextServerResponse()
+  const response = new NextServerResponse().headers(noStoreHeaders)
   const origin = new URL(request.url).origin
 
   try {

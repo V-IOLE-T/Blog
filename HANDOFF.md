@@ -2668,6 +2668,134 @@ pnpm --filter @shiro/web build
 - 已确认：
   - `https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`
 
+## [2026-04-03 08:55] 首页一句话二次修改不生效，根因是公开 GET 接口被 CDN 短缓存
+
+> 这一节是当前关于“首页一句话二次修改后刷新仍旧内容”和“状态保存后不立即显示”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 当前目标
+
+- 修复两个“保存成功但前台短时间仍旧内容”的问题：
+  - 首页一句话二次修改后，首页刷新仍可能显示上一版
+  - 公开状态保存后，前台读取可能仍拿到旧状态
+
+### 已确认的真实链路
+
+- 保存链路本身是成功的，不是 dashboard 表单没写进去。
+- 线上直接检查：
+
+```bash
+curl -sS -D - 'https://api.418122.xyz/api/v2/aggregate?theme=shiro' -o /tmp/aggregate-theme.out
+jq '.theme.config.hero' /tmp/aggregate-theme.out
+```
+
+- 返回的 `theme.config.hero.hitokoto.custom` 已经是用户新保存的内容，例如：
+
+```json
+{
+  "description": "An ordinary independent developer with love.",
+  "hitokoto": {
+    "random": false,
+    "custom": "不在乎世俗的眼光，去追求，自己的光芒。 —— XIN"
+  }
+}
+```
+
+- 同时检查前台公开接口：
+
+```bash
+curl -sS -D - https://418122.xyz/api/hero-hitokoto -o /tmp/hero-hitokoto.out
+cat /tmp/hero-hitokoto.out
+
+curl -sS -D - https://418122.xyz/api/owner-status -o /tmp/owner-status.out
+cat /tmp/owner-status.out
+```
+
+- 关键发现：
+  - 两个接口返回内容是对的
+  - 但响应头里都带了 CDN 缓存，例如：
+
+```txt
+cache-control: s-maxage=10, stale-while-revalidate=30
+cdn-cache-control: max-age=10
+cloudflare-cdn-cache-control: max-age=10, stale-while-revalidate=60
+```
+
+- 这会导致：
+  - 第一次修改后，可能等一会儿看到新值
+  - 第二次很快再修改时，又会继续拿到上一版 10 秒左右
+  - 用户主观感受就是“保存成功了，但刷新还是没变”
+
+### 本轮修复
+
+- 文件：
+  - `apps/web/src/app/api/hero-hitokoto/route.ts`
+  - `apps/web/src/app/api/owner-status/route.ts`
+- 改动：
+  - 补充 `export const revalidate = 0`
+  - 补充 `export const fetchCache = 'force-no-store'`
+  - 显式设置响应头：
+    - `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+    - `CDN-Cache-Control: no-store`
+    - `Cloudflare-CDN-Cache-Control: no-store`
+    - `Vercel-CDN-Cache-Control: no-store`
+
+### 为什么这次判断比之前更接近根因
+
+- 之前已经做过：
+  - dashboard 保存后手动触发 revalidate
+  - 首页客户端主动请求 `/api/hero-hitokoto` 覆盖初始 HTML
+- 但用户仍反馈“第一次改好了，第二次又不变”
+- 这类“短时间二次修改不生效”的现象，与 10 秒公开接口缓存完全吻合
+- 且实测 `/api/hero-hitokoto` 与 `/api/owner-status` 都确实被 Vercel/CDN 缓存了
+
+### 关于状态展示逻辑，当前代码的真实行为
+
+- 顶部左上角头像逻辑在：
+  - `apps/web/src/components/layout/header/internal/AnimatedLogo.tsx`
+  - `apps/web/src/components/layout/header/internal/SiteOwnerAvatar.tsx`
+- 当前行为不是“所有访客都看站长头像+状态”：
+  - owner 登录：左上角显示站长头像，可挂状态
+  - 普通 reader 登录：左上角显示 reader 自己的头像
+  - 未登录 guest：显示登录入口头像
+- `OwnerStatus` 组件当前只挂在 `SiteOwnerAvatar` 的 `variant === 'owner'` 分支上。
+- 也就是说：
+  - 普通访客登录自己的账号后，左上角看到的是“他自己的头像”
+  - 不是“站长头像 + 站长状态”
+  - 若后续用户要“访客也能稳定看见站长公开状态”，需要单独设计一个公开展示位，不能直接依赖当前左上角 reader 头像位
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮改动文件：
+  - `apps/web/src/app/api/hero-hitokoto/route.ts`
+  - `apps/web/src/app/api/owner-status/route.ts`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交并 push 本轮 `no-store` 修复
+2. 等 GitHub Actions / Vercel 生产部署完成
+3. 部署后再次检查：
+   - `curl -I https://418122.xyz/api/hero-hitokoto`
+   - `curl -I https://418122.xyz/api/owner-status`
+4. 预期应不再出现 `max-age=10` 这一类缓存头
+5. 再让用户连续两次修改“首页一句话”做真实回归
+
 ## [2026-04-03 08:15] 状态功能根因修复 + 首页一句话保存状态核对（以下新章节为准）
 
 ### 用户最新反馈
