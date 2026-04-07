@@ -3544,3 +3544,107 @@ pnpm --filter @shiro/web build
   - Production: `https://blog-n7o938hat-ni-chijous-projects.vercel.app`
 - 已确认：
   - `https://api.418122.xyz/api/v2/ping` 返回 `{"data":"pong"}`
+
+## [2026-04-07 13:32] 设置状态点击后渲染报错，根因确认为 `FloatPopover` 缺失导入
+
+> 这一节是当前关于“点击右下角状态点后进入 `Something went wrong`”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 当前目标
+
+- 修复线上首页 owner 头像右下角状态点点击后进入 ErrorBoundary 的问题，并补上回归测试，避免后续再次把 modal content 渲染炸掉。
+
+### 这轮真实排查路径
+
+- 先读取 `HANDOFF.md` 和 `2026-04-03` 的历史 session，确认最新相关提交已经是：
+  - `eda7860`
+  - `fix(status): 将状态点移出头像触发树`
+- 仅看代码不足以判断线上是否还炸，所以这轮切到 `web-access` 独立浏览器，用真实 owner 登录态做复现。
+- 在 `web-access` 中确认首页左上角已经不是登录按钮，而是：
+  - `aria-label="Site Owner Avatar"`
+- 继续点击状态点后，页面稳定进入：
+  - `Something went wrong`
+  - `Please try refreshing the page`
+
+### 根因结论
+
+- 这次报错不是“状态点仍在头像 trigger 树里”，那一层结构性修复已经在线上。
+- 真正导致 ErrorBoundary 的运行时异常是：
+  - `ReferenceError: FloatPopover is not defined`
+- 真实浏览器里挂 `window.onerror` / `console.error` 监听后抓到的关键栈：
+
+```text
+ReferenceError: FloatPopover is not defined
+    at ee (https://418122.xyz/_next/static/chunks/0qts.48q92uzf.js:1:18804)
+```
+
+- 对应到本地源码，问题点在：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+- 文件底部 `SettingStatusModalContent` 仍然渲染了 `<FloatPopover />` 包裹 emoji picker trigger
+- 但文件顶部缺少：
+  - `import { FloatPopover } from '~/components/ui/float-popover'`
+- 所以一旦点击状态点打开 modal，并实际渲染 `SettingStatusModalContent`，就会直接触发 `ReferenceError`，随后由 Header 的 ErrorBoundary 接住。
+
+### 本轮修复
+
+- 生产代码：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - 仅补上缺失的 `FloatPopover` 导入
+- 新增回归测试：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.test.tsx`
+- 测试策略：
+  - mock `useModalStack().present(...)` 捕获 modal content
+  - 先点击 `OwnerStatus` 的触发点
+  - 再单独渲染被捕获的 modal content
+  - 修复前该测试会以 `ReferenceError: FloatPopover is not defined` 失败
+  - 修复后通过
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/components/layout/header/internal/OwnerStatus.test.tsx \
+  src/components/layout/header/internal/SiteOwnerAvatar.test.tsx \
+  src/components/layout/header/internal/owner-status-tooltip.test.ts
+
+pnpm exec eslint \
+  apps/web/src/components/layout/header/internal/OwnerStatus.tsx \
+  apps/web/src/components/layout/header/internal/OwnerStatus.test.tsx \
+  apps/web/src/components/layout/header/internal/AnimatedLogo.tsx \
+  apps/web/src/components/layout/header/internal/SiteOwnerAvatar.tsx \
+  apps/web/src/components/layout/header/internal/SiteOwnerAvatar.test.tsx \
+  apps/web/src/components/layout/header/internal/owner-status-tooltip.ts \
+  apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 5 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+- 说明：
+  - 测试运行时仍会看到 Node 层的 `--localstorage-file` warning，这是当前 `happy-dom` / Next 构建环境噪音，不是本 bug 的失败信号
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.test.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“补齐状态弹窗 `FloatPopover` 导入 + 回归测试”
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后优先用真实 owner 登录态验证：
+   - 首页点击右下角状态点，不再出现 `Something went wrong`
+   - 状态设置 modal 能正常打开
