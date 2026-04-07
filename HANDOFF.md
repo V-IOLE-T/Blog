@@ -3828,3 +3828,104 @@ pnpm --filter @shiro/web build
    - 未登录访客：首页右侧头像 hover/click 能看到 owner 状态
    - 已登录读者：左上角仍是自己的头像，右侧 Hero 头像展示 owner 状态
    - owner：左上角仍能编辑，右侧 Hero 头像仍为只读展示
+
+## [2026-04-07 16:23] 站点图标改为跟随 owner 当前头像
+
+> 这一节是当前关于“网站 favicon 跟随 owner 头像”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户需求
+
+- 希望浏览器标签页里的网站图标不再走旧的 `seo.icon / theme favicon` 配置，而是直接跟随 owner 当前头像。
+
+### 现状根因
+
+- favicon 之前有三处独立来源：
+  - `apps/web/src/app/layout.tsx`
+    - `seo.icon / seo.iconDark`
+  - `apps/web/src/app/[locale]/layout.tsx`
+    - `data.seo.icon / themeConfig.config.site.favicon / faviconDark`
+  - `apps/web/src/app/(dashboard)/layout.tsx`
+    - 直接硬编码 `/favicon.ico`
+- 这些入口彼此分裂，所以即使 owner 更换头像，浏览器标签图标也不会自动跟着更新。
+
+### 本轮实现
+
+- 新增 helper：
+  - `apps/web/src/app/api/site-icon/shared.ts`
+  - 规则：
+    1. 优先 owner avatar
+    2. 其次 `seo.icon`
+    3. 再次 theme `site.favicon`
+    4. 最后回退到 `/favicon.ico`
+- 新增测试：
+  - `apps/web/src/app/api/site-icon/shared.test.ts`
+- 新增统一图标路由：
+  - `apps/web/src/app/api/site-icon/route.ts`
+  - 路由会实时取：
+    - `aggregate?theme=shiro`
+  - 再按上述优先级解析图标来源
+  - 最终 302/307 redirect 到真实头像或回退图标地址
+  - headers 设置为 no-store，尽量降低 favicon 缓存滞后
+- 更新 favicon 入口：
+  - `apps/web/src/app/layout.tsx`
+  - `apps/web/src/app/[locale]/layout.tsx`
+  - `apps/web/src/app/(dashboard)/layout.tsx`
+  - 全部统一改为指向：
+    - `/api/site-icon`
+
+### 为什么选路由而不是直接写死 avatar URL
+
+- 这样 root / locale / dashboard 可以统一走一个来源，不再三处分叉。
+- 以后 owner 更换头像时，不需要分别改 metadata 和 head 逻辑。
+- 浏览器若继续强缓存 favicon，也只需要处理一个入口。
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/app/api/site-icon/shared.test.ts
+
+pnpm exec eslint \
+  'apps/web/src/app/api/site-icon/shared.ts' \
+  'apps/web/src/app/api/site-icon/shared.test.ts' \
+  'apps/web/src/app/api/site-icon/route.ts' \
+  'apps/web/src/app/layout.tsx' \
+  'apps/web/src/app/[locale]/layout.tsx' \
+  'apps/web/src/app/(dashboard)/layout.tsx'
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 1 个测试文件通过
+  - 3 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/app/api/site-icon/shared.ts`
+  - `apps/web/src/app/api/site-icon/shared.test.ts`
+  - `apps/web/src/app/api/site-icon/route.ts`
+  - `apps/web/src/app/layout.tsx`
+  - `apps/web/src/app/[locale]/layout.tsx`
+  - `apps/web/src/app/(dashboard)/layout.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“站点图标跟随 owner 头像”的实现
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后重点验证：
+   - 浏览器标签页 favicon 是否变成当前 owner 头像
+   - dashboard 页面 favicon 也同步变更
+   - 更换 owner 头像后，favicon 是否跟着变化

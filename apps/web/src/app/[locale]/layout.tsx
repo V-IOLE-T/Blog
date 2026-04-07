@@ -82,8 +82,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   }
 
   const themeConfig = data.theme
-  const favicon = data.seo.icon || themeConfig.config.site.favicon
-  const faviconDark = themeConfig.config.site.faviconDark || favicon
+  const siteIconUrl = '/api/site-icon'
   const { openpanel } = themeConfig.config.module || {}
 
   const webSiteLdJson = {
@@ -121,18 +120,9 @@ export default async function LocaleLayout({ children, params }: Props) {
             {themeConfig.config?.color && (
               <AccentColorStyleInjector color={themeConfig.config.color} />
             )}
-            <link
-              href={faviconDark}
-              media="(prefers-color-scheme: dark)"
-              rel="shortcut icon"
-              type="image/x-icon"
-            />
-            <link
-              href={favicon}
-              media="(prefers-color-scheme: light)"
-              rel="shortcut icon"
-              type="image/x-icon"
-            />
+            <link href={siteIconUrl} rel="shortcut icon" />
+            <link href={siteIconUrl} rel="apple-touch-icon" />
+            <link href={siteIconUrl} rel="shortcut icon" />
             <ScriptInjectProvider />
           </head>
           <body

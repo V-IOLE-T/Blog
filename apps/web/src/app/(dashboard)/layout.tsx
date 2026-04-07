@@ -27,12 +27,15 @@ export function generateViewport(): Viewport {
 }
 
 export default function RootLayout({ children }: PropsWithChildren) {
+  const siteIconUrl = '/api/site-icon'
+
   return (
     <html suppressHydrationWarning lang="zh-CN">
       <head>
         <title>Shiro · Light Dashboard | Powered by Mix Space</title>
         <HydrationEndDetector />
-        <link href="/favicon.ico" rel="icon" sizes="any" />
+        <link href={siteIconUrl} rel="icon" sizes="any" />
+        <link href={siteIconUrl} rel="apple-touch-icon" />
         <PublicEnvScript />
       </head>
       <body

@@ -27,8 +27,6 @@ type SiteMetadataPayload = {
     title: string
     description: string
     keywords?: string[]
-    icon?: string
-    iconDark?: string
   }
   url: {
     webUrl: string
@@ -48,8 +46,7 @@ export const generateMetadata = async (): Promise<Metadata> => {
     }),
   )
   const { seo, url, user } = fetchedData
-  const favicon = seo.icon || '/favicon.ico'
-  const faviconDark = seo.iconDark || favicon
+  const siteIconUrl = '/api/site-icon'
 
   return {
     metadataBase: new URL(url.webUrl),
@@ -59,25 +56,11 @@ export const generateMetadata = async (): Promise<Metadata> => {
     },
     description: seo.description,
     keywords: seo.keywords || [],
-    icons: [
-      {
-        url: favicon,
-        type: 'image/svg+xml',
-        sizes: 'any',
-      },
-      {
-        rel: 'icon',
-        type: 'image/svg+xml',
-        url: favicon,
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        rel: 'icon',
-        type: 'image/svg+xml',
-        url: faviconDark,
-        media: '(prefers-color-scheme: dark)',
-      },
-    ],
+    icons: {
+      icon: [{ url: siteIconUrl }],
+      apple: [{ url: siteIconUrl }],
+      shortcut: [{ url: siteIconUrl }],
+    },
 
     robots: {
       index: true,
