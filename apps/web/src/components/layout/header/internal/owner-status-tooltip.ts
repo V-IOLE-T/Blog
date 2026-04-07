@@ -8,4 +8,5 @@ export const getOwnerStatusTooltipText = (status: OwnerStatus | null) => {
   return `${status.emoji.trim()} ${status.desc.trim()}`
 }
 
-export const getOwnerStatusPopoverClassNames = () => 'w-fit max-w-[18rem]'
+export const getOwnerStatusPopoverClassNames = () =>
+  'w-max min-w-[10.5rem] max-w-[14rem]'

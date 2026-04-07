@@ -20,7 +20,9 @@ describe('getOwnerStatusTooltipText', () => {
     ).toBe('✍️ Writing')
   })
 
-  it('uses compact popover sizing so the empty-state box wraps its text', () => {
-    expect(getOwnerStatusPopoverClassNames()).toBe('w-fit max-w-[18rem]')
+  it('uses a wider status card shape instead of a tall narrow tooltip', () => {
+    expect(getOwnerStatusPopoverClassNames()).toBe(
+      'w-max min-w-[10.5rem] max-w-[14rem]',
+    )
   })
 })

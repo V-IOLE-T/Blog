@@ -3648,3 +3648,82 @@ pnpm --filter @shiro/web build
 4. 发布后优先用真实 owner 登录态验证：
    - 首页点击右下角状态点，不再出现 `Something went wrong`
    - 状态设置 modal 能正常打开
+
+## [2026-04-07 14:29] 状态悬浮卡片改为更横向的便签比例
+
+> 这一节是当前关于“owner 状态 hover 卡片比例”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户反馈
+
+- 当前 hover 卡片太窄太高，中文状态会被挤成竖着换行。
+- 用户明确希望它更像横向纸片，而不是细长竖条。
+
+### 本轮改动
+
+- `apps/web/src/components/layout/header/internal/owner-status-tooltip.ts`
+  - 将状态卡宽度 token 从：
+    - `w-fit max-w-[18rem]`
+  - 改为：
+    - `w-max min-w-[10.5rem] max-w-[14rem]`
+- `apps/web/src/components/layout/header/internal/AnimatedLogo.tsx`
+  - hover 卡外层改为复用 `getOwnerStatusPopoverClassNames()`
+  - 将内边距从 `py-2` 调整为 `py-3`
+- `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - 空状态文案改成更紧凑的单行小字
+  - 已有状态时：
+    - 改成 `flex-col gap-1.5`
+    - 描述行与时间行都加 `whitespace-nowrap`
+    - 避免“开心”这类短中文被硬挤成两行
+- `apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts`
+  - 更新断言，锁住新的横向卡片宽度 token
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/components/layout/header/internal/owner-status-tooltip.test.ts \
+  src/components/layout/header/internal/OwnerStatus.test.tsx \
+  src/components/layout/header/internal/SiteOwnerAvatar.test.tsx
+
+pnpm exec eslint \
+  apps/web/src/components/layout/header/internal/owner-status-tooltip.ts \
+  apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts \
+  apps/web/src/components/layout/header/internal/AnimatedLogo.tsx \
+  apps/web/src/components/layout/header/internal/OwnerStatus.tsx \
+  apps/web/src/components/layout/header/internal/OwnerStatus.test.tsx \
+  apps/web/src/components/layout/header/internal/SiteOwnerAvatar.tsx \
+  apps/web/src/components/layout/header/internal/SiteOwnerAvatar.test.tsx
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 5 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/components/layout/header/internal/AnimatedLogo.tsx`
+  - `apps/web/src/components/layout/header/internal/OwnerStatus.tsx`
+  - `apps/web/src/components/layout/header/internal/owner-status-tooltip.ts`
+  - `apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“状态卡改为更横向矩形”的样式调整
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后优先看首页 owner 头像 hover：
+   - 状态卡是否明显更宽、更低
+   - 中文描述和“持续到 xx:xx:xx”是否保持横向阅读

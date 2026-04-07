@@ -138,19 +138,19 @@ export const OwnerStatusPopoverContent = ({
 
   if (!ownerStatus) {
     return isLogged ? (
-      <p className="w-fit whitespace-nowrap text-base text-neutral-9">
+      <p className="whitespace-nowrap text-sm text-neutral-9">
         {t('status_click_to_set')}
       </p>
     ) : null
   }
 
   return (
-    <div className="w-fit max-w-[18rem] text-lg">
-      <p className="text-neutral-9">
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <p className="whitespace-nowrap text-lg leading-none text-neutral-9">
         {ownerStatus.emoji} {ownerStatus.desc}
       </p>
       {!!ownerStatus.untilAt && (
-        <p className="mt-1 text-sm text-neutral-7">
+        <p className="whitespace-nowrap text-sm leading-none text-neutral-7">
           {t('status_until')} {formatDatetime(ownerStatus.untilAt)}
         </p>
       )}

@@ -17,7 +17,10 @@ import { useIsClient } from '~/hooks/common/use-is-client'
 import { useOauthLoginModal } from '~/queries/hooks/authjs'
 
 import { Activity } from './Activity'
-import { getOwnerStatusTooltipText } from './owner-status-tooltip'
+import {
+  getOwnerStatusPopoverClassNames,
+  getOwnerStatusTooltipText,
+} from './owner-status-tooltip'
 import { OwnerStatus, OwnerStatusPopoverContent } from './OwnerStatus'
 import { SiteOwnerAvatar } from './SiteOwnerAvatar'
 import { useLoginProvidersAvailability, UserAuthMenuContent } from './UserAuth'
@@ -95,7 +98,9 @@ const TapableLogo = () => {
           {avatar}
         </DropdownMenuTrigger>
         {isOwner && <OwnerStatus />}
-        <div className="pointer-events-none absolute left-1/2 top-[calc(100%+0.75rem)] z-[120] w-fit max-w-[18rem] -translate-x-1/2 rounded-xl border border-black/5 bg-paper px-4 py-2 opacity-0 shadow-[0_2px_12px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.03)] transition-opacity duration-150 group-hover:opacity-100 dark:border-white/8 dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),0_0_0_0.5px_rgba(255,255,255,0.04)]">
+        <div
+          className={`pointer-events-none absolute left-1/2 top-[calc(100%+0.75rem)] z-[120] -translate-x-1/2 rounded-xl border border-black/5 bg-paper px-4 py-3 opacity-0 shadow-[0_2px_12px_rgba(0,0,0,0.04),0_0_0_0.5px_rgba(0,0,0,0.03)] transition-opacity duration-150 group-hover:opacity-100 dark:border-white/8 dark:shadow-[0_4px_24px_rgba(0,0,0,0.3),0_0_0_0.5px_rgba(255,255,255,0.04)] ${getOwnerStatusPopoverClassNames()}`}
+        >
           <OwnerStatusPopoverContent
             isLogged={isOwner}
             ownerStatus={ownerStatus}
