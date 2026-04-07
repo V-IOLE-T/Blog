@@ -4137,3 +4137,96 @@ pnpm --filter @shiro/web build
    - 顶部导航里出现独立 `速记`
    - `站点` 页面里不再出现速记区块
    - `速记` 页面能看到数量与管理入口
+
+## [2026-04-07 23:32] 速记页下方内嵌内容已打通，问题在 fallback 误报过早
+
+> 这一节是当前关于“速记页下方 iframe 内容是否真正显示”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户问题
+
+- 用户继续要求把“下方真的嵌出后台速记内容”打通，而不是只显示降级提示。
+
+### 这轮真实排查结论
+
+- 首先确认：
+  - 后台页面本身没有 `X-Frame-Options` 或 `frame-ancestors` 直接禁止嵌入的响应头。
+- 再确认：
+  - 公开 API `https://api.418122.xyz/api/v2/recently?size=5` 正常返回速记数据，不是“没有内容”。
+- 继续用 `web-access` 观察后台 `#/recently`：
+  - 页面一开始确实只看到骨架屏
+  - 但等待约 20 秒后，真实速记内容会渲染出来
+- 这说明：
+  - iframe 不是完全失败
+  - 我们之前 5 秒就显示“当前无法直接内嵌”的 fallback 过于激进
+  - 真正的根因是：
+    - **fallback 定时器比后台速记模块的真实渲染更快触发**
+    - 且在 iframe load 后没有正确取消后续误报
+
+### 本轮修复
+
+- 文件：
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 具体改动：
+  - 新增 `shouldShowRecentlyEmbedFallback(...)` helper
+  - 将 fallback 超时从原先的 5 秒调整为 20 秒
+  - 使用 `embedFallbackTimerRef` 在 iframe `onLoad` 时显式清理超时定时器
+  - 用 `embedState` 统一管理：
+    - `hasTimedOut`
+    - `isFrameLoaded`
+  - 只有在：
+    - 超时了
+    - 且 iframe 还未 load
+    - 才显示降级提示
+
+### 为什么这个修复有效
+
+- 当前后台速记页不是秒开，它会先出现骨架屏，再逐步渲染内容。
+- 之前逻辑会在内容真正出现前，就把“无法内嵌”的提示打出来，造成用户误判。
+- 现在逻辑改成：
+  - 优先等 iframe 正常 load
+  - load 后即取消 fallback 定时器
+  - 不再让“误报提示”盖过真实内容
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/routes/site/recently-section.test.tsx
+
+pnpm exec eslint \
+  'apps/web/src/routes/site/recently-section.tsx' \
+  'apps/web/src/routes/site/recently-section.test.tsx' \
+  'apps/web/src/routes/recently/index.tsx'
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 1 个测试文件通过
+  - 3 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“速记页 iframe fallback 误报修复”
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后优先验证：
+   - `#/recently` 下方先出现骨架屏，但不会立刻误报失败
+   - 等待后能看到真实速记内容

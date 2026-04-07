@@ -8,16 +8,29 @@ import { apiClient } from '~/lib/request'
 import { SectionCard } from './sections'
 
 const RECENTLY_ADMIN_PATH = '#/recently'
+const RECENTLY_EMBED_FALLBACK_TIMEOUT_MS = 20000
 
 export const buildRecentlyAdminUrl = (
   resolveAdminUrl: (path?: string) => string,
 ) => resolveAdminUrl(RECENTLY_ADMIN_PATH)
 
+export const shouldShowRecentlyEmbedFallback = ({
+  hasTimedOut,
+  isFrameLoaded,
+}: {
+  hasTimedOut: boolean
+  isFrameLoaded: boolean
+}) => hasTimedOut && !isFrameLoaded
+
 export const RecentlySection = () => {
   const resolveAdminUrl = useResolveAdminUrl()
   const embeddedUrl = buildRecentlyAdminUrl(resolveAdminUrl)
   const embedContainerRef = useRef<HTMLDivElement | null>(null)
-  const [showEmbedFallback, setShowEmbedFallback] = useState(false)
+  const embedFallbackTimerRef = useRef<number | null>(null)
+  const [embedState, setEmbedState] = useState({
+    hasTimedOut: false,
+    isFrameLoaded: false,
+  })
   const [showCreateHint, setShowCreateHint] = useState(false)
 
   const { data: recentlyCount } = useQuery({
@@ -31,12 +44,19 @@ export const RecentlySection = () => {
 
   useEffect(() => {
     if (!embeddedUrl) return
+    embedFallbackTimerRef.current = window.setTimeout(() => {
+      setEmbedState((current) => ({
+        ...current,
+        hasTimedOut: true,
+      }))
+    }, RECENTLY_EMBED_FALLBACK_TIMEOUT_MS)
 
-    const timer = window.setTimeout(() => {
-      setShowEmbedFallback(true)
-    }, 5000)
-
-    return () => window.clearTimeout(timer)
+    return () => {
+      if (embedFallbackTimerRef.current) {
+        window.clearTimeout(embedFallbackTimerRef.current)
+        embedFallbackTimerRef.current = null
+      }
+    }
   }, [embeddedUrl])
 
   const openRecentlyPage = () => {
@@ -61,10 +81,25 @@ export const RecentlySection = () => {
       embeddedUrl={embeddedUrl}
       recentlyCount={recentlyCount ?? null}
       showCreateHint={showCreateHint}
-      showEmbedFallback={showEmbedFallback || !embeddedUrl}
+      showEmbedFallback={
+        !embeddedUrl ||
+        shouldShowRecentlyEmbedFallback({
+          hasTimedOut: embedState.hasTimedOut,
+          isFrameLoaded: embedState.isFrameLoaded,
+        })
+      }
       onCreate={focusEmbeddedRecently}
-      onFrameLoad={() => setShowEmbedFallback(false)}
       onManage={openRecentlyPage}
+      onFrameLoad={() => {
+        if (embedFallbackTimerRef.current) {
+          window.clearTimeout(embedFallbackTimerRef.current)
+          embedFallbackTimerRef.current = null
+        }
+        setEmbedState({
+          hasTimedOut: false,
+          isFrameLoaded: true,
+        })
+      }}
     />
   )
 }

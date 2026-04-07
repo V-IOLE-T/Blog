@@ -1,7 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server'
 import { describe, expect, it } from 'vitest'
 
-import { buildRecentlyAdminUrl, RecentlySectionView } from './recently-section'
+import {
+  buildRecentlyAdminUrl,
+  RecentlySectionView,
+  shouldShowRecentlyEmbedFallback,
+} from './recently-section'
 
 describe('recently section', () => {
   it('builds the existing admin recently url from the admin base url', () => {
@@ -29,5 +33,14 @@ describe('recently section', () => {
     expect(html).toContain(
       'src="https://api.418122.xyz/proxy/qaqdmin#/recently"',
     )
+  })
+
+  it('does not show fallback after the iframe has loaded', () => {
+    expect(
+      shouldShowRecentlyEmbedFallback({
+        hasTimedOut: true,
+        isFrameLoaded: true,
+      }),
+    ).toBe(false)
   })
 })
