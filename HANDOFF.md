@@ -3727,3 +3727,104 @@ pnpm --filter @shiro/web build
 4. 发布后优先看首页 owner 头像 hover：
    - 状态卡是否明显更宽、更低
    - 中文描述和“持续到 xx:xx:xx”是否保持横向阅读
+
+## [2026-04-07 15:13] Hero 右侧头像改为所有人可见的只读 owner 状态入口
+
+> 这一节是当前关于“访客/读者在首页固定位置看到 owner 状态”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户确认的最终交互
+
+- 左上角 header 保持现状：
+  - 访客看到登录入口
+  - 读者看到自己的头像
+  - owner 自己仍在左上角修改状态
+- 首页右侧 Hero 头像承担公开展示职责：
+  - 访客、读者、owner 自己都能在这里看到 owner 当前状态
+  - 点击 Hero 头像只打开只读状态卡
+  - 不允许从这里编辑状态
+
+### 这轮实现
+
+- 新增组件：
+  - `apps/web/src/app/[locale]/(home)/components/HeroOwnerAvatar.tsx`
+- 新增测试：
+  - `apps/web/src/app/[locale]/(home)/components/HeroOwnerAvatar.test.tsx`
+- 修改首页 Hero：
+  - `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+
+### 关键设计点
+
+- 不把公开状态继续塞回全局 `statusAtom`，避免读者左上角“自己的头像”错误显示成 owner 状态。
+- `Hero.tsx` 自己独立请求：
+  - `/api/owner-status`
+- `HeroOwnerAvatar.tsx` 只接收显式传入的 `ownerStatus`
+- 当 `ownerStatus` 存在时：
+  - 右下角显示 emoji 状态点
+  - 用 `FloatPopover` 的 `trigger="both"` 让 hover 和 click 都能打开只读状态卡
+  - 卡片内容复用：
+    - `OwnerStatusPopoverContent`
+    - 但固定传 `isLogged={false}`，因此不会出现“点击设置状态”这类 owner 编辑语义
+- 当 `ownerStatus` 为空时：
+  - 右侧 Hero 头像保持普通头像，不强行弹出无意义提示
+
+### 测试策略
+
+- `HeroOwnerAvatar.test.tsx`
+  - mock `FloatPopover`
+  - 验证公开分支会渲染只读状态内容
+  - 验证 trigger 模式是 `both`
+  - 验证无状态时只渲染普通头像，不包 popover
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  'src/app/[locale]/(home)/components/HeroOwnerAvatar.test.tsx' \
+  src/components/layout/header/internal/OwnerStatus.test.tsx \
+  src/components/layout/header/internal/SiteOwnerAvatar.test.tsx \
+  src/components/layout/header/internal/owner-status-tooltip.test.ts
+
+pnpm exec eslint \
+  'apps/web/src/app/[locale]/(home)/components/Hero.tsx' \
+  'apps/web/src/app/[locale]/(home)/components/HeroOwnerAvatar.tsx' \
+  'apps/web/src/app/[locale]/(home)/components/HeroOwnerAvatar.test.tsx' \
+  apps/web/src/components/layout/header/internal/OwnerStatus.tsx \
+  apps/web/src/components/layout/header/internal/OwnerStatus.test.tsx \
+  apps/web/src/components/layout/header/internal/SiteOwnerAvatar.tsx \
+  apps/web/src/components/layout/header/internal/SiteOwnerAvatar.test.tsx \
+  apps/web/src/components/layout/header/internal/owner-status-tooltip.ts \
+  apps/web/src/components/layout/header/internal/owner-status-tooltip.test.ts
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 4 个测试文件通过
+  - 7 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/app/[locale]/(home)/components/Hero.tsx`
+  - `apps/web/src/app/[locale]/(home)/components/HeroOwnerAvatar.tsx`
+  - `apps/web/src/app/[locale]/(home)/components/HeroOwnerAvatar.test.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“Hero 右侧头像改为公开只读状态入口”
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后重点验证：
+   - 未登录访客：首页右侧头像 hover/click 能看到 owner 状态
+   - 已登录读者：左上角仍是自己的头像，右侧 Hero 头像展示 owner 状态
+   - owner：左上角仍能编辑，右侧 Hero 头像仍为只读展示

@@ -2,10 +2,10 @@
 
 import { useQuery } from '@tanstack/react-query'
 import clsx from 'clsx'
-import Image from 'next/image'
 import { useLocale, useTranslations } from 'next-intl'
 import { Fragment, useEffect, useMemo, useRef } from 'react'
 
+import type { OwnerStatus as TOwnerStatus } from '~/atoms/status'
 import { isSupportIcon, SocialIcon } from '~/components/modules/home/SocialIcon'
 import { fetchQuoteByLocale } from '~/components/modules/shared/Hitokoto'
 import { MotionButtonBase } from '~/components/ui/button'
@@ -23,6 +23,7 @@ import {
 
 import { useHomeQueryData } from '../useHomeQueryData'
 import { resolveHeroHitokotoState } from './hero-hitokoto-state'
+import { HeroOwnerAvatar } from './HeroOwnerAvatar'
 
 // --- Helpers ---
 
@@ -49,6 +50,30 @@ export const Hero = () => {
   }))!
   const siteOwner = useAggregationSelector((agg) => agg.user)
   const { avatar, socialIds } = siteOwner || {}
+  const { data: ownerStatus } = useQuery({
+    queryKey: ['hero-owner-status'],
+    queryFn: async () => {
+      const response = await fetch('/api/owner-status', {
+        cache: 'no-store',
+      })
+
+      if (!response.ok) {
+        throw new Error(`Request failed: ${response.status}`)
+      }
+
+      const payload = (await response.json()) as {
+        data: TOwnerStatus | null
+      }
+
+      return payload.data
+    },
+    enabled: !!avatar,
+    meta: {
+      persist: false,
+    },
+    refetchOnMount: 'always',
+    refetchOnWindowFocus: 'always',
+  })
 
   const firstVisitRef = useRef(isFirstVisit())
   const shouldAnimate = firstVisitRef.current
@@ -64,15 +89,17 @@ export const Hero = () => {
 
   const titleElements = useMemo(
     () =>
-      title.template.map((t, i) =>
-        t.class ? (
-          <span className={t.class} key={i}>
+      title.template.map((t) => {
+        const key = `${t.class || 'plain'}-${t.text}`
+
+        return t.class ? (
+          <span className={t.class} key={key}>
             {t.text}
           </span>
         ) : (
-          <Fragment key={i}>{t.text}</Fragment>
-        ),
-      ),
+          <Fragment key={key}>{t.text}</Fragment>
+        )
+      }),
     [title.template],
   )
 
@@ -103,12 +130,11 @@ export const Hero = () => {
           )}
         >
           {avatar && (
-            <Image
+            <HeroOwnerAvatar
               alt={tCommon('aria_site_owner_avatar')}
-              className="shrink-0 rounded-full border border-neutral-4"
-              height={48}
+              ownerStatus={ownerStatus ?? null}
+              size={48}
               src={avatar}
-              width={48}
             />
           )}
           <h1 className="text-2xl font-medium leading-snug text-neutral-9">
@@ -186,12 +212,11 @@ export const Hero = () => {
                 cn(shouldAnimate, 'hero-enter-avatar'),
               )}
             >
-              <Image
+              <HeroOwnerAvatar
                 alt={tCommon('aria_site_owner_avatar')}
-                className="rounded-full border border-neutral-4 shadow-sm"
-                height={80}
+                ownerStatus={ownerStatus ?? null}
+                size={80}
                 src={avatar}
-                width={80}
               />
             </div>
           )}
