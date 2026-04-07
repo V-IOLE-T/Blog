@@ -64,6 +64,10 @@ import {
   config as postsListConfig,
 } from '../../../../routes/posts/list/index'
 import {
+  Component as RecentlyIndex,
+  config as recentlyConfig,
+} from '../../../../routes/recently/index'
+import {
   Component as SaysIndex,
   config as saysConfig,
 } from '../../../../routes/says/index'
@@ -127,6 +131,10 @@ const nestedRouteMap: RouteItem[] = sortRouteItems([
   {
     path: '/says',
     config: saysConfig,
+  },
+  {
+    path: '/recently',
+    config: recentlyConfig,
   },
   {
     path: '/site',
@@ -194,6 +202,7 @@ const routeConfig: RouteObject[] = [
       },
 
       { path: 'says', element: <SaysIndex /> },
+      { path: 'recently', element: <RecentlyIndex /> },
       { path: 'site', element: <SiteIndex /> },
       {
         path: 'passkey',

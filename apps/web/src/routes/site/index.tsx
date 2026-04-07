@@ -15,7 +15,6 @@ import {
   createSiteSettingsFormState,
   type SiteSettingsFormState,
 } from './form-state'
-import { RecentlySection } from './recently-section'
 import {
   FieldLabel,
   FooterLinksEditor,
@@ -179,8 +178,6 @@ export const Component = () => {
           />
         </div>
       </SectionCard>
-
-      <RecentlySection />
 
       <SectionCard description="首页首屏的主标题与说明文案。" title="Hero">
         <div>

@@ -4045,3 +4045,95 @@ pnpm --filter @shiro/web build
    - 下方 iframe 能直接看到 `#/recently`
    - `管理` 按钮能打开后台速记页
    - `新建速记` 提示是否足够清楚
+
+## [2026-04-07 21:56] 速记从“站点页内区块”调整为与站点平行的独立轻管理页面
+
+> 这一节是当前关于“速记在轻管理中的信息架构”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新纠偏
+
+- 用户明确表示：
+  - 不希望“速记”继续放在 `站点` 页面里
+  - 希望它作为一个和 `站点` 平行的独立页面
+
+### 这轮调整
+
+- 从 `站点` 页移除：
+  - `apps/web/src/routes/site/index.tsx`
+    - 删除内嵌 `RecentlySection`
+- 新增独立页面：
+  - `apps/web/src/routes/recently/index.tsx`
+  - 页面结构：
+    - 顶部标题：`速记`
+    - 说明文案
+    - 下方复用 `RecentlySection`
+- 路由接入：
+  - `apps/web/src/app/(dashboard)/dashboard/[[...catch_all]]/router.tsx`
+  - 新增：
+    - `/recently`
+  - 并把它加入 dashboard 顶层导航项，和 `/site` 平级
+
+### 保留的现有行为
+
+- `RecentlySection` 本身逻辑不变：
+  - 顶部卡片显示数量、`新建速记`、`管理`
+  - 下方 iframe 继续尝试嵌入：
+    - `https://api.418122.xyz/proxy/qaqdmin#/recently`
+  - iframe 失败时显示降级提示
+
+### 为什么这样改
+
+- 这次是信息架构纠偏，不是业务重写。
+- 让“速记”成为和“站点”平级的独立页面，更符合用户对轻管理导航分层的预期。
+- 复用既有 `RecentlySection`，避免重复实现。
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/routes/site/recently-section.test.tsx \
+  src/routes/site/form-state.test.ts \
+  src/routes/site/theme-snippet.test.ts
+
+pnpm exec eslint \
+  'apps/web/src/routes/site/index.tsx' \
+  'apps/web/src/routes/site/recently-section.tsx' \
+  'apps/web/src/routes/site/recently-section.test.tsx' \
+  'apps/web/src/routes/recently/index.tsx' \
+  'apps/web/src/app/(dashboard)/dashboard/[[...catch_all]]/router.tsx'
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 9 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/routes/site/index.tsx`
+  - `apps/web/src/routes/recently/index.tsx`
+  - `apps/web/src/app/(dashboard)/dashboard/[[...catch_all]]/router.tsx`
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“速记独立成页”的结构调整
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后重点验证：
+   - 顶部导航里出现独立 `速记`
+   - `站点` 页面里不再出现速记区块
+   - `速记` 页面能看到数量与管理入口
