@@ -3929,3 +3929,119 @@ pnpm --filter @shiro/web build
    - 浏览器标签页 favicon 是否变成当前 owner 头像
    - dashboard 页面 favicon 也同步变更
    - 更换 owner 头像后，favicon 是否跟着变化
+
+## [2026-04-07 20:00] 轻管理页新增“速记”区块，顶部卡片 + 下方内嵌后台内容
+
+> 这一节是当前关于“轻管理页接入现有速记模块”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户确认的最终需求
+
+- 不是新做一套“速记”业务。
+- 要复用后台现有模块：
+  - 模块地址：`https://api.418122.xyz/proxy/qaqdmin#/recently`
+- 轻管理页中要同时有：
+  - 顶部卡片摘要
+  - 下方直接展开现有速记内容
+- 位置要求：
+  - 和轻管理页顶部现有那些配置区块放在一起
+
+### 这轮真实核对
+
+- 通过后台页面实查确认：
+  - 左侧菜单“速记”会进入：
+    - `#/recently`
+  - 页面标题是：
+    - `速记 - 静かな森`
+- 后台“快速操作”卡片里的：
+  - `新建速记`
+  - `管理`
+  - 确实存在
+- 但“新建速记”不是简单 URL hash 跳转，更像是后台内部按钮行为 / modal，因此这轮不直接伪造未知 create 路径。
+
+### 本轮实现
+
+- 新增区块组件：
+  - `apps/web/src/routes/site/recently-section.tsx`
+- 新增测试：
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 接入位置：
+  - `apps/web/src/routes/site/index.tsx`
+  - 放在 `SEO` 卡片和 `Hero` 卡片之间，属于轻管理页顶部同层级模块
+
+### 具体交互
+
+- 顶部卡片：
+  - 标题：`速记`
+  - 数量：使用 `apiClient.recently.getAll()` 实时统计当前速记条数
+  - 按钮：
+    - `新建速记`
+    - `管理`
+- `管理`：
+  - 直接新标签打开：
+    - `#/recently`
+- `新建速记`：
+  - 当前不伪造未知 create URL
+  - 改为滚动到下方内嵌区域，并显示提示：
+    - `请在下方右上角点击 + 新建速记`
+- 下方内容区：
+  - 直接 iframe 内嵌：
+    - `https://api.418122.xyz/proxy/qaqdmin#/recently`
+- 降级策略：
+  - 若 5 秒内仍未正常加载，显示提示：
+    - `当前无法直接内嵌速记模块，请使用上方按钮打开后台速记页面。`
+
+### 为什么这样做
+
+- 满足“复用现有模块，不重写业务”。
+- 满足“卡片入口 + 下方直接展开内容”。
+- 避免为了“新建速记”按钮硬猜后台私有 create 路径。
+- 即使 iframe 被 CSP / 登录态限制，顶部卡片和管理入口仍可工作。
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/routes/site/recently-section.test.tsx \
+  src/routes/site/form-state.test.ts \
+  src/routes/site/theme-snippet.test.ts
+
+pnpm exec eslint \
+  apps/web/src/routes/site/index.tsx \
+  apps/web/src/routes/site/recently-section.tsx \
+  apps/web/src/routes/site/recently-section.test.tsx
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 9 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/routes/site/index.tsx`
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“轻管理页接入速记区块”
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后重点验证：
+   - 轻管理页顶部能看到“速记”卡片
+   - 数量与后台速记数量一致
+   - 下方 iframe 能直接看到 `#/recently`
+   - `管理` 按钮能打开后台速记页
+   - `新建速记` 提示是否足够清楚

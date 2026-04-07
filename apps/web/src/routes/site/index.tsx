@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 
 import { PageLoading } from '~/components/layout/dashboard/PageLoading'
 import { defineRouteConfig } from '~/components/modules/dashboard/utils/helper'
@@ -15,6 +15,7 @@ import {
   createSiteSettingsFormState,
   type SiteSettingsFormState,
 } from './form-state'
+import { RecentlySection } from './recently-section'
 import {
   FieldLabel,
   FooterLinksEditor,
@@ -36,7 +37,7 @@ export const Component = () => {
   const queryClient = useQueryClient()
   const aggregationQuery = useQuery(aggregation.root())
   const snippetQuery = useQuery(themeSnippetQueryOptions)
-  const [form, setForm] = useState<SiteSettingsFormState | null>(null)
+  const [draftForm, setDraftForm] = useState<SiteSettingsFormState>()
   const [isSaving, setIsSaving] = useState(false)
   const seoDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
   const heroDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
@@ -49,18 +50,14 @@ export const Component = () => {
       aggregationQuery.data.theme,
     )
   }, [aggregationQuery.data])
-
-  useEffect(() => {
-    if (!initialState || form) return
-    setForm(initialState)
-  }, [form, initialState])
+  const form = draftForm ?? initialState
 
   if (aggregationQuery.isLoading || !aggregationQuery.data || !form) {
     return <PageLoading loadingText="正在加载站点配置…" />
   }
 
   const resetForm = () =>
-    setForm(
+    setDraftForm(
       createSiteSettingsFormState(
         aggregationQuery.data!,
         aggregationQuery.data!.theme,
@@ -123,7 +120,7 @@ export const Component = () => {
 
       const nextAggregation = await queryClient.fetchQuery(aggregation.root())
       await queryClient.fetchQuery(themeSnippetQueryOptions)
-      setForm(
+      setDraftForm(
         createSiteSettingsFormState(nextAggregation, nextAggregation.theme),
       )
       toast.success('站点配置已保存')
@@ -163,7 +160,7 @@ export const Component = () => {
           <Input
             value={form.seoTitle}
             onChange={(event) =>
-              setForm({ ...form, seoTitle: event.target.value })
+              setDraftForm({ ...form, seoTitle: event.target.value })
             }
           />
         </div>
@@ -173,7 +170,7 @@ export const Component = () => {
             ref={seoDescriptionRef}
             value={form.seoDescription}
             onChange={(event) =>
-              setForm((current) =>
+              setDraftForm((current) =>
                 current
                   ? { ...current, seoDescription: event.target.value }
                   : current,
@@ -182,6 +179,8 @@ export const Component = () => {
           />
         </div>
       </SectionCard>
+
+      <RecentlySection />
 
       <SectionCard description="首页首屏的主标题与说明文案。" title="Hero">
         <div>
@@ -192,7 +191,7 @@ export const Component = () => {
           <Input
             value={form.heroTitle}
             onChange={(event) =>
-              setForm({ ...form, heroTitle: event.target.value })
+              setDraftForm({ ...form, heroTitle: event.target.value })
             }
           />
         </div>
@@ -202,7 +201,7 @@ export const Component = () => {
             ref={heroDescriptionRef}
             value={form.heroDescription}
             onChange={(event) =>
-              setForm((current) =>
+              setDraftForm((current) =>
                 current
                   ? { ...current, heroDescription: event.target.value }
                   : current,
@@ -219,7 +218,7 @@ export const Component = () => {
             ref={heroQuoteRef}
             value={form.heroQuote}
             onChange={(event) =>
-              setForm((current) =>
+              setDraftForm((current) =>
                 current
                   ? { ...current, heroQuote: event.target.value }
                   : current,
@@ -235,7 +234,7 @@ export const Component = () => {
       >
         <SocialLinksEditor
           value={form.socialLinks}
-          onChange={(socialLinks) => setForm({ ...form, socialLinks })}
+          onChange={(socialLinks) => setDraftForm({ ...form, socialLinks })}
         />
       </SectionCard>
 
@@ -245,7 +244,7 @@ export const Component = () => {
       >
         <FooterLinksEditor
           value={form.linkSections}
-          onChange={(linkSections) => setForm({ ...form, linkSections })}
+          onChange={(linkSections) => setDraftForm({ ...form, linkSections })}
         />
       </SectionCard>
     </div>
