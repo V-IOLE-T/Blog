@@ -31,6 +31,8 @@ describe('recently section', () => {
     const html = renderToStaticMarkup(
       <RecentlySectionView
         adminUrl="https://api.418122.xyz/proxy/qaqdmin#/recently"
+        hasNextPage={false}
+        isFetchingNextPage={false}
         items={recentlyItems}
         recentlyCount={2}
         showOwnerActions={false}
@@ -49,6 +51,8 @@ describe('recently section', () => {
     const html = renderToStaticMarkup(
       <RecentlySectionView
         adminUrl="https://api.418122.xyz/proxy/qaqdmin#/recently"
+        hasNextPage={false}
+        isFetchingNextPage={false}
         items={[]}
         recentlyCount={2}
         showOwnerActions={false}
@@ -56,5 +60,21 @@ describe('recently section', () => {
     )
 
     expect(html).toContain('还没有速记内容')
+  })
+
+  it('does not render the top manage button anymore', () => {
+    const html = renderToStaticMarkup(
+      <RecentlySectionView
+        adminUrl="https://api.418122.xyz/proxy/qaqdmin#/recently"
+        hasNextPage={false}
+        isFetchingNextPage={false}
+        items={recentlyItems}
+        recentlyCount={2}
+        showOwnerActions={false}
+      />,
+    )
+
+    expect(html).not.toContain('>管理<')
+    expect(html).toContain('打开完整后台')
   })
 })

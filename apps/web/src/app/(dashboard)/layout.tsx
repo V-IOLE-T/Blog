@@ -27,7 +27,7 @@ export function generateViewport(): Viewport {
 }
 
 export default function RootLayout({ children }: PropsWithChildren) {
-  const siteIconUrl = '/api/site-icon'
+  const siteIconUrl = '/dashboard-service.svg'
 
   return (
     <html suppressHydrationWarning lang="zh-CN">

@@ -4335,3 +4335,111 @@ pnpm --filter @shiro/web build
    - 直接显示真实速记内容
    - `新建速记` 可在当前页创建
    - `编辑 / 删除` 行为正常
+
+## [2026-04-08 11:25] 速记页改成原生内容流 + 去掉顶部管理按钮 + dashboard favicon 固定服务.svg
+
+> 这一节是当前关于“速记页最终形态”和“轻管理 favicon 来源”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新要求
+
+- 速记页顶部卡片去掉：
+  - `管理`
+- 速记页下方真实显示内容，不要后台骨架。
+- 调整速记卡片的视觉层次。
+- 增加分页。
+- 轻管理页面 favicon 不再跟 owner 头像走，而是固定使用：
+  - `/Users/zhenghan/Downloads/服务.svg`
+
+### 这轮最终实现
+
+- `apps/web/src/routes/site/recently-section.tsx`
+  - 顶部卡片：
+    - 只保留 `新建速记`
+    - 删除 `管理`
+  - 下方内容：
+    - 改为前端原生速记列表
+    - 不再使用 iframe
+  - 数据获取：
+    - 数量：`apiClient.recently.getAll()`
+    - 列表：`useInfiniteQuery + apiClient.shorthand.getList({ before, size })`
+  - 分页：
+    - 使用 `LoadMoreIndicator`
+    - 下滑继续加载速记
+  - owner 操作：
+    - `新建速记` 当前页本地弹窗创建
+    - 每条卡片支持 `编辑 / 删除`
+  - 视觉层次：
+    - 内容正文抬高为主层
+    - 时间、赞踩降为次级元信息
+    - 操作区独立为底部弱分隔行
+    - 卡片使用更柔和的边框、阴影和圆角
+- `apps/web/src/routes/site/recently-section.test.tsx`
+  - 更新测试断言：
+    - 不再渲染 iframe
+    - 顶部不再有 `管理`
+    - 仍保留 `打开完整后台`
+- `apps/web/src/app/(dashboard)/layout.tsx`
+  - dashboard favicon 改为固定：
+    - `/dashboard-service.svg`
+- 新增资源：
+  - `apps/web/public/dashboard-service.svg`
+  - 内容来自用户提供的：
+    - `/Users/zhenghan/Downloads/服务.svg`
+
+### 为什么这样做
+
+- 速记页现在真正是轻管理原生页面，而不是后台页面壳子。
+- 去掉顶部 `管理` 后，页面目标更聚焦：快速记录 + 直接浏览。
+- 仍保留“打开完整后台”作为完整能力入口，避免功能回退。
+- dashboard favicon 与主站 favicon 完全解耦，满足“轻管理使用固定服务图标”的需求。
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/routes/site/recently-section.test.tsx \
+  src/routes/site/form-state.test.ts \
+  src/routes/site/theme-snippet.test.ts
+
+pnpm exec eslint \
+  'apps/web/src/routes/site/recently-section.tsx' \
+  'apps/web/src/routes/site/recently-section.test.tsx' \
+  'apps/web/src/routes/recently/index.tsx' \
+  'apps/web/src/routes/site/index.tsx' \
+  'apps/web/src/app/(dashboard)/layout.tsx'
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 11 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+  - `apps/web/src/app/(dashboard)/layout.tsx`
+  - `apps/web/public/dashboard-service.svg`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“速记页最终形态 + dashboard favicon 固定图标”
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后重点验证：
+   - 顶部卡片不再出现 `管理`
+   - 下方直接显示真实速记内容
+   - 下滑可继续加载更多
+   - dashboard 标签页 favicon 变成服务图标

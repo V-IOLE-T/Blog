@@ -1,10 +1,11 @@
 import type { RecentlyModel } from '@mx-space/api-client'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
 import { useIsOwnerLogged } from '~/atoms/hooks/owner'
 import { useResolveAdminUrl } from '~/atoms/hooks/url'
+import { LoadMoreIndicator } from '~/components/modules/shared/LoadMoreIndicator'
 import { StyledButton } from '~/components/ui/button'
 import { TextArea } from '~/components/ui/input'
 import { useModalStack } from '~/components/ui/modal'
@@ -16,7 +17,9 @@ import { toast } from '~/lib/toast'
 import { SectionCard } from './sections'
 
 const RECENTLY_ADMIN_PATH = '#/recently'
-const RECENTLY_QUERY_KEY = ['dashboard-recently-list']
+const RECENTLY_COUNT_QUERY_KEY = ['dashboard-recently-count']
+const RECENTLY_LIST_QUERY_KEY = ['dashboard-recently-list']
+const RECENTLY_PAGE_SIZE = 10
 const RECENTLY_SKELETON_IDS = [
   'recently-a',
   'recently-b',
@@ -38,34 +41,67 @@ export const RecentlySection = () => {
   const isOwnerLogged = useIsOwnerLogged()
   const resolveAdminUrl = useResolveAdminUrl()
   const adminUrl = buildRecentlyAdminUrl(resolveAdminUrl)
-  const queryClient = useQueryClient()
   const { present } = useModalStack()
 
-  const { data: recentlyItems, isLoading } = useQuery({
-    queryKey: RECENTLY_QUERY_KEY,
+  const { data: recentlyCount } = useQuery({
+    queryKey: RECENTLY_COUNT_QUERY_KEY,
     queryFn: async () => {
       const payload = (await apiClient.recently.getAll()).$serialized
-      return payload.data as RecentlyModel[]
+      return payload.data.length
     },
     staleTime: 60 * 1000,
   })
 
-  const items = useMemo(
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    refetch,
+  } = useInfiniteQuery({
+    queryKey: RECENTLY_LIST_QUERY_KEY,
+    queryFn: async ({ pageParam }) => {
+      const { data } = await apiClient.shorthand.getList({
+        before: pageParam,
+        size: RECENTLY_PAGE_SIZE,
+      })
+      return data as RecentlyModel[]
+    },
+    getNextPageParam: (lastPage) =>
+      lastPage.length === RECENTLY_PAGE_SIZE
+        ? (lastPage.at(-1)?.id ?? undefined)
+        : undefined,
+    initialPageParam: undefined as string | undefined,
+    refetchOnMount: true,
+  })
+
+  const items = useMemo<RecentlyListItem[]>(
     () =>
-      (recentlyItems || []).map((item) => ({
-        content: item.content,
-        created: item.created,
-        down: item.down,
-        id: item.id,
-        modified: item.modified,
-        up: item.up,
-      })),
-    [recentlyItems],
+      data?.pages.flatMap((page) =>
+        page.map((item) => ({
+          content: item.content,
+          created: item.created,
+          down: item.down,
+          id: item.id,
+          modified: item.modified,
+          up: item.up,
+        })),
+      ) || [],
+    [data],
   )
 
   const openRecentlyPage = () => {
     if (!adminUrl) return
     window.open(adminUrl, '_blank', 'noopener,noreferrer')
+  }
+
+  const refreshRecently = async () => {
+    await refetch()
+  }
+
+  const loadMoreRecently = () => {
+    void fetchNextPage()
   }
 
   const openCreateModal = () => {
@@ -75,9 +111,7 @@ export const RecentlySection = () => {
         <RecentlyEditorModal
           mode="create"
           onSaved={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: RECENTLY_QUERY_KEY,
-            })
+            await refreshRecently()
             dismiss()
           }}
         />
@@ -93,9 +127,7 @@ export const RecentlySection = () => {
           item={item}
           mode="edit"
           onSaved={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: RECENTLY_QUERY_KEY,
-            })
+            await refreshRecently()
             dismiss()
           }}
         />
@@ -110,9 +142,7 @@ export const RecentlySection = () => {
         <RecentlyDeleteModal
           itemId={item.id}
           onDeleted={async () => {
-            await queryClient.invalidateQueries({
-              queryKey: RECENTLY_QUERY_KEY,
-            })
+            await refreshRecently()
             dismiss()
           }}
         />
@@ -123,13 +153,16 @@ export const RecentlySection = () => {
   return (
     <RecentlySectionView
       adminUrl={adminUrl}
+      hasNextPage={!!hasNextPage}
+      isFetchingNextPage={isFetchingNextPage}
       isLoading={isLoading}
       items={items}
-      recentlyCount={items.length}
+      recentlyCount={recentlyCount ?? items.length}
       showOwnerActions={isOwnerLogged}
       onCreate={openCreateModal}
       onDelete={openDeleteModal}
       onEdit={openEditModal}
+      onLoadMore={loadMoreRecently}
       onManage={openRecentlyPage}
     />
   )
@@ -137,6 +170,8 @@ export const RecentlySection = () => {
 
 export const RecentlySectionView = ({
   adminUrl,
+  hasNextPage = false,
+  isFetchingNextPage = false,
   isLoading = false,
   items,
   recentlyCount,
@@ -144,9 +179,12 @@ export const RecentlySectionView = ({
   onCreate,
   onDelete,
   onEdit,
+  onLoadMore,
   onManage,
 }: {
   adminUrl: string
+  hasNextPage?: boolean
+  isFetchingNextPage?: boolean
   isLoading?: boolean
   items: RecentlyListItem[]
   recentlyCount: number
@@ -154,6 +192,7 @@ export const RecentlySectionView = ({
   onCreate?: () => void
   onDelete?: (item: RecentlyListItem) => void
   onEdit?: (item: RecentlyListItem) => void
+  onLoadMore?: () => void
   onManage?: () => void
 }) => (
   <SectionCard
@@ -168,9 +207,6 @@ export const RecentlySectionView = ({
       <div className="mt-4 flex flex-wrap gap-2">
         <StyledButton type="button" onClick={onCreate}>
           新建速记
-        </StyledButton>
-        <StyledButton type="button" variant="secondary" onClick={onManage}>
-          管理
         </StyledButton>
       </div>
     </div>
@@ -194,7 +230,7 @@ export const RecentlySectionView = ({
         {isLoading ? (
           RECENTLY_SKELETON_IDS.map((id) => (
             <div
-              className="rounded-2xl border border-neutral-3/60 bg-neutral-1 p-4"
+              className="rounded-2xl border border-neutral-3/60 bg-neutral-1 p-5 shadow-[0_1px_6px_rgba(0,0,0,0.04)]"
               key={id}
             >
               <div
@@ -206,7 +242,7 @@ export const RecentlySectionView = ({
                 style={{ width: RECENTLY_SKELETON_WIDTHS[1] }}
               />
               <div
-                className="mt-4 h-3 animate-pulse rounded bg-neutral-3/30"
+                className="mt-6 h-3 animate-pulse rounded bg-neutral-3/30"
                 style={{ width: RECENTLY_SKELETON_WIDTHS[2] }}
               />
             </div>
@@ -218,15 +254,17 @@ export const RecentlySectionView = ({
         ) : (
           items.map((item) => (
             <article
-              className="rounded-2xl border border-neutral-3/80 bg-neutral-1 p-4 shadow-sm"
+              className="rounded-3xl border border-neutral-3/70 bg-neutral-1 px-5 py-4 shadow-[0_1px_10px_rgba(0,0,0,0.035)] transition-shadow hover:shadow-[0_2px_14px_rgba(0,0,0,0.05)]"
               key={item.id}
             >
-              <div className="whitespace-pre-wrap text-sm leading-7 text-neutral-8">
+              <div className="text-[15px] leading-8 text-neutral-9">
                 {item.content}
               </div>
 
-              <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-neutral-5">
-                <RelativeTime date={item.created} />
+              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-neutral-5">
+                <span className="font-medium text-neutral-6">
+                  <RelativeTime date={item.created} />
+                </span>
                 {item.modified ? (
                   <span>
                     编辑于 <RelativeTime date={item.modified} />
@@ -237,7 +275,7 @@ export const RecentlySectionView = ({
               </div>
 
               {showOwnerActions ? (
-                <div className="mt-4 flex gap-2">
+                <div className="mt-4 flex gap-2 border-t border-neutral-3/50 pt-4">
                   <StyledButton
                     type="button"
                     variant="secondary"
@@ -257,6 +295,17 @@ export const RecentlySectionView = ({
             </article>
           ))
         )}
+
+        {hasNextPage ? (
+          <LoadMoreIndicator
+            className="rounded-2xl border border-dashed border-neutral-3/80 py-4"
+            onLoading={() => onLoadMore?.()}
+          >
+            <div className="text-center text-sm text-neutral-5">
+              {isFetchingNextPage ? '正在加载更多速记…' : '下滑继续加载速记'}
+            </div>
+          </LoadMoreIndicator>
+        ) : null}
       </div>
     </div>
   </SectionCard>
