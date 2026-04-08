@@ -4230,3 +4230,108 @@ pnpm --filter @shiro/web build
 4. 发布后优先验证：
    - `#/recently` 下方先出现骨架屏，但不会立刻误报失败
    - 等待后能看到真实速记内容
+
+## [2026-04-08 10:34] 速记页改为前端原生内容列表，不再内嵌后台页面
+
+> 这一节是当前关于“速记页不再显示后台骨架，而是直接显示真实速记内容”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 用户最新要求
+
+- 用户明确不要后台 `#/recently` 的骨架屏展示。
+- 希望速记页面直接在轻管理前端里渲染真实速记内容。
+
+### 这轮调整
+
+- 放弃 iframe 方案：
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - 移除：
+    - iframe
+    - fallback 计时器
+    - “无法直接内嵌”提示逻辑
+- 保留顶部卡片：
+  - 速记
+  - 数量
+  - 新建速记
+  - 管理
+- 下方改为前端原生列表：
+  - 直接调用 `apiClient.recently.getAll()`
+  - 渲染真实速记内容
+  - 显示：
+    - 内容
+    - 时间
+    - up/down 计数
+- owner 管理能力：
+  - `新建速记`
+    - 直接在当前页打开本地创建弹窗
+  - 每条内容支持：
+    - 编辑
+    - 删除
+  - `管理`
+    - 保留为打开后台 `#/recently` 的完整功能入口
+
+### 为什么这样改
+
+- 完全满足“不显示后台骨架”的要求。
+- 轻管理页自己掌握加载态、空态和交互，不再依赖后台页面的渲染节奏。
+- 仍保留“管理”按钮作为完整后台入口，不丢原功能。
+
+### 本轮实现
+
+- 主要文件：
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 具体做法：
+  - 将 `RecentlySection` 改成 dashboard-native 列表
+  - 新增：
+    - `RecentlyEditorModal`
+    - `RecentlyDeleteModal`
+  - 列表 query key：
+    - `['dashboard-recently-list']`
+
+### 本地验证
+
+已真实运行：
+
+```bash
+pnpm exec vitest run --config vitest.config.ts \
+  src/routes/site/recently-section.test.tsx \
+  src/routes/site/form-state.test.ts \
+  src/routes/site/theme-snippet.test.ts
+
+pnpm exec eslint \
+  'apps/web/src/routes/site/recently-section.tsx' \
+  'apps/web/src/routes/site/recently-section.test.tsx' \
+  'apps/web/src/routes/recently/index.tsx' \
+  'apps/web/src/routes/site/index.tsx'
+
+pnpm --filter @shiro/web build
+```
+
+- 结果：
+  - 3 个测试文件通过
+  - 10 个测试通过
+  - eslint 通过
+  - `@shiro/web build` 成功
+
+### 当前工作区状态
+
+- 本轮直接相关文件：
+  - `apps/web/src/routes/site/recently-section.tsx`
+  - `apps/web/src/routes/site/recently-section.test.tsx`
+- 仍有无关未跟踪文件，勿误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 下一步建议
+
+1. 提交这轮“速记页改为前端原生列表”
+2. push 到 `origin/codex/modify`
+3. 触发 `.github/workflows/vercel-frontend-deploy.yml`
+4. 发布后重点验证：
+   - `速记` 页下方不再出现后台骨架屏
+   - 直接显示真实速记内容
+   - `新建速记` 可在当前页创建
+   - `编辑 / 删除` 行为正常
