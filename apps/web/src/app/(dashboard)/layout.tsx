@@ -1,4 +1,4 @@
-import type { Viewport } from 'next'
+import type { Metadata, Viewport } from 'next'
 import type { PropsWithChildren } from 'react'
 
 import { HydrationEndDetector } from '~/components/common/HydrationEndDetector'
@@ -11,6 +11,15 @@ import { DashboardClientShell } from './spa-shell'
 // Dashboard is a pure SPA entry. Keep it static and do all data fetching on the client.
 export const dynamic = 'force-static'
 export const revalidate = false
+const dashboardIconUrl = '/dashboard-service.svg'
+
+export const metadata: Metadata = {
+  icons: {
+    icon: [{ url: dashboardIconUrl }],
+    apple: [{ url: dashboardIconUrl }],
+    shortcut: [{ url: dashboardIconUrl }],
+  },
+}
 
 export function generateViewport(): Viewport {
   return {
@@ -27,15 +36,11 @@ export function generateViewport(): Viewport {
 }
 
 export default function RootLayout({ children }: PropsWithChildren) {
-  const siteIconUrl = '/dashboard-service.svg'
-
   return (
     <html suppressHydrationWarning lang="zh-CN">
       <head>
         <title>Shiro · Light Dashboard | Powered by Mix Space</title>
         <HydrationEndDetector />
-        <link href={siteIconUrl} rel="icon" sizes="any" />
-        <link href={siteIconUrl} rel="apple-touch-icon" />
         <PublicEnvScript />
       </head>
       <body
