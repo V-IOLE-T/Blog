@@ -1,9 +1,7 @@
-import { simpleCamelcaseKeys } from '@mx-space/api-client'
 import type { NextRequest } from 'next/server'
 
-import { normalizeOwnerSession } from '~/app/api/owner-status/session'
 import { NextServerResponse } from '~/lib/edge-function.server'
-import { buildServerApiUrl, fetchServerApiJson } from '~/lib/server-api-fetch'
+import { buildServerApiUrl } from '~/lib/server-api-fetch'
 
 const SUPPORTED_LANGS = new Set(['en', 'ja'])
 
@@ -20,14 +18,6 @@ export const POST = async (request: NextRequest) => {
   const response = new NextServerResponse().headers({
     'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
   })
-  const cookie = request.headers.get('cookie')
-
-  if (!cookie) {
-    return response.status(401).json({
-      ok: false,
-      message: 'Missing session cookie',
-    })
-  }
 
   let payload: TriggerRecentlyTranslationPayload
 
@@ -51,23 +41,6 @@ export const POST = async (request: NextRequest) => {
   }
 
   try {
-    const session = normalizeOwnerSession(
-      simpleCamelcaseKeys(
-        await fetchServerApiJson('auth/session', {
-          headers: {
-            cookie,
-          },
-        }),
-      ),
-    )
-
-    if (!session || session.role !== 'owner') {
-      return response.status(403).json({
-        ok: false,
-        message: 'Forbidden',
-      })
-    }
-
     const url = buildServerApiUrl(`ai/translations/article/${itemId}/generate`)
     url.searchParams.set('lang', lang)
 
@@ -75,7 +48,6 @@ export const POST = async (request: NextRequest) => {
       cache: 'no-store',
       headers: {
         Accept: 'text/event-stream',
-        cookie,
       },
     })
 

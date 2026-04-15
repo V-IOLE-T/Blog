@@ -438,6 +438,77 @@ pnpm --filter @shiro/web build
 
 ---
 
+## [2026-04-16 01:00] 修正 recently 中转 route：不要再依赖 owner session cookie
+
+> 本节比上一节更新；若与 recently 中转实现描述冲突，以本节为准。
+
+### 新发现
+
+上一版把 recently 翻译按钮改成了同源 route 中转，但我在 route 里额外加了 owner session 校验，这在当前站点结构下是错误的。
+
+原因：
+
+- 前台轻管理在 `https://418122.xyz`
+- 后端控制台在 `https://api.418122.xyz/proxy/qaqdmin`
+- 浏览器里 owner 登录状态对 API 域可用，但 `418122.xyz` 的 Next route **拿不到** `api.418122.xyz` 的 session cookie
+- 因此同源 route 会误报：
+  - `Missing session cookie`
+
+### 对照后端真实接口后的结论
+
+已核对：
+
+- 后端 `AiTranslationController` 中的
+  - `GET /api/v2/ai/translations/article/:id/generate`
+  - **没有** `@Auth()`
+- 它本来就是一个公开的 SSE 生成入口
+- 控制台里翻译博文之所以能正常用，是因为控制台和 API 同域，不会撞到前台的跨域 SSE 限制
+
+所以前台的正确做法不是“补 cookie 校验”，而是：
+
+- 保持同源 route
+- 但这个 route 只做**纯代理**
+- 不再自己校验 `auth/session`
+- 服务端直接请求后端现有 SSE 接口并消费结果
+
+### 当前最终实现
+
+- [apps/web/src/app/api/internal/recently-translations/generate/route.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/app/api/internal/recently-translations/generate/route.ts)
+  - 已移除：
+    - `cookie` 检查
+    - `auth/session` 检查
+    - owner role 校验
+  - 现在只做：
+    1. 校验 `itemId` / `lang`
+    2. 服务端请求 `/api/v2/ai/translations/article/:id/generate?lang=...`
+    3. 消费 SSE
+    4. 返回同源 JSON
+
+### 本次验证
+
+已真实执行：
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 \
+NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz \
+pnpm --filter @shiro/web build
+```
+
+结果：
+
+- `next build` 成功
+- route 仍然正常出现在产物中：
+  - `ƒ /api/internal/recently-translations/generate`
+
+### 下一步
+
+1. push 当前分支
+2. 重跑前端部署
+3. 线上再次点击 recently 的 `AI 翻译`
+4. 若仍异常，再看后端 SSE 实际返回内容是否需要更薄的流式代理
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状
