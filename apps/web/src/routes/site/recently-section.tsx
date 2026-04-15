@@ -7,6 +7,12 @@ import { useIsOwnerLogged } from '~/atoms/hooks/owner'
 import { useResolveAdminUrl } from '~/atoms/hooks/url'
 import { LoadMoreIndicator } from '~/components/modules/shared/LoadMoreIndicator'
 import { StyledButton } from '~/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { TextArea } from '~/components/ui/input'
 import { useModalStack } from '~/components/ui/modal'
 import { RelativeTime } from '~/components/ui/relative-time'
@@ -14,6 +20,11 @@ import { apiClient } from '~/lib/request'
 import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
 
+import {
+  getRecentlyTranslationActionLabel,
+  getRecentlyTranslationStatuses,
+  type RecentlyTranslationLang,
+} from './recently-translation'
 import { SectionCard } from './sections'
 
 const RECENTLY_ADMIN_PATH = '#/recently'
@@ -30,7 +41,9 @@ const RECENTLY_SKELETON_WIDTHS = ['100%', '82%', '36%'] as const
 type RecentlyListItem = Pick<
   RecentlyModel,
   'content' | 'created' | 'down' | 'id' | 'modified' | 'up'
->
+> & {
+  availableTranslations?: string[]
+}
 
 export const buildRecentlyAdminUrl = (
   resolveAdminUrl: (path?: string) => string,
@@ -80,6 +93,11 @@ export const RecentlySection = () => {
     () =>
       data?.pages.flatMap((page) =>
         page.map((item) => ({
+          availableTranslations: (
+            item as RecentlyModel & {
+              availableTranslations?: string[]
+            }
+          ).availableTranslations,
           content: item.content,
           created: item.created,
           down: item.down,
@@ -181,6 +199,7 @@ export const RecentlySectionView = ({
   onEdit,
   onLoadMore,
   onManage,
+  onTranslate,
 }: {
   adminUrl: string
   hasNextPage?: boolean
@@ -194,6 +213,11 @@ export const RecentlySectionView = ({
   onEdit?: (item: RecentlyListItem) => void
   onLoadMore?: () => void
   onManage?: () => void
+  onTranslate?: (
+    item: RecentlyListItem,
+    lang: RecentlyTranslationLang,
+    translated: boolean,
+  ) => void
 }) => (
   <SectionCard
     description="复用现有后台里的速记模块，在这里可以快速查看并跳转管理。"
@@ -252,48 +276,98 @@ export const RecentlySectionView = ({
             还没有速记内容
           </div>
         ) : (
-          items.map((item) => (
-            <article
-              className="rounded-3xl border border-neutral-3/70 bg-neutral-1 px-5 py-4 shadow-[0_1px_10px_rgba(0,0,0,0.035)] transition-shadow hover:shadow-[0_2px_14px_rgba(0,0,0,0.05)]"
-              key={item.id}
-            >
-              <div className="text-[15px] leading-8 text-neutral-9">
-                {item.content}
-              </div>
+          items.map((item) => {
+            const translationStatuses = getRecentlyTranslationStatuses(
+              item.availableTranslations,
+            )
 
-              <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-neutral-5">
-                <span className="font-medium text-neutral-6">
-                  <RelativeTime date={item.created} />
-                </span>
-                {item.modified ? (
-                  <span>
-                    编辑于 <RelativeTime date={item.modified} />
-                  </span>
-                ) : null}
-                <span>赞 {item.up}</span>
-                <span>踩 {item.down}</span>
-              </div>
-
-              {showOwnerActions ? (
-                <div className="mt-4 flex gap-2 border-t border-neutral-3/50 pt-4">
-                  <StyledButton
-                    type="button"
-                    variant="secondary"
-                    onClick={() => onEdit?.(item)}
-                  >
-                    编辑
-                  </StyledButton>
-                  <StyledButton
-                    type="button"
-                    variant="ghost"
-                    onClick={() => onDelete?.(item)}
-                  >
-                    删除
-                  </StyledButton>
+            return (
+              <article
+                className="rounded-3xl border border-neutral-3/70 bg-neutral-1 px-5 py-4 shadow-[0_1px_10px_rgba(0,0,0,0.035)] transition-shadow hover:shadow-[0_2px_14px_rgba(0,0,0,0.05)]"
+                key={item.id}
+              >
+                <div className="text-[15px] leading-8 text-neutral-9">
+                  {item.content}
                 </div>
-              ) : null}
-            </article>
-          ))
+
+                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-neutral-5">
+                  <span className="font-medium text-neutral-6">
+                    <RelativeTime date={item.created} />
+                  </span>
+                  {item.modified ? (
+                    <span>
+                      编辑于 <RelativeTime date={item.modified} />
+                    </span>
+                  ) : null}
+                  <span>赞 {item.up}</span>
+                  <span>踩 {item.down}</span>
+                </div>
+
+                {showOwnerActions ? (
+                  <div className="mt-4 space-y-4 border-t border-neutral-3/50 pt-4">
+                    <div className="flex flex-wrap gap-2">
+                      {translationStatuses.map((status) => (
+                        <span
+                          key={status.lang}
+                          className={
+                            status.translated
+                              ? 'rounded-full border border-emerald-300/70 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700'
+                              : 'rounded-full border border-neutral-3/80 bg-neutral-2/60 px-2.5 py-1 text-xs font-medium text-neutral-6'
+                          }
+                        >
+                          {status.code}{' '}
+                          {status.translated ? '已翻译' : '未翻译'}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap gap-2">
+                      <StyledButton
+                        type="button"
+                        variant="secondary"
+                        onClick={() => onEdit?.(item)}
+                      >
+                        编辑
+                      </StyledButton>
+                      <StyledButton
+                        type="button"
+                        variant="ghost"
+                        onClick={() => onDelete?.(item)}
+                      >
+                        删除
+                      </StyledButton>
+                      <DropdownMenu modal={false}>
+                        <DropdownMenuTrigger asChild>
+                          <StyledButton type="button" variant="secondary">
+                            AI 翻译
+                          </StyledButton>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent keepMounted align="end">
+                          {translationStatuses.map((status) => (
+                            <DropdownMenuItem
+                              key={status.lang}
+                              onClick={() =>
+                                onTranslate?.(
+                                  item,
+                                  status.lang,
+                                  status.translated,
+                                )
+                              }
+                            >
+                              {getRecentlyTranslationActionLabel(
+                                status.lang,
+                                status.translated,
+                              )}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                ) : null}
+              </article>
+            )
+          })
         )}
 
         {hasNextPage ? (

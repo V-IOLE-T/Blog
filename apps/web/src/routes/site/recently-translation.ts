@@ -3,7 +3,7 @@ export const RECENTLY_TRANSLATION_LANGS = [
   { code: 'JA', label: '日文', lang: 'ja' },
 ] as const
 
-type RecentlyTranslationLang =
+export type RecentlyTranslationLang =
   (typeof RECENTLY_TRANSLATION_LANGS)[number]['lang']
 
 export const getRecentlyTranslationStatuses = (

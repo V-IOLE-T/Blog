@@ -77,4 +77,33 @@ describe('recently section', () => {
     expect(html).not.toContain('>管理<')
     expect(html).toContain('打开完整后台')
   })
+
+  it('renders translation status badges and ai translation entry for owner', () => {
+    const html = renderToStaticMarkup(
+      <RecentlySectionView
+        showOwnerActions
+        adminUrl="https://api.418122.xyz/proxy/qaqdmin#/recently"
+        hasNextPage={false}
+        isFetchingNextPage={false}
+        recentlyCount={1}
+        items={
+          [
+            {
+              content: '今天从杭州回来了，赶早上的飞机真的好困。',
+              created: '2026-04-07T10:52:42.124Z',
+              down: 0,
+              id: 'recently-1',
+              modified: null,
+              up: 0,
+              availableTranslations: ['en'],
+            },
+          ] as any
+        }
+      />,
+    )
+
+    expect(html).toContain('EN 已翻译')
+    expect(html).toContain('JA 未翻译')
+    expect(html).toContain('AI 翻译')
+  })
 })
