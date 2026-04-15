@@ -23,7 +23,10 @@ import { toast } from '~/lib/toast'
 import {
   getRecentlyTranslationActionLabel,
   getRecentlyTranslationStatuses,
+  getRecentlyTranslationToastLabel,
+  isRecentlyTranslationPendingTarget,
   type RecentlyTranslationLang,
+  type RecentlyTranslationTarget,
 } from './recently-translation'
 import { SectionCard } from './sections'
 
@@ -55,6 +58,8 @@ export const RecentlySection = () => {
   const resolveAdminUrl = useResolveAdminUrl()
   const adminUrl = buildRecentlyAdminUrl(resolveAdminUrl)
   const { present } = useModalStack()
+  const [translatingTarget, setTranslatingTarget] =
+    useState<RecentlyTranslationTarget | null>(null)
 
   const { data: recentlyCount } = useQuery({
     queryKey: RECENTLY_COUNT_QUERY_KEY,
@@ -109,6 +114,20 @@ export const RecentlySection = () => {
     [data],
   )
 
+  const { mutateAsync: requestRecentlyTranslation } = useMutation({
+    mutationFn: async ({
+      itemId,
+      lang,
+    }: {
+      itemId: string
+      lang: RecentlyTranslationLang
+    }) => {
+      await apiClient.ai.proxy(`translations/article/${itemId}/generate`).get({
+        params: { lang },
+      })
+    },
+  })
+
   const openRecentlyPage = () => {
     if (!adminUrl) return
     window.open(adminUrl, '_blank', 'noopener,noreferrer')
@@ -120,6 +139,24 @@ export const RecentlySection = () => {
 
   const loadMoreRecently = () => {
     void fetchNextPage()
+  }
+
+  const triggerRecentlyTranslation = async (
+    item: RecentlyListItem,
+    lang: RecentlyTranslationLang,
+    translated: boolean,
+  ) => {
+    setTranslatingTarget({ itemId: item.id, lang })
+
+    try {
+      await requestRecentlyTranslation({ itemId: item.id, lang })
+      toast.success(getRecentlyTranslationToastLabel(lang, translated))
+      await refreshRecently()
+    } catch (error) {
+      toast.error(getErrorMessageFromRequestError(error as any))
+    } finally {
+      setTranslatingTarget(null)
+    }
   }
 
   const openCreateModal = () => {
@@ -177,11 +214,13 @@ export const RecentlySection = () => {
       items={items}
       recentlyCount={recentlyCount ?? items.length}
       showOwnerActions={isOwnerLogged}
+      translatingTarget={translatingTarget}
       onCreate={openCreateModal}
       onDelete={openDeleteModal}
       onEdit={openEditModal}
       onLoadMore={loadMoreRecently}
       onManage={openRecentlyPage}
+      onTranslate={triggerRecentlyTranslation}
     />
   )
 }
@@ -200,6 +239,7 @@ export const RecentlySectionView = ({
   onLoadMore,
   onManage,
   onTranslate,
+  translatingTarget,
 }: {
   adminUrl: string
   hasNextPage?: boolean
@@ -218,6 +258,7 @@ export const RecentlySectionView = ({
     lang: RecentlyTranslationLang,
     translated: boolean,
   ) => void
+  translatingTarget?: RecentlyTranslationTarget | null
 }) => (
   <SectionCard
     description="复用现有后台里的速记模块，在这里可以快速查看并跳转管理。"
@@ -280,6 +321,7 @@ export const RecentlySectionView = ({
             const translationStatuses = getRecentlyTranslationStatuses(
               item.availableTranslations,
             )
+            const isItemTranslating = translatingTarget?.itemId === item.id
 
             return (
               <article
@@ -338,28 +380,47 @@ export const RecentlySectionView = ({
                       </StyledButton>
                       <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
-                          <StyledButton type="button" variant="secondary">
-                            AI 翻译
+                          <StyledButton
+                            disabled={isItemTranslating}
+                            type="button"
+                            variant="secondary"
+                          >
+                            {isItemTranslating ? 'AI 翻译中' : 'AI 翻译'}
                           </StyledButton>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent keepMounted align="end">
-                          {translationStatuses.map((status) => (
-                            <DropdownMenuItem
-                              key={status.lang}
-                              onClick={() =>
-                                onTranslate?.(
-                                  item,
-                                  status.lang,
-                                  status.translated,
-                                )
-                              }
-                            >
-                              {getRecentlyTranslationActionLabel(
+                          {translationStatuses.map((status) => {
+                            const isTranslating =
+                              isRecentlyTranslationPendingTarget(
+                                translatingTarget,
+                                item.id,
                                 status.lang,
-                                status.translated,
-                              )}
-                            </DropdownMenuItem>
-                          ))}
+                              )
+
+                            return (
+                              <DropdownMenuItem
+                                disabled={isTranslating}
+                                key={status.lang}
+                                onClick={() =>
+                                  onTranslate?.(
+                                    item,
+                                    status.lang,
+                                    status.translated,
+                                  )
+                                }
+                              >
+                                {isTranslating
+                                  ? `${getRecentlyTranslationActionLabel(
+                                      status.lang,
+                                      status.translated,
+                                    )}中`
+                                  : getRecentlyTranslationActionLabel(
+                                      status.lang,
+                                      status.translated,
+                                    )}
+                              </DropdownMenuItem>
+                            )
+                          })}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

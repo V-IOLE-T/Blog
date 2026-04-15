@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getRecentlyTranslationActionLabel,
   getRecentlyTranslationStatuses,
+  isRecentlyTranslationPendingTarget,
 } from './recently-translation'
 
 describe('recently translation helpers', () => {
@@ -23,5 +24,29 @@ describe('recently translation helpers', () => {
   it('returns update labels for translated languages', () => {
     expect(getRecentlyTranslationActionLabel('en', true)).toBe('更新英文')
     expect(getRecentlyTranslationActionLabel('ja', false)).toBe('生成日文')
+  })
+
+  it('matches only the active translating target', () => {
+    expect(
+      isRecentlyTranslationPendingTarget(
+        { itemId: 'recently-1', lang: 'en' },
+        'recently-1',
+        'en',
+      ),
+    ).toBe(true)
+    expect(
+      isRecentlyTranslationPendingTarget(
+        { itemId: 'recently-1', lang: 'en' },
+        'recently-1',
+        'ja',
+      ),
+    ).toBe(false)
+    expect(
+      isRecentlyTranslationPendingTarget(
+        { itemId: 'recently-1', lang: 'en' },
+        'recently-2',
+        'en',
+      ),
+    ).toBe(false)
   })
 })

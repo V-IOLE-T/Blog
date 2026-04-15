@@ -6,6 +6,11 @@ export const RECENTLY_TRANSLATION_LANGS = [
 export type RecentlyTranslationLang =
   (typeof RECENTLY_TRANSLATION_LANGS)[number]['lang']
 
+export type RecentlyTranslationTarget = {
+  itemId: string
+  lang: RecentlyTranslationLang
+}
+
 export const getRecentlyTranslationStatuses = (
   availableTranslations?: string[],
 ) =>
@@ -29,3 +34,9 @@ export const getRecentlyTranslationToastLabel = (
   const label = lang === 'en' ? '英文' : '日文'
   return `已提交${label}${translated ? '重翻译' : '翻译'}`
 }
+
+export const isRecentlyTranslationPendingTarget = (
+  target: RecentlyTranslationTarget | null | undefined,
+  itemId: string,
+  lang: RecentlyTranslationLang,
+) => target?.itemId === itemId && target.lang === lang
