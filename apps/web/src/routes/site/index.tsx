@@ -1,9 +1,21 @@
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import {
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useMemo, useRef, useState } from 'react'
 
+import { useIsOwnerLogged } from '~/atoms/hooks/owner'
 import { PageLoading } from '~/components/layout/dashboard/PageLoading'
 import { defineRouteConfig } from '~/components/modules/dashboard/utils/helper'
 import { StyledButton } from '~/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '~/components/ui/dropdown-menu'
 import { Input, TextArea } from '~/components/ui/input'
 import { apiClient } from '~/lib/request'
 import { getErrorMessageFromRequestError } from '~/lib/request.shared'
@@ -20,7 +32,20 @@ import {
   FooterLinksEditor,
   SectionCard,
   SocialLinksEditor,
+  TranslationStatusBadges,
 } from './sections'
+import {
+  buildFooterTranslationFields,
+  buildHeroTranslationFields,
+  buildSiteTranslationStatusMap,
+  getGroupHasTranslation,
+  getSiteTranslationActionLabel,
+  groupSiteTranslationFieldsByKeyPath,
+  normalizeSiteTranslationEntries,
+  type SiteTranslationField,
+  type SiteTranslationLang,
+  type SiteTranslationStatusMap,
+} from './site-translation'
 import {
   fetchThemeSnippetRecord,
   THEME_SNIPPET_NAME,
@@ -32,12 +57,29 @@ const themeSnippetQueryOptions = {
   queryFn: () => fetchThemeSnippetRecord(apiClient),
 }
 
+const SITE_TRANSLATION_LANGS: SiteTranslationLang[] = ['en', 'ja']
+
+const EMPTY_SITE_SETTINGS_FORM_STATE: SiteSettingsFormState = {
+  heroDescription: '',
+  heroQuote: '',
+  heroTitle: '',
+  linkSections: [],
+  seoDescription: '',
+  seoTitle: '',
+  socialLinks: [],
+}
+
 export const Component = () => {
   const queryClient = useQueryClient()
+  const isOwnerLogged = useIsOwnerLogged()
   const aggregationQuery = useQuery(aggregation.root())
   const snippetQuery = useQuery(themeSnippetQueryOptions)
   const [draftForm, setDraftForm] = useState<SiteSettingsFormState>()
   const [isSaving, setIsSaving] = useState(false)
+  const [translatingGroup, setTranslatingGroup] = useState<{
+    group: 'footer' | 'hero'
+    lang: SiteTranslationLang
+  } | null>(null)
   const seoDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
   const heroDescriptionRef = useRef<HTMLTextAreaElement | null>(null)
   const heroQuoteRef = useRef<HTMLTextAreaElement | null>(null)
@@ -50,6 +92,146 @@ export const Component = () => {
     )
   }, [aggregationQuery.data])
   const form = draftForm ?? initialState
+  const safeForm = form ?? EMPTY_SITE_SETTINGS_FORM_STATE
+
+  const heroFields = useMemo(
+    () =>
+      buildHeroTranslationFields({
+        heroDescription: safeForm.heroDescription,
+        heroQuote: safeForm.heroQuote,
+        heroTitle: safeForm.heroTitle,
+      }),
+    [safeForm.heroDescription, safeForm.heroQuote, safeForm.heroTitle],
+  )
+  const footerFields = useMemo(
+    () => buildFooterTranslationFields(safeForm.linkSections),
+    [safeForm.linkSections],
+  )
+
+  const heroLookupGroups = useMemo(
+    () => groupSiteTranslationFieldsByKeyPath(heroFields),
+    [heroFields],
+  )
+  const footerLookupGroups = useMemo(
+    () => groupSiteTranslationFieldsByKeyPath(footerFields),
+    [footerFields],
+  )
+
+  const heroTranslationQueries = useQueries({
+    queries: isOwnerLogged
+      ? heroLookupGroups.flatMap((group) =>
+          SITE_TRANSLATION_LANGS.map((lang) => ({
+            enabled: !!form && group.lookupKeys.length > 0,
+            queryKey: [
+              'site-translation-lookup',
+              'hero',
+              group.keyPath,
+              lang,
+              group.lookupKeys.join('|'),
+            ],
+            queryFn: async () => {
+              const response = await apiClient
+                .proxy('ai/translations/entries/lookup')
+                .post({
+                  data: {
+                    keyPath: group.keyPath,
+                    lang,
+                    lookupKeys: group.lookupKeys,
+                  },
+                })
+
+              return normalizeSiteTranslationEntries((response as any).data)
+            },
+            staleTime: 60 * 1000,
+          })),
+        )
+      : [],
+  })
+
+  const footerTranslationQueries = useQueries({
+    queries: isOwnerLogged
+      ? footerLookupGroups.flatMap((group) =>
+          SITE_TRANSLATION_LANGS.map((lang) => ({
+            enabled: !!form && group.lookupKeys.length > 0,
+            queryKey: [
+              'site-translation-lookup',
+              'footer',
+              group.keyPath,
+              lang,
+              group.lookupKeys.join('|'),
+            ],
+            queryFn: async () => {
+              const response = await apiClient
+                .proxy('ai/translations/entries/lookup')
+                .post({
+                  data: {
+                    keyPath: group.keyPath,
+                    lang,
+                    lookupKeys: group.lookupKeys,
+                  },
+                })
+
+              return normalizeSiteTranslationEntries((response as any).data)
+            },
+            staleTime: 60 * 1000,
+          })),
+        )
+      : [],
+  })
+
+  const heroStatusMap = useMemo<SiteTranslationStatusMap>(() => {
+    const entriesByLang = Object.fromEntries(
+      SITE_TRANSLATION_LANGS.map((lang, langIndex) => [
+        lang,
+        heroLookupGroups.flatMap(
+          (_, groupIndex) =>
+            (heroTranslationQueries[
+              groupIndex * SITE_TRANSLATION_LANGS.length + langIndex
+            ]?.data as any[]) ?? [],
+        ),
+      ]),
+    ) as Record<SiteTranslationLang, any[]>
+
+    return buildSiteTranslationStatusMap(heroFields, entriesByLang)
+  }, [heroFields, heroLookupGroups, heroTranslationQueries])
+
+  const footerStatusMap = useMemo<SiteTranslationStatusMap>(() => {
+    const entriesByLang = Object.fromEntries(
+      SITE_TRANSLATION_LANGS.map((lang, langIndex) => [
+        lang,
+        footerLookupGroups.flatMap(
+          (_, groupIndex) =>
+            (footerTranslationQueries[
+              groupIndex * SITE_TRANSLATION_LANGS.length + langIndex
+            ]?.data as any[]) ?? [],
+        ),
+      ]),
+    ) as Record<SiteTranslationLang, any[]>
+
+    return buildSiteTranslationStatusMap(footerFields, entriesByLang)
+  }, [footerFields, footerLookupGroups, footerTranslationQueries])
+
+  const { mutateAsync: requestSiteTranslation } = useMutation({
+    mutationFn: async ({
+      lang,
+      values,
+    }: {
+      lang: SiteTranslationLang
+      values: SiteTranslationField[]
+    }) => {
+      await apiClient.proxy('ai/translations/entries/generate').post({
+        data: {
+          targetLangs: [lang],
+          values: values.map((item) => ({
+            keyPath: item.keyPath,
+            keyType: item.keyType,
+            lookupKey: item.lookupKey,
+            sourceText: item.sourceText,
+          })),
+        },
+      })
+    },
+  })
 
   if (aggregationQuery.isLoading || !aggregationQuery.data || !form) {
     return <PageLoading loadingText="正在加载站点配置…" />
@@ -130,6 +312,43 @@ export const Component = () => {
     }
   }
 
+  const triggerGroupTranslation = async ({
+    fields,
+    group,
+    groupLabel,
+    lang,
+  }: {
+    fields: SiteTranslationField[]
+    group: 'footer' | 'hero'
+    groupLabel: string
+    lang: SiteTranslationLang
+  }) => {
+    if (!fields.length) return
+
+    setTranslatingGroup({ group, lang })
+
+    try {
+      await requestSiteTranslation({ lang, values: fields })
+      await queryClient.invalidateQueries({
+        queryKey: ['site-translation-lookup', group],
+      })
+      toast.success(`已提交${groupLabel}${lang === 'en' ? '英文' : '日文'}翻译`)
+    } catch (error) {
+      toast.error(getErrorMessageFromRequestError(error as any))
+    } finally {
+      setTranslatingGroup(null)
+    }
+  }
+
+  const heroHasTranslation = {
+    en: getGroupHasTranslation(heroFields, heroStatusMap, 'en'),
+    ja: getGroupHasTranslation(heroFields, heroStatusMap, 'ja'),
+  }
+  const footerHasTranslation = {
+    en: getGroupHasTranslation(footerFields, footerStatusMap, 'en'),
+    ja: getGroupHasTranslation(footerFields, footerStatusMap, 'ja'),
+  }
+
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-4">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
@@ -179,12 +398,65 @@ export const Component = () => {
         </div>
       </SectionCard>
 
-      <SectionCard description="首页首屏的主标题与说明文案。" title="Hero">
+      <SectionCard
+        description="首页首屏的主标题与说明文案。"
+        title="Hero"
+        actions={
+          isOwnerLogged ? (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <StyledButton
+                  type="button"
+                  variant="secondary"
+                  disabled={
+                    !heroFields.length || translatingGroup?.group === 'hero'
+                  }
+                >
+                  {translatingGroup?.group === 'hero' ? 'AI 翻译中' : 'AI 翻译'}
+                </StyledButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent keepMounted align="end">
+                {SITE_TRANSLATION_LANGS.map((lang) => {
+                  const isPending =
+                    translatingGroup?.group === 'hero' &&
+                    translatingGroup.lang === lang
+
+                  return (
+                    <DropdownMenuItem
+                      disabled={isPending || !heroFields.length}
+                      key={lang}
+                      onClick={() =>
+                        triggerGroupTranslation({
+                          fields: heroFields,
+                          group: 'hero',
+                          groupLabel: 'Hero ',
+                          lang,
+                        })
+                      }
+                    >
+                      {isPending
+                        ? `${getSiteTranslationActionLabel(
+                            lang,
+                            heroHasTranslation[lang],
+                          )}中`
+                        : getSiteTranslationActionLabel(
+                            lang,
+                            heroHasTranslation[lang],
+                          )}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
+      >
         <div>
           <FieldLabel
             hint="第一版会保存成简单文本 title template。"
             title="Hero 标题"
           />
+          <TranslationStatusBadges status={heroStatusMap['hero.title']} />
           <Input
             value={form.heroTitle}
             onChange={(event) =>
@@ -194,6 +466,7 @@ export const Component = () => {
         </div>
         <div>
           <FieldLabel title="Hero 描述" />
+          <TranslationStatusBadges status={heroStatusMap['hero.description']} />
           <TextArea
             ref={heroDescriptionRef}
             value={form.heroDescription}
@@ -211,6 +484,7 @@ export const Component = () => {
             hint="首页右下角的一句话。留空则回退默认文案；填写后会优先使用这里的内容。"
             title="首页一句话"
           />
+          <TranslationStatusBadges status={heroStatusMap['hero.quote']} />
           <TextArea
             ref={heroQuoteRef}
             value={form.heroQuote}
@@ -238,8 +512,60 @@ export const Component = () => {
       <SectionCard
         description="页脚分组链接，空名称或空地址的项不会保存。"
         title="页脚链接"
+        actions={
+          isOwnerLogged ? (
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <StyledButton
+                  type="button"
+                  variant="secondary"
+                  disabled={
+                    !footerFields.length || translatingGroup?.group === 'footer'
+                  }
+                >
+                  {translatingGroup?.group === 'footer'
+                    ? 'AI 翻译中'
+                    : 'AI 翻译'}
+                </StyledButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent keepMounted align="end">
+                {SITE_TRANSLATION_LANGS.map((lang) => {
+                  const isPending =
+                    translatingGroup?.group === 'footer' &&
+                    translatingGroup.lang === lang
+
+                  return (
+                    <DropdownMenuItem
+                      disabled={isPending || !footerFields.length}
+                      key={lang}
+                      onClick={() =>
+                        triggerGroupTranslation({
+                          fields: footerFields,
+                          group: 'footer',
+                          groupLabel: '页脚链接',
+                          lang,
+                        })
+                      }
+                    >
+                      {isPending
+                        ? `${getSiteTranslationActionLabel(
+                            lang,
+                            footerHasTranslation[lang],
+                          )}中`
+                        : getSiteTranslationActionLabel(
+                            lang,
+                            footerHasTranslation[lang],
+                          )}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : null
+        }
       >
         <FooterLinksEditor
+          getTranslationStatus={(fieldId) => footerStatusMap[fieldId]}
           value={form.linkSections}
           onChange={(linkSections) => setDraftForm({ ...form, linkSections })}
         />

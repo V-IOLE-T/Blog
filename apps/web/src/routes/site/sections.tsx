@@ -2,15 +2,23 @@ import { StyledButton } from '~/components/ui/button'
 import { Input, TextArea } from '~/components/ui/input'
 
 import type { EditableLinkSection, SiteSettingsFormState } from './form-state'
+import type {
+  SiteTranslationLang,
+  SiteTranslationStatusMap,
+} from './site-translation'
 
 export const SectionCard: Component<{
   title: string
   description: string
-}> = ({ title, description, children }) => (
+  actions?: React.ReactNode
+}> = ({ title, description, actions, children }) => (
   <section className="rounded-[28px] border border-neutral-3 bg-neutral-1/80 p-5 shadow-sm">
-    <header className="mb-4">
-      <h2 className="text-lg font-medium text-neutral-9">{title}</h2>
-      <p className="mt-1 text-sm text-neutral-6">{description}</p>
+    <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <div>
+        <h2 className="text-lg font-medium text-neutral-9">{title}</h2>
+        <p className="mt-1 text-sm text-neutral-6">{description}</p>
+      </div>
+      {actions ? <div>{actions}</div> : null}
     </header>
     <div className="space-y-4">{children}</div>
   </section>
@@ -23,6 +31,36 @@ export const FieldLabel: Component<{ title: string; hint?: string }> = ({
   <div className="mb-2">
     <label className="text-sm font-medium text-neutral-8">{title}</label>
     {hint && <p className="mt-1 text-xs text-neutral-5">{hint}</p>}
+  </div>
+)
+
+type TranslationStatusValue = SiteTranslationStatusMap[string] | undefined
+
+const TRANSLATION_STATUS_LANGS: SiteTranslationLang[] = ['en', 'ja']
+
+export const TranslationStatusBadges = ({
+  status,
+}: {
+  status?: TranslationStatusValue
+}) => (
+  <div className="mt-2 flex flex-wrap gap-2">
+    {TRANSLATION_STATUS_LANGS.map((lang) => {
+      const translated = !!status?.[lang]
+      const code = lang.toUpperCase()
+
+      return (
+        <span
+          key={lang}
+          className={
+            translated
+              ? 'rounded-full border border-emerald-300/70 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700'
+              : 'rounded-full border border-neutral-3/80 bg-neutral-2/60 px-2 py-0.5 text-[11px] font-medium text-neutral-6'
+          }
+        >
+          {code} {translated ? '已翻译' : '未翻译'}
+        </span>
+      )
+    })}
   </div>
 )
 
@@ -88,9 +126,11 @@ export const SocialLinksEditor = ({
 )
 
 export const FooterLinksEditor = ({
+  getTranslationStatus,
   value,
   onChange,
 }: {
+  getTranslationStatus?: (fieldId: string) => TranslationStatusValue
   value: EditableLinkSection[]
   onChange: (next: EditableLinkSection[]) => void
 }) => (
@@ -101,20 +141,27 @@ export const FooterLinksEditor = ({
         key={`${section.name}-${sectionIndex}`}
       >
         <div className="mb-3 flex items-center gap-3">
-          <Input
-            className="max-w-xs"
-            placeholder="分组标题"
-            value={section.name}
-            onChange={(event) =>
-              onChange(
-                value.map((current, currentIndex) =>
-                  currentIndex === sectionIndex
-                    ? { ...current, name: event.target.value }
-                    : current,
-                ),
-              )
-            }
-          />
+          <div className="min-w-0 flex-1">
+            <Input
+              className="max-w-xs"
+              placeholder="分组标题"
+              value={section.name}
+              onChange={(event) =>
+                onChange(
+                  value.map((current, currentIndex) =>
+                    currentIndex === sectionIndex
+                      ? { ...current, name: event.target.value }
+                      : current,
+                  ),
+                )
+              }
+            />
+            <TranslationStatusBadges
+              status={getTranslationStatus?.(
+                `footer.section.${sectionIndex}.name`,
+              )}
+            />
+          </div>
           <StyledButton
             type="button"
             variant="ghost"
@@ -136,27 +183,37 @@ export const FooterLinksEditor = ({
               className="grid gap-2 md:grid-cols-[220px_minmax(0,1fr)_auto]"
               key={`${link.name}-${linkIndex}`}
             >
-              <Input
-                placeholder="链接名称"
-                value={link.name}
-                onChange={(event) =>
-                  onChange(
-                    value.map((current, currentIndex) =>
-                      currentIndex === sectionIndex
-                        ? {
-                            ...current,
-                            links: current.links.map(
-                              (currentLink, currentLinkIndex) =>
-                                currentLinkIndex === linkIndex
-                                  ? { ...currentLink, name: event.target.value }
-                                  : currentLink,
-                            ),
-                          }
-                        : current,
-                    ),
-                  )
-                }
-              />
+              <div>
+                <Input
+                  placeholder="链接名称"
+                  value={link.name}
+                  onChange={(event) =>
+                    onChange(
+                      value.map((current, currentIndex) =>
+                        currentIndex === sectionIndex
+                          ? {
+                              ...current,
+                              links: current.links.map(
+                                (currentLink, currentLinkIndex) =>
+                                  currentLinkIndex === linkIndex
+                                    ? {
+                                        ...currentLink,
+                                        name: event.target.value,
+                                      }
+                                    : currentLink,
+                              ),
+                            }
+                          : current,
+                      ),
+                    )
+                  }
+                />
+                <TranslationStatusBadges
+                  status={getTranslationStatus?.(
+                    `footer.section.${sectionIndex}.link.${linkIndex}.name`,
+                  )}
+                />
+              </div>
               <Input
                 placeholder="/about 或 https://..."
                 value={link.href}
