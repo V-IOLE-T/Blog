@@ -708,6 +708,150 @@ recently 轻管理这一段现在的正确链路应当是：
 
 ---
 
+## [2026-04-16 01:45] 站点配置翻译（Hero / 页脚链接）已进入前后端联动实现
+
+> 本节是当前最新权威状态；若和之前“站点配置只有保存功能，没有翻译入口”的描述冲突，以本节为准。
+
+### 用户目标
+
+用户希望在轻管理页面中，为以下配置内容增加翻译接口和相关按钮：
+
+- `Hero 标题`
+- `Hero 描述`
+- `首页一句话`
+- `页脚链接` 的分组名
+- `页脚链接` 的链接名称
+
+用户已明确选择：
+
+- 按钮粒度采用“分组级”
+  - `Hero` 区块一个 `AI 翻译`
+  - `页脚链接` 区块一个 `AI 翻译`
+- 字段级状态可见
+  - 每个字段旁边显示 `EN / JA 已翻译 / 未翻译`
+
+### 当前前端状态（本仓库）
+
+已完成：
+
+- 设计 spec：
+  - `docs/superpowers/specs/2026-04-16-site-settings-translation-ui-design.md`
+  - commit: `17427da`
+- 实现计划：
+  - `docs/superpowers/plans/2026-04-16-site-settings-translation-ui-implementation.md`
+  - commit: `4032554`
+- 前端 helper：
+  - `apps/web/src/routes/site/site-translation.ts`
+  - `apps/web/src/routes/site/site-translation.test.ts`
+  - commit: `f507cf6`
+- 站点配置 UI：
+  - `apps/web/src/routes/site/index.tsx`
+  - `apps/web/src/routes/site/sections.tsx`
+  - Hero / Footer 标题栏已接入 `AI 翻译` 按钮
+  - Hero 字段和 Footer 各字段已接入 EN / JA 状态徽标
+  - 前端直接调用后端：
+    - `POST /api/v2/ai/translations/entries/generate`
+    - `POST /api/v2/ai/translations/entries/lookup`
+  - commit: `05b5ffd`
+
+### 当前后端状态（外部仓库）
+
+本地工作副本：
+
+- `/tmp/blog-mx-core-import`
+
+当前分支：
+
+- `codex/site-settings-translation`
+
+已完成：
+
+- 扩展 translation entry keyPath：
+  - `theme.hero.title`
+  - `theme.hero.description`
+  - `theme.hero.quote`
+  - `theme.footer.section.name`
+  - `theme.footer.link.name`
+  - commit: `32113f9`
+- 扩展 translation entry schema / controller / service：
+  - `GenerateEntriesSchema` 支持 `values`
+  - 新增 `QueryEntriesByLookupSchema`
+  - controller 新增 `POST /ai/translations/entries/lookup`
+  - service 支持：
+    - `queryEntriesByLookup(...)`
+    - `generateTranslations({ values })`
+  - commit: `af525a9`
+
+### 验证
+
+前端已真实执行：
+
+```bash
+pnpm --filter @shiro/web exec vitest run src/routes/site/site-translation.test.ts
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz pnpm --filter @shiro/web build
+```
+
+结果：
+
+- helper 测试通过
+- 前端构建成功
+
+后端已真实执行：
+
+```bash
+cd /tmp/blog-mx-core-import && pnpm test -- translation-entry.site-settings
+```
+
+结果：
+
+- `79` 个 test files
+- `869` 个 tests
+- 全部通过
+
+### 当前远端状态
+
+前端分支：
+
+- `origin/codex/modify`
+
+后端分支：
+
+- `origin/codex/site-settings-translation`
+
+已触发 workflows：
+
+- 前端 Vercel deploy：
+  - run `24469485738`
+- 后端 GHCR build：
+  - repo `V-IOLE-T/blog-mx-core`
+  - run `24469485511`
+
+### 关键部署注意点
+
+后端现有 deploy workflow 默认部署：
+
+- `ghcr.io/v-iole-t/blog-mx-server:master`
+
+因此**不能**直接用现有 deploy workflow 发布功能分支镜像，否则会把 `master` 旧镜像重新部署。
+
+正确收尾路径应是：
+
+1. 等 `Build Backend Image (GHCR)` 在 `codex/site-settings-translation` 上构建完成
+2. 确认该分支镜像 tag（或 sha tag）
+3. 通过 SSH 或调整 deploy 方式，把对应 feature image 部署到服务器
+4. 再验证前端 Hero / Footer 按钮是否能真实返回状态
+
+### 给下一个 agent 的提醒
+
+- 这次站点配置翻译是**前后端联动任务**，不是只改前端。
+- 如果前端按钮上线了但后端接口没部署，页面上的按钮会失败，这不是前端本身坏了。
+- 优先继续盯：
+  - `24469485511` 后端 GHCR build
+  - `24469485738` 前端 deploy
+- 后端不要直接部署 `master` 镜像，必须确认 feature branch 对应 image tag。
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状
