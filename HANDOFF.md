@@ -852,6 +852,76 @@ cd /tmp/blog-mx-core-import && pnpm test -- translation-entry.site-settings
 
 ---
 
+## [2026-04-16 01:58] 站点配置翻译后端已手动部署到服务器
+
+### 已确认事实
+
+- 后端 GHCR 构建 run：
+  - `https://github.com/V-IOLE-T/blog-mx-core/actions/runs/24469485511`
+  - 结果：`success`
+- 本次 feature branch：
+  - `codex/site-settings-translation`
+  - commit: `af525a9`
+- 构建出的镜像 tag：
+  - `ghcr.io/v-iole-t/blog-mx-server:codex-site-settings-translation`
+  - `ghcr.io/v-iole-t/blog-mx-server:sha-af525a9`
+
+### 部署方式
+
+由于现有后端 deploy workflow 默认只部署：
+
+- `ghcr.io/v-iole-t/blog-mx-server:master`
+
+所以这次没有直接用 workflow 发生产，而是通过 SSH 手动切换服务器上的 app 镜像：
+
+```bash
+ssh -i ~/.ssh/macair4.pem root@43.153.75.156
+cd /opt/mxspace
+docker compose -f docker-compose.yml -f docker-compose.override.yml -f /tmp/docker-compose.ghcr.override.yml up -d --no-build app
+```
+
+实际运行中的容器镜像已经变成：
+
+- `ghcr.io/v-iole-t/blog-mx-server:codex-site-settings-translation`
+
+### 验证
+
+已真实执行：
+
+```bash
+docker exec mx-server curl -fsS http://127.0.0.1:2333/api/v2/ping
+```
+
+结果：
+
+```json
+{"data":"pong"}
+```
+
+已真实执行公网接口探测：
+
+```bash
+curl -i -X POST 'https://api.418122.xyz/api/v2/ai/translations/entries/lookup' \
+  -H 'Content-Type: application/json' \
+  --data '{"keyPath":"theme.hero.title","lang":"en","lookupKeys":["hero.title"]}'
+```
+
+结果：
+
+- 返回 `401 未登录`
+- 这说明：
+  - 新接口已经在线
+  - 路由不是 `404`
+  - 当前差的是前台是否用 owner 登录态去调用，而不是后端镜像未更新
+
+### 当前线上状态
+
+- 前端新 UI 已部署
+- 后端新 translation-entry 接口已部署
+- Hero / Footer 配置翻译功能现在具备联调条件
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状
