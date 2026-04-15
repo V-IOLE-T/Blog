@@ -509,6 +509,108 @@ pnpm --filter @shiro/web build
 
 ---
 
+## [2026-04-16 01:10] 修复 recently 翻译成功后状态仍显示未翻译
+
+> 本节比上面所有 recently 状态描述更新；若冲突，以本节为准。
+
+### 现象
+
+用户点击 recently 的 `AI 翻译` 后，会看到成功 toast，但卡片上的状态仍然显示：
+
+- `EN 未翻译`
+- `JA 未翻译`
+
+### 根因
+
+这次不是翻译没成功，而是**状态来源选错了**。
+
+已实际核对：
+
+```bash
+curl -sS 'https://api.418122.xyz/api/v2/ai/translations/article/69d4e1fac88eb639b90140fb/languages'
+```
+
+返回：
+
+```json
+{"data":["en"]}
+```
+
+说明翻译已真实生成。
+
+但同时：
+
+```bash
+curl -sS 'https://api.418122.xyz/api/v2/recently?size=3'
+```
+
+返回的 recently 列表项**没有** `availableTranslations` 字段。
+
+而前端之前一直用：
+
+- `item.availableTranslations`
+
+来判断状态，所以即使翻译成功，轻管理页面依旧只能显示“未翻译”。
+
+### 最终修法
+
+不要再假设 recently 列表本身会带语言状态。
+
+当前前端实现改为：
+
+1. 列表接口继续只拿 recently 基础内容
+2. 对当前轻管理可见的每条 recently，额外请求：
+   - `GET /api/v2/ai/translations/article/:id/languages`
+3. 将返回的语言数组按 `item.id` 合并回前端列表项
+4. 再用这个真实语言数组推导：
+   - `EN 已翻译 / 未翻译`
+   - `JA 已翻译 / 未翻译`
+
+### 对应代码
+
+- [apps/web/src/routes/site/recently-section.tsx](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-section.tsx)
+  - 使用 `useQueries(...)` 为当前 recently 列表逐条拉取可用语言
+  - 翻译成功后会 `invalidateQueries` 对应条目的 languages 查询
+- [apps/web/src/routes/site/recently-translation.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.ts)
+  - 新增 `getRecentlyTranslationItemsWithLanguages(...)`
+- [apps/web/src/routes/site/recently-translation.test.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.test.ts)
+  - 补了按 id 合并语言状态的测试
+
+### 本次验证
+
+已真实执行：
+
+```bash
+pnpm --filter @shiro/web exec vitest run src/routes/site/recently-translation.test.ts src/routes/site/recently-section.test.tsx
+```
+
+结果：
+
+- `2` 个 test files
+- `11` 个 tests
+- 全部通过
+
+已真实执行：
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 \
+NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz \
+pnpm --filter @shiro/web build
+```
+
+结果：
+
+- `next build` 成功
+
+### 下一步
+
+1. push 当前分支
+2. 重跑前端部署
+3. 线上再次点击 recently 翻译按钮
+4. 预期：toast 成功后，状态会从 `未翻译` 变成 `已翻译`
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状

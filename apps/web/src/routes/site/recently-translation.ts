@@ -11,6 +11,11 @@ export type RecentlyTranslationTarget = {
   lang: RecentlyTranslationLang
 }
 
+export type RecentlyTranslationListItem = {
+  id: string
+  availableTranslations?: string[]
+}
+
 export const getRecentlyTranslationStatuses = (
   availableTranslations?: string[],
 ) =>
@@ -42,6 +47,18 @@ export const buildRecentlyTranslationTriggerPath = ({
   itemId: string
   lang: RecentlyTranslationLang
 }) => '/api/internal/recently-translations/generate'
+
+export const getRecentlyTranslationItemsWithLanguages = <
+  T extends RecentlyTranslationListItem,
+>(
+  items: T[],
+  languagesById: Record<string, string[] | undefined>,
+) =>
+  items.map((item) => ({
+    ...item,
+    availableTranslations:
+      languagesById[item.id] ?? item.availableTranslations ?? [],
+  }))
 
 export const isRecentlyTranslationPendingTarget = (
   target: RecentlyTranslationTarget | null | undefined,

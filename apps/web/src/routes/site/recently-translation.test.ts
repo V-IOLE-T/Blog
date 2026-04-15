@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildRecentlyTranslationTriggerPath,
   getRecentlyTranslationActionLabel,
+  getRecentlyTranslationItemsWithLanguages,
   getRecentlyTranslationStatuses,
   isRecentlyTranslationPendingTarget,
 } from './recently-translation'
@@ -58,5 +59,45 @@ describe('recently translation helpers', () => {
         'en',
       ),
     ).toBe(false)
+  })
+
+  it('merges fetched languages into recently items by id', () => {
+    expect(
+      getRecentlyTranslationItemsWithLanguages(
+        [
+          {
+            id: 'recently-1',
+            availableTranslations: undefined,
+            content: 'a',
+            created: '2026-04-16T00:00:00.000Z',
+            down: 0,
+            modified: null,
+            up: 0,
+          },
+          {
+            id: 'recently-2',
+            availableTranslations: ['ja'],
+            content: 'b',
+            created: '2026-04-16T00:00:00.000Z',
+            down: 0,
+            modified: null,
+            up: 0,
+          },
+        ],
+        {
+          'recently-1': ['en'],
+          'recently-2': ['en', 'ja'],
+        },
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        id: 'recently-1',
+        availableTranslations: ['en'],
+      }),
+      expect.objectContaining({
+        id: 'recently-2',
+        availableTranslations: ['en', 'ja'],
+      }),
+    ])
   })
 })

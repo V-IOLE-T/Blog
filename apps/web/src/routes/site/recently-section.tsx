@@ -1,5 +1,11 @@
 import type { RecentlyModel } from '@mx-space/api-client'
-import { useInfiniteQuery, useMutation, useQuery } from '@tanstack/react-query'
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
 
@@ -23,10 +29,12 @@ import { toast } from '~/lib/toast'
 import {
   buildRecentlyTranslationTriggerPath,
   getRecentlyTranslationActionLabel,
+  getRecentlyTranslationItemsWithLanguages,
   getRecentlyTranslationStatuses,
   getRecentlyTranslationToastLabel,
   isRecentlyTranslationPendingTarget,
   type RecentlyTranslationLang,
+  type RecentlyTranslationListItem,
   type RecentlyTranslationTarget,
 } from './recently-translation'
 import { SectionCard } from './sections'
@@ -34,6 +42,9 @@ import { SectionCard } from './sections'
 const RECENTLY_ADMIN_PATH = '#/recently'
 const RECENTLY_COUNT_QUERY_KEY = ['dashboard-recently-count']
 const RECENTLY_LIST_QUERY_KEY = ['dashboard-recently-list']
+const RECENTLY_TRANSLATION_LANGUAGES_QUERY_KEY = [
+  'dashboard-recently-translation-languages',
+] as const
 const RECENTLY_PAGE_SIZE = 10
 const RECENTLY_SKELETON_IDS = [
   'recently-a',
@@ -45,9 +56,8 @@ const RECENTLY_SKELETON_WIDTHS = ['100%', '82%', '36%'] as const
 type RecentlyListItem = Pick<
   RecentlyModel,
   'content' | 'created' | 'down' | 'id' | 'modified' | 'up'
-> & {
-  availableTranslations?: string[]
-}
+> &
+  RecentlyTranslationListItem
 
 export const buildRecentlyAdminUrl = (
   resolveAdminUrl: (path?: string) => string,
@@ -59,6 +69,7 @@ export const RecentlySection = () => {
   const resolveAdminUrl = useResolveAdminUrl()
   const adminUrl = buildRecentlyAdminUrl(resolveAdminUrl)
   const { present } = useModalStack()
+  const queryClient = useQueryClient()
   const [translatingTarget, setTranslatingTarget] =
     useState<RecentlyTranslationTarget | null>(null)
 
@@ -115,6 +126,30 @@ export const RecentlySection = () => {
     [data],
   )
 
+  const translationLanguageQueries = useQueries({
+    queries: isOwnerLogged
+      ? items.map((item) => ({
+          enabled: !!item.id,
+          queryKey: [...RECENTLY_TRANSLATION_LANGUAGES_QUERY_KEY, item.id],
+          queryFn: async () =>
+            (await apiClient.ai.getAvailableLanguages(item.id))
+              .$serialized as string[],
+          staleTime: 60 * 1000,
+        }))
+      : [],
+  })
+
+  const itemsWithTranslations = useMemo<RecentlyListItem[]>(() => {
+    const languagesById = Object.fromEntries(
+      items.map((item, index) => [
+        item.id,
+        translationLanguageQueries[index]?.data as string[] | undefined,
+      ]),
+    )
+
+    return getRecentlyTranslationItemsWithLanguages(items, languagesById)
+  }, [items, translationLanguageQueries])
+
   const { mutateAsync: requestRecentlyTranslation } = useMutation({
     mutationFn: async ({
       itemId,
@@ -169,6 +204,9 @@ export const RecentlySection = () => {
 
     try {
       await requestRecentlyTranslation({ itemId: item.id, lang })
+      await queryClient.invalidateQueries({
+        queryKey: [...RECENTLY_TRANSLATION_LANGUAGES_QUERY_KEY, item.id],
+      })
       toast.success(getRecentlyTranslationToastLabel(lang, translated))
       await refreshRecently()
     } catch (error) {
@@ -230,8 +268,8 @@ export const RecentlySection = () => {
       hasNextPage={!!hasNextPage}
       isFetchingNextPage={isFetchingNextPage}
       isLoading={isLoading}
-      items={items}
-      recentlyCount={recentlyCount ?? items.length}
+      items={itemsWithTranslations}
+      recentlyCount={recentlyCount ?? itemsWithTranslations.length}
       showOwnerActions={isOwnerLogged}
       translatingTarget={translatingTarget}
       onCreate={openCreateModal}
