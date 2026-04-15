@@ -326,6 +326,118 @@ pnpm --filter @shiro/web build
 
 ---
 
+## [2026-04-16 00:50] 修复 recently 翻译按钮 Failed to fetch，并压缩卡片布局
+
+> 本节晚于前文所有 recently 记录；若冲突，以本节为准。
+
+### 现象
+
+用户在线上点击轻管理里的 `AI 翻译` 按钮时，浏览器报错：
+
+```text
+[GET] "https://api.418122.xyz/api/v2/ai/translations/article/<id>/generate?lang=en": <no response> Failed to fetch
+```
+
+同时用户反馈：
+
+- `EN / JA 已翻译 / 未翻译` 标签占用了单独一行
+- 希望它和时间、赞、踩放在同一行，整体更紧凑
+
+### 根因
+
+这次不是前端按钮状态逻辑错，而是 **浏览器直接跨域请求 recently 翻译生成 SSE 接口** 有 CORS 问题。
+
+已验证：
+
+```bash
+curl -i -X OPTIONS 'https://api.418122.xyz/api/v2/ai/translations/article/<id>/generate?lang=en' \
+  -H 'Origin: https://418122.xyz' \
+  -H 'Access-Control-Request-Method: GET' \
+  -H 'Access-Control-Request-Headers: x-session-uuid'
+```
+
+- `OPTIONS` 预检返回 `204`
+- 带 `access-control-allow-origin`
+
+但真实请求：
+
+```bash
+curl -i 'https://api.418122.xyz/api/v2/ai/translations/article/<id>/generate?lang=en' \
+  -H 'Origin: https://418122.xyz'
+```
+
+- 返回 `200`
+- `content-type: text/event-stream`
+- **没有** `access-control-allow-origin`
+
+所以浏览器会把它当成跨域失败，表现成 `<no response> Failed to fetch`。
+
+### 正确修法
+
+不要再让浏览器直接请求外域 `generate` SSE 接口。
+
+当前修法：
+
+- 新增同源中转 route：
+  - [apps/web/src/app/api/internal/recently-translations/generate/route.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/app/api/internal/recently-translations/generate/route.ts)
+- 浏览器现在只请求本站：
+  - `POST /api/internal/recently-translations/generate`
+- route 内部会：
+  1. 校验当前 owner session
+  2. 服务端请求后端 `ai/translations/article/:id/generate?lang=en|ja`
+  3. 消费完整 SSE 响应
+  4. 返回同源 JSON 结果
+
+这样浏览器完全绕过了外域 SSE 的 CORS 限制。
+
+### 前端改动
+
+- [apps/web/src/routes/site/recently-section.tsx](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-section.tsx)
+  - 翻译触发从直接 `apiClient.ai.proxy(...).get(...)`
+    改为 `fetch('/api/internal/recently-translations/generate', { method: 'POST' ... })`
+  - 继续保留单条 `item + lang` 的 pending 控制
+  - 将 `EN / JA 已翻译 / 未翻译` 徽标移入和时间、赞、踩同一行
+  - 去掉原本为了状态单独留出来的额外纵向空间，让卡片更紧凑
+- [apps/web/src/routes/site/recently-translation.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.ts)
+  - 新增同源 trigger path helper
+- [apps/web/src/routes/site/recently-translation.test.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.test.ts)
+  - 补了 trigger path 的测试
+
+### 本次验证
+
+已真实执行：
+
+```bash
+pnpm --filter @shiro/web exec vitest run src/routes/site/recently-translation.test.ts src/routes/site/recently-section.test.tsx
+```
+
+结果：
+
+- `2` 个 test files
+- `10` 个 tests
+- 全部通过
+
+已真实执行：
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 \
+NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz \
+pnpm --filter @shiro/web build
+```
+
+结果：
+
+- `next build` 成功
+- 新增 route `ƒ /api/internal/recently-translations/generate`
+
+### 下一步
+
+1. push 当前 `codex/modify`
+2. 触发前端部署 workflow
+3. 部署后在线上实测 recently 翻译按钮是否恢复
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状

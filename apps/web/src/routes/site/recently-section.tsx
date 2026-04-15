@@ -21,6 +21,7 @@ import { getErrorMessageFromRequestError } from '~/lib/request.shared'
 import { toast } from '~/lib/toast'
 
 import {
+  buildRecentlyTranslationTriggerPath,
   getRecentlyTranslationActionLabel,
   getRecentlyTranslationStatuses,
   getRecentlyTranslationToastLabel,
@@ -122,9 +123,27 @@ export const RecentlySection = () => {
       itemId: string
       lang: RecentlyTranslationLang
     }) => {
-      await apiClient.ai.proxy(`translations/article/${itemId}/generate`).get({
-        params: { lang },
-      })
+      const response = await fetch(
+        buildRecentlyTranslationTriggerPath({ itemId, lang }),
+        {
+          body: JSON.stringify({ itemId, lang }),
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+        },
+      )
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as {
+          message?: string
+        } | null
+
+        throw new Error(payload?.message || 'Translation request failed')
+      }
+
+      return await response.json().catch(() => ({ ok: true }))
     },
   })
 
@@ -332,7 +351,7 @@ export const RecentlySectionView = ({
                   {item.content}
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-neutral-5">
+                <div className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-neutral-5">
                   <span className="font-medium text-neutral-6">
                     <RelativeTime date={item.created} />
                   </span>
@@ -343,87 +362,84 @@ export const RecentlySectionView = ({
                   ) : null}
                   <span>赞 {item.up}</span>
                   <span>踩 {item.down}</span>
-                </div>
-
-                {showOwnerActions ? (
-                  <div className="mt-4 space-y-4 border-t border-neutral-3/50 pt-4">
-                    <div className="flex flex-wrap gap-2">
-                      {translationStatuses.map((status) => (
+                  {showOwnerActions
+                    ? translationStatuses.map((status) => (
                         <span
                           key={status.lang}
                           className={
                             status.translated
-                              ? 'rounded-full border border-emerald-300/70 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700'
-                              : 'rounded-full border border-neutral-3/80 bg-neutral-2/60 px-2.5 py-1 text-xs font-medium text-neutral-6'
+                              ? 'rounded-full border border-emerald-300/70 bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700'
+                              : 'rounded-full border border-neutral-3/80 bg-neutral-2/60 px-2 py-0.5 text-[11px] font-medium text-neutral-6'
                           }
                         >
                           {status.code}{' '}
                           {status.translated ? '已翻译' : '未翻译'}
                         </span>
-                      ))}
-                    </div>
+                      ))
+                    : null}
+                </div>
 
-                    <div className="flex flex-wrap gap-2">
-                      <StyledButton
-                        type="button"
-                        variant="secondary"
-                        onClick={() => onEdit?.(item)}
-                      >
-                        编辑
-                      </StyledButton>
-                      <StyledButton
-                        type="button"
-                        variant="ghost"
-                        onClick={() => onDelete?.(item)}
-                      >
-                        删除
-                      </StyledButton>
-                      <DropdownMenu modal={false}>
-                        <DropdownMenuTrigger asChild>
-                          <StyledButton
-                            disabled={isItemTranslating}
-                            type="button"
-                            variant="secondary"
-                          >
-                            {isItemTranslating ? 'AI 翻译中' : 'AI 翻译'}
-                          </StyledButton>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent keepMounted align="end">
-                          {translationStatuses.map((status) => {
-                            const isTranslating =
-                              isRecentlyTranslationPendingTarget(
-                                translatingTarget,
-                                item.id,
-                                status.lang,
-                              )
+                {showOwnerActions ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <StyledButton
+                      type="button"
+                      variant="secondary"
+                      onClick={() => onEdit?.(item)}
+                    >
+                      编辑
+                    </StyledButton>
+                    <StyledButton
+                      type="button"
+                      variant="ghost"
+                      onClick={() => onDelete?.(item)}
+                    >
+                      删除
+                    </StyledButton>
+                    <DropdownMenu modal={false}>
+                      <DropdownMenuTrigger asChild>
+                        <StyledButton
+                          disabled={isItemTranslating}
+                          type="button"
+                          variant="secondary"
+                        >
+                          {isItemTranslating ? 'AI 翻译中' : 'AI 翻译'}
+                        </StyledButton>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent keepMounted align="end">
+                        {translationStatuses.map((status) => {
+                          const isTranslating =
+                            isRecentlyTranslationPendingTarget(
+                              translatingTarget,
+                              item.id,
+                              status.lang,
+                            )
 
-                            return (
-                              <DropdownMenuItem
-                                disabled={isTranslating}
-                                key={status.lang}
-                                onClick={() =>
-                                  onTranslate?.(
-                                    item,
+                          return (
+                            <DropdownMenuItem
+                              disabled={isTranslating}
+                              key={status.lang}
+                              onClick={() =>
+                                onTranslate?.(
+                                  item,
+                                  status.lang,
+                                  status.translated,
+                                )
+                              }
+                            >
+                              {isTranslating
+                                ? `${getRecentlyTranslationActionLabel(
                                     status.lang,
                                     status.translated,
-                                  )
-                                }
-                              >
-                                {isTranslating
-                                  ? `${getRecentlyTranslationActionLabel(
-                                      status.lang,
-                                      status.translated,
-                                    )}中`
-                                  : getRecentlyTranslationActionLabel(
-                                      status.lang,
-                                      status.translated,
-                                    )}
-                              </DropdownMenuItem>
-                            )
-                          })}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                                  )}中`
+                                : getRecentlyTranslationActionLabel(
+                                    status.lang,
+                                    status.translated,
+                                  )}
+                            </DropdownMenuItem>
+                          )
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ) : null}
               </article>

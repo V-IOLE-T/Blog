@@ -35,6 +35,14 @@ export const getRecentlyTranslationToastLabel = (
   return `已提交${label}${translated ? '重翻译' : '翻译'}`
 }
 
+export const buildRecentlyTranslationTriggerPath = ({
+  itemId: _itemId,
+  lang: _lang,
+}: {
+  itemId: string
+  lang: RecentlyTranslationLang
+}) => '/api/internal/recently-translations/generate'
+
 export const isRecentlyTranslationPendingTarget = (
   target: RecentlyTranslationTarget | null | undefined,
   itemId: string,

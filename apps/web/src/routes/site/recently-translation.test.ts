@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  buildRecentlyTranslationTriggerPath,
   getRecentlyTranslationActionLabel,
   getRecentlyTranslationStatuses,
   isRecentlyTranslationPendingTarget,
@@ -24,6 +25,15 @@ describe('recently translation helpers', () => {
   it('returns update labels for translated languages', () => {
     expect(getRecentlyTranslationActionLabel('en', true)).toBe('更新英文')
     expect(getRecentlyTranslationActionLabel('ja', false)).toBe('生成日文')
+  })
+
+  it('builds the same-origin trigger path for translation requests', () => {
+    expect(
+      buildRecentlyTranslationTriggerPath({
+        itemId: 'recently-1',
+        lang: 'en',
+      }),
+    ).toBe('/api/internal/recently-translations/generate')
   })
 
   it('matches only the active translating target', () => {
