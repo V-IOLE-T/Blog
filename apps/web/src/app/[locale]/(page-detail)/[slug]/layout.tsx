@@ -35,9 +35,9 @@ export const generateMetadata = async (props: {
   params: Promise<PageParams>
 }): Promise<Metadata> => {
   const params = await props.params
-  const { slug } = params
+  const { locale, slug } = params
   try {
-    const data = await getData(slug)
+    const data = await getData(slug, locale)
 
     const { title, text } = data
     const description = getSummaryFromMd(text ?? '')
@@ -47,7 +47,7 @@ export const generateMetadata = async (props: {
       {
         slug,
       },
-      params.locale,
+      locale,
     )
 
     return {
@@ -73,7 +73,7 @@ export const generateMetadata = async (props: {
 
 export default definePrerenderPage<PageParams>()({
   fetcher(params) {
-    return getData(params.slug)
+    return getData(params.slug, params.locale)
   },
 
   Component: ({ data, children }) => (

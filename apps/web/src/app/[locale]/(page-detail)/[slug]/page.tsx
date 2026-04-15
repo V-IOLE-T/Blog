@@ -17,10 +17,10 @@ import {
 export default async function PageDetail({
   params,
 }: {
-  params: Promise<{ slug: string }>
+  params: Promise<{ locale: string; slug: string }>
 }) {
-  const { slug } = await params
-  const data = await getData(slug)
+  const { locale, slug } = await params
+  const data = await getData(slug, locale)
 
   return (
     <WrappedElementProvider eoaDetect>

@@ -4443,3 +4443,359 @@ pnpm --filter @shiro/web build
    - 下方直接显示真实速记内容
    - 下滑可继续加载更多
    - dashboard 标签页 favicon 变成服务图标
+
+## [2026-04-15 00:41] 已确认公开站 locale 切换链路；后台当前没有翻译生成或双语录入入口
+
+> 这一节是当前关于“中英日切换逻辑”和“后台文章/笔记翻译能力现状”的最新权威补充。
+> 若与前文冲突，以本节为准。
+
+### 当前目标
+
+- 用户最新问题不是要改代码，而是要搞清楚两件事：
+  - 公开站中/英/日切换到底怎么工作
+  - 如果后台用中文写文章，英文是自动生成、手动录入，还是当前根本没有入口
+- 当前已完成代码级结论梳理，但还没有实现新的翻译按钮或双语编辑功能。
+
+### 这轮实际做了什么
+
+- 先按仓库约定重新读取：
+  - `HANDOFF.md`
+  - `~/.codex/superpowers/skills/using-superpowers/SKILL.md`
+- 然后系统排查了公开站 i18n / locale 链路，重点看了这些文件：
+  - `apps/web/src/i18n/config.ts`
+  - `apps/web/src/i18n/routing.ts`
+  - `apps/web/src/i18n/request.ts`
+  - `apps/web/src/proxy.ts`
+  - `apps/web/src/i18n/navigation.ts`
+  - `apps/web/src/app/[locale]/layout.tsx`
+  - `apps/web/src/providers/root/lang-sync-provider.tsx`
+  - `apps/web/src/components/layout/footer/LocaleSwitcher.tsx`
+  - `apps/web/src/components/modules/translation/TranslationLanguageSwitcher.tsx`
+  - `apps/web/src/app/[locale]/posts/(post-detail)/[category]/[slug]/api.tsx`
+  - `apps/web/src/queries/definition/post.ts`
+  - `apps/web/src/queries/definition/note.ts`
+  - `apps/web/src/lib/server-api-fetch.ts`
+- 为了确认 next-intl 真正的 locale 判定优先级，不只看本仓库代码，还直接读了本地依赖源码：
+  - `apps/web/node_modules/next-intl/dist/esm/development/routing/config.js`
+  - `apps/web/node_modules/next-intl/dist/esm/development/middleware/resolveLocale.js`
+  - `apps/web/node_modules/next-intl/dist/esm/development/navigation/shared/syncLocaleCookie.js`
+- 接着排查后台写作/保存/翻译入口，重点看了：
+  - `apps/web/src/models/writing.ts`
+  - `apps/web/src/components/modules/dashboard/writing/Writing.tsx`
+  - `apps/web/src/components/modules/dashboard/writing/BaseWritingProvider.tsx`
+  - `apps/web/src/components/modules/dashboard/post-editing/data-provider.tsx`
+  - `apps/web/src/components/modules/dashboard/note-editing/data-provider.tsx`
+  - `apps/web/src/components/modules/dashboard/post-editing/sidebar/index.tsx`
+  - `apps/web/src/components/modules/dashboard/note-editing/sidebar/index.tsx`
+  - `apps/web/src/queries/definition/post.ts`
+  - `apps/web/src/queries/definition/note.ts`
+- 最后为了确认“是不是后端有翻译能力但前端没接”，又读了 API client 类型和实现：
+  - `apps/web/node_modules/@mx-space/api-client/dist/index.d.mts`
+  - `apps/web/node_modules/@mx-space/api-client/dist/index.mjs`
+
+### 已确认的结论
+
+#### A. 公开站中英日切换逻辑
+
+- 支持语言是：
+  - `zh`
+  - `en`
+  - `ja`
+- 默认语言是：
+  - `zh`
+- 证据：
+  - `apps/web/src/i18n/config.ts`
+- 路由前缀模式是：
+  - `localePrefix: 'as-needed'`
+- 这意味着：
+  - 中文通常走无前缀 URL，例如 `/posts/...`
+  - 英文/日文通常走 `/en/...`、`/ja/...`
+- 证据：
+  - `apps/web/src/i18n/routing.ts`
+- 公开站请求会经过 `apps/web/src/proxy.ts` 里的 next-intl middleware；
+ 但以下路径跳过这套 locale 路由：
+  - `/api`
+  - `/dashboard`
+  - `/_next`
+  - `/_vercel`
+  - `/feed`
+  - `/sitemap`
+  - `/home-og`
+  - 静态资源路径
+- next-intl 实际 locale 判定优先级已经用依赖源码确认过：
+  1. URL 前缀
+  2. `NEXT_LOCALE` cookie
+  3. `Accept-Language` 请求头
+  4. 默认 `zh`
+- 证据：
+  - `apps/web/node_modules/next-intl/dist/esm/development/middleware/resolveLocale.js`
+- 用户手动切换公开站语言的 UI 在页脚：
+  - `apps/web/src/components/layout/footer/LocaleSwitcher.tsx`
+- 它做的事情是：
+  - `router.push(pathname, { locale: newLocale })`
+  - 即保持当前 pathname，只切 locale
+- 客户端切换 locale 时，next-intl 会同步写入 `NEXT_LOCALE` cookie。
+- 证据：
+  - `apps/web/node_modules/next-intl/dist/esm/development/navigation/shared/syncLocaleCookie.js`
+- 服务端布局 `apps/web/src/app/[locale]/layout.tsx` 会：
+  - 校验 locale 是否在支持列表里
+  - `setRequestLocale(locale)`
+  - 加载对应国际化 messages
+  - 再以该 locale 拉聚合数据
+- 客户端后续请求也会自动带：
+  - `x-lang: 当前 locale`
+- 证据：
+  - `apps/web/src/providers/root/lang-sync-provider.tsx`
+  - `apps/web/src/lib/server-api-fetch.ts`
+
+#### B. 文章 / 笔记里的“翻译切换”和整站 locale 的关系
+
+- 前台文章/笔记详情页有“翻译语言切换器”：
+  - `apps/web/src/components/modules/translation/TranslationLanguageSwitcher.tsx`
+- 这个组件不是独立维护第二套翻译 URL 参数模型，而是直接复用 locale 导航：
+  - `router.push(pathname, { locale: lang })`
+- 详情页拉文章时，会把：
+  - `searchParams.lang || params.locale`
+  当作 preferred language 传给查询层
+- 证据：
+  - `apps/web/src/app/[locale]/posts/(post-detail)/[category]/[slug]/api.tsx`
+  - `apps/web/src/queries/definition/post.ts`
+  - `apps/web/src/queries/definition/note.ts`
+- 所以当前实现里，“前台翻译切换”和“站点 locale”是强耦合的：
+  - 切英文/日文时，不只是 UI 文案换语言
+  - 文章内容也会按该语言去请求后端翻译版本
+- 如果后端已经有对应翻译记录，前台能切过去看；
+  如果没有，则只是 locale 切换，不会凭空出现人工英文内容。
+
+#### C. 后台当前没有“自动翻译”入口，也没有“手写第二版内容”入口
+
+- 后台写作 DTO 里只有单份内容模型：
+  - `title`
+  - `text`
+  - `summary`
+  - `meta`
+- 没有看到类似：
+  - `translations`
+  - `enText`
+  - `jaText`
+  - `sourceLang`
+  - `targetLang`
+  的编辑字段
+- 证据：
+  - `apps/web/src/models/writing.ts`
+- 后台正文编辑区只是一份：
+  - `TitleInput`
+  - `TextArea`
+- 没有双语 tab / 语言分栏 / 翻译表单
+- 证据：
+  - `apps/web/src/components/modules/dashboard/writing/Writing.tsx`
+- 后台文章/笔记侧栏只包含：
+  - 分类 / 标签 / 相关内容 / summary / 图片 / AI meta / 其他 meta
+- 没有翻译管理区块
+- 证据：
+  - `apps/web/src/components/modules/dashboard/post-editing/sidebar/index.tsx`
+  - `apps/web/src/components/modules/dashboard/note-editing/sidebar/index.tsx`
+- 保存时只是把当前 DTO 直接提交到 post/note create/update 接口；
+  没有顺带调用任何 translation generate / translation save 逻辑
+- 证据：
+  - `apps/web/src/queries/definition/post.ts`
+  - `apps/web/src/queries/definition/note.ts`
+
+#### D. 底层 API 的确支持翻译，但当前前端后台没接
+
+- `@mx-space/api-client` 明确提供了这些能力：
+  - `getTranslation({ articleId, lang })`
+  - `getAvailableLanguages(articleId)`
+  - `getTranslationGenerateUrl({ articleId, lang })`
+  - `streamTranslationGenerate({ articleId, lang })`
+- 说明后端 / API client 这一层是有“获取翻译”和“生成翻译 SSE”能力的。
+- 证据：
+  - `apps/web/node_modules/@mx-space/api-client/dist/index.d.mts`
+  - `apps/web/node_modules/@mx-space/api-client/dist/index.mjs`
+- 但在 `apps/web/src` 里，没有找到任何地方实际调用这些 translation generate API。
+- 只看到了前台对已有翻译结果的消费、切换和展示。
+
+### 什么有效
+
+- 有效路径 1：
+  - 不猜，直接从 `i18n/config.ts -> routing.ts -> proxy.ts -> [locale]/layout.tsx` 串起来看。
+  - 这样可以明确区分：
+    - locale 决策
+    - 路由前缀
+    - 文案加载
+    - 请求头传播
+- 有效路径 2：
+  - 直接读 next-intl 本地依赖源码，而不是只凭经验判断 cookie / header 优先级。
+  - 这一步确认了：
+    - URL 前缀 > cookie > Accept-Language > default locale
+- 有效路径 3：
+  - 从后台 DTO 和保存 mutation 反推能力边界。
+  - 一看 `apps/web/src/models/writing.ts` 和 `queries/definition/post.ts|note.ts` 就能快速确定：
+    - 当前后台不是双语编辑器
+    - 保存时也不会自动翻译
+- 有效路径 4：
+  - 直接读 `@mx-space/api-client`，确认“后端有没有能力”与“前端有没有接 UI”是两回事。
+  - 这一步确认了最重要的产品事实：
+    - API 层有翻译生成能力
+    - 当前前端后台没接出来
+
+### 什么没用 / 容易误导
+
+- 误导点 1：
+  - 只看前台文章页的 `TranslationLanguageSwitcher`，很容易误以为“后台肯定有录入或生成入口”。
+  - 实际上它只是消费已有翻译结果，不代表后台编辑器能生产翻译。
+- 误导点 2：
+  - 只看 `availableTranslations` / `translationMeta` 这些展示字段，会误判成“已经存在完整 CMS 翻译工作流”。
+  - 实际这些字段只证明前台读模型支持 translated payload。
+- 误导点 3：
+  - 在 `apps/web/src` 里搜 `translation` 会出现很多前台消费代码、评论锚点语言代码、AI 摘要相关代码，噪音很大。
+  - 更高效的入口是先看：
+    - `models/writing.ts`
+    - `queries/definition/post.ts`
+    - `queries/definition/note.ts`
+    - `@mx-space/api-client`
+- 误导点 4：
+  - 目前后台路径本身不走公开站 locale middleware；
+  所以不要把“公开站语言切换逻辑”直接等同于“后台编辑器多语言能力”。
+
+### 当前工作区状态
+
+- 这轮没有修改应用代码。
+- 当前分支：
+  - `codex/modify`
+- 目前已知未跟踪文件仍然存在，且与本次分析无关，不要误删：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+- 本轮唯一应新增的变更是本 `HANDOFF.md` 补充。
+
+### 如果下一个 agent 要继续完成这个需求，推荐怎么做
+
+#### 方向 1：最短路径，做“后台一键生成英文 / 日文翻译”
+
+- 这是当前最值得继续的实现方向。
+- 原因：
+  - API client 已经有 translation generate SSE 能力
+  - 当前前台也已经能消费 translated article/note
+  - 所以大概率不需要重做前台展示模型
+- 推荐下一步：
+  1. 确认后台文章编辑页和笔记编辑页实际挂载组件与保存按钮入口
+  2. 在编辑页或侧栏增加“生成英文 / 生成日文”按钮
+  3. 调用：
+     - `apiClient.ai.streamTranslationGenerate({ articleId, lang })`
+     或同等 controller 封装
+  4. 明确生成完成后，前台 `availableTranslations` 是否立即可见，是否需要 revalidate / refetch
+  5. 重点验证：
+     - 中文原文发布后点击生成英文
+     - 前台切到 `/en/...` 能读到英文版
+     - 前台切回 `/` 或 `lang=original` 仍是中文原文
+
+#### 方向 2：如果产品想要“人工双语录入”
+
+- 这不是当前最短路径。
+- 因为现有后台编辑模型是单语 DTO，需要先确认后端是否支持：
+  - 手工写入 translation record
+  - 覆盖已有自动翻译
+  - 同时保存原文与多语言版本
+- 在没有先确认后端写入 contract 前，不建议直接开工做前端双语编辑 UI。
+
+### 给下一个 agent 的明确提醒
+
+- 不要再花时间验证“后台是不是已经藏着翻译入口”了；
+  这轮已经把后台写作 DTO、侧栏、保存 mutation 都看过，当前前端里没有。
+- 若要继续实现，请直接把精力放在：
+  - 后台编辑页真实入口组件
+  - `@mx-space/api-client` 的 translation generate API
+  - 生成后如何刷新当前文章数据 / 列表数据 / 前台缓存
+- 如果要做实现，建议先做文章 `post`，跑通后再复制到 `note`，避免一上来双线并行导致范围失控。
+
+## [2026-04-15 10:50] Page 路由已接入 locale-aware 翻译读取，`academic` 修复完成
+
+> 这一节比上面的“后台是否已有翻译入口”分析更新；若和更早内容冲突，以本节为准。
+
+### 当前目标
+
+- 修复公开站独立页面（Page）在英文路由下仍显示中文正文的问题。
+- 明确验收样例：
+  - `https://418122.xyz/academic` 应显示中文
+  - `https://418122.xyz/en/academic` 应显示英文
+
+### 这轮做了什么
+
+- 已修改：
+  - `apps/web/src/app/[locale]/(page-detail)/[slug]/api.ts`
+  - `apps/web/src/app/[locale]/(page-detail)/[slug]/layout.tsx`
+  - `apps/web/src/app/[locale]/(page-detail)/[slug]/page.tsx`
+- 已新增：
+  - `apps/web/src/app/[locale]/(page-detail)/[slug]/page-query.ts`
+  - `apps/web/src/app/[locale]/(page-detail)/[slug]/api.test.ts`
+  - `docs/superpowers/plans/2026-04-15-page-locale-translation-plan.md`
+
+### 根因
+
+- `Page` 详情链路之前没有像 `Post/Note` 那样显式把 route locale 传给 API。
+- `@mx-space/api-client` 当前 `PageController.getBySlug()` 的类型定义没有暴露 `lang` 参数，所以原前端代码一直只传了 `prefer=lexical`，没有把 `/en` 变成 `lang=en`。
+- 结果是：
+  - 页面外壳 locale 正常切到英文
+  - 但正文请求仍命中默认中文内容
+
+### 这轮确认过的关键事实
+
+- 线上旧行为（修复前）：
+  - `curl -L -s https://418122.xyz/en/academic`
+  - HTML `lang="en"` 正常，但正文仍是中文。
+- 后端实际支持 Page 按语言返回：
+  - `curl -s 'https://api.418122.xyz/api/v2/pages/slug/academic?lang=en&prefer=lexical'`
+  - 返回英文正文（以 `## About Me` 开头）。
+- 默认中文也仍存在：
+  - `curl -s 'https://api.418122.xyz/api/v2/pages/slug/academic?prefer=lexical'`
+  - 返回中文正文（以 `## 关于我` 开头）。
+
+### 修复方式
+
+- 新增纯函数 `buildPageQueryParams(locale)`：
+  - `zh` -> 只传 `prefer=lexical`
+  - `en` -> 传 `lang=en&prefer=lexical`
+  - `ja` -> 传 `lang=ja&prefer=lexical`
+- `getData` 改为接收 `(slug, locale)`，并通过：
+  - `apiClient.page.proxy.slug(slug).get({ params: buildPageQueryParams(locale) })`
+  显式请求对应语言。
+- `layout.tsx` 的 metadata 获取与 `definePrerenderPage` fetcher 都已改为传入 `params.locale`。
+- `page.tsx` 正文渲染入口也已改为传入 `locale`，避免 metadata 和正文取到不同语言。
+
+### 验证证据
+
+- 单测：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog/apps/web && pnpm exec vitest run 'src/app/[locale]/(page-detail)/[slug]/api.test.ts' --config vitest.config.ts`
+  - 结果：`3 tests passed`
+- 构建：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog && pnpm --filter @shiro/web build`
+  - 结果：build 成功
+- 本地 standalone 烟测：
+  - 启动：
+    - `PORT=4010 HOSTNAME=127.0.0.1 NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz node .next/standalone/Documents/GitHub/Blog/apps/web/server.js`
+  - 看到本地英文页请求：
+    - `https://api.418122.xyz/api/v2/pages/slug/academic?lang=en&prefer=lexical`
+    - 返回 `200`
+  - 本地英文响应 metadata 已变为英文摘要（`About Me I am currently...`），说明 `/en/academic` 已在页面渲染链路中使用英文内容。
+- 关于 `/academic`：
+  - 本地 middleware 会将默认路由 rewrite 到 `/zh/academic`，再结合 `zh` 不传 `lang` 与后端默认中文返回，可推导默认路由保持中文。
+
+### 当前工作区状态
+
+- 分支：
+  - `codex/modify`
+- 本轮与任务直接相关的文件已修改，但尚未在此 handoff 记录时提交。
+- 与本次任务无关的未跟踪文件仍然存在，不要顺手清理：
+  - `bootstrap.js`
+  - `main-8X_hBwW2.js`
+  - `plugins-page-nmaiEpNu.js`
+  - `product-name-CswjKXkf.js`
+
+### 如果下一个 agent 还要继续扩展
+
+- 优先扩展方向：
+  - 把 `Page` 列表 / header navigation / page paginator 的标题也接入 locale-aware 查询。
+- 当前没有做的原因：
+  - 本次验收目标只要求打开 `/academic` 与 `/en/academic` 时正文语言正确，不需要顺带扩大到整站 Page 导航标题。
