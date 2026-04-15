@@ -4863,3 +4863,58 @@ Error: Your Vercel CLI version is outdated. This endpoint requires version 47.2.
   - `actions/setup-node`
   - `pnpm/action-setup`
 - 但这不是本次部署失败的阻塞点。
+
+## [2026-04-15 11:20] 语言切换按钮已迁到页面右上角
+
+> 若和更早“语言切换器在 footer” 的描述冲突，以本节为准。
+
+### 当前目标
+
+- 将公开站中英日切换入口从 footer 移到 header 右上角。
+- 避免页面同时出现两份 locale 入口。
+
+### 这轮做了什么
+
+- 已修改：
+  - `apps/web/src/components/layout/header/Header.tsx`
+  - `apps/web/src/components/layout/footer/Footer.tsx`
+  - `apps/web/src/components/layout/footer/FooterInfo.tsx`
+- 已新增：
+  - `apps/web/src/components/layout/header/internal/HeaderLocaleSwitcher.tsx`
+  - `apps/web/src/components/layout/header/internal/HeaderLocaleSwitcher.config.ts`
+  - `apps/web/src/components/layout/header/internal/HeaderLocaleSwitcher.test.ts`
+- 已删除：
+  - `apps/web/src/components/layout/footer/LocaleSwitcher.tsx`
+
+### 实现方式
+
+- 在 header 右侧原本空着的固定区域中挂入新的 `HeaderLocaleSwitcher`。
+- 为了适配 header 右上角的小尺寸区域，trigger 使用紧凑标签：
+  - `zh -> 中`
+  - `en -> EN`
+  - `ja -> 日`
+- 下拉项仍显示完整语言名称：
+  - `简体中文`
+  - `English`
+  - `日本語`
+- footer 中原有 locale 切换入口已移除，仅保留主题切换。
+
+### 验证
+
+- 单测：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog/apps/web && pnpm exec vitest run 'src/components/layout/header/internal/HeaderLocaleSwitcher.test.ts' --config vitest.config.ts`
+  - 结果：
+    - `2 tests passed`
+- 构建：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog && pnpm --filter @shiro/web build`
+  - 结果：
+    - build 成功
+
+### 给下一个 agent 的提醒
+
+- 这次只移动了公开站 locale 入口，没有改内容翻译逻辑。
+- 如果用户后续想要：
+  - 移动端抽屉里也显示 locale 切换
+  - header 右上角显示图标而不是紧凑文字
+  - 同时把主题切换也迁到 header
+  那是后续 UI 迭代，不在这次范围内。

@@ -15,14 +15,10 @@ import { GatewayInfo } from './GatewayInfo'
 import { OwnerName } from './OwnerName'
 
 interface FooterInfoProps {
-  localeSwitcher: ReactNode
   themeSwitcher: ReactNode
 }
 
-export const FooterInfo = async ({
-  localeSwitcher,
-  themeSwitcher,
-}: FooterInfoProps) => {
+export const FooterInfo = async ({ themeSwitcher }: FooterInfoProps) => {
   const t = await getTranslations('common')
   const data = await fetchAggregationData()
   const { footer } = data.theme
@@ -113,11 +109,7 @@ export const FooterInfo = async ({
                 <DotSep />
               </SubscribeTextButton>
             </div>
-            <div className="flex items-center gap-3">
-              {themeSwitcher}
-              <SectionSep />
-              {localeSwitcher}
-            </div>
+            <div className="flex items-center gap-3">{themeSwitcher}</div>
           </div>
         </div>
       </div>
@@ -139,8 +131,6 @@ export const FooterInfo = async ({
           </span>
           <SectionSep />
           {themeSwitcher}
-          <SectionSep />
-          {localeSwitcher}
         </span>
         {icp && (
           <span className="text-sm text-neutral-6">

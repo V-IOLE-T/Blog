@@ -14,6 +14,7 @@ import {
 import { HeaderContent } from './internal/HeaderContent'
 import { HeaderDataConfigureProvider } from './internal/HeaderDataConfigureProvider'
 import { HeaderDrawerButton } from './internal/HeaderDrawerButton'
+import { HeaderLocaleSwitcher } from './internal/HeaderLocaleSwitcher'
 
 export const Header = () => (
   <ErrorBoundary>
@@ -46,7 +47,9 @@ const MemoedHeader = memo(() => {
           <HeaderContent />
         </HeaderCenterArea>
 
-        <div className="flex size-full items-center" />
+        <div className="flex size-full items-center justify-center lg:justify-end">
+          <HeaderLocaleSwitcher />
+        </div>
       </div>
     </div>
   )
