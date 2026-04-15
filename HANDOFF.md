@@ -230,6 +230,102 @@ ssh -i ~/.ssh/macair4.pem root@43.153.75.156 \
 
 ---
 
+## [2026-04-16 00:18] 轻管理速记已支持 AI 翻译入口
+
+> 本节晚于前文所有记录；若与 earlier recently / dashboard 描述冲突，以本节为准。
+
+### 当前目标
+
+把轻管理里的 `速记` 卡片升级成可直接触发 AI 翻译的入口，不再要求站长跳去完整后台才能给 recently 生成英文 / 日文翻译。
+
+### 这次改了什么
+
+- 在 [apps/web/src/routes/site/recently-section.tsx](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-section.tsx) 中：
+  - 列表项读取 `availableTranslations`
+  - 卡片底部新增常驻状态徽标：
+    - `EN 已翻译 / 未翻译`
+    - `JA 已翻译 / 未翻译`
+  - 站长操作区新增统一的 `AI 翻译` 按钮
+  - 点击后会调用后端 recently 翻译生成接口
+  - 采用“单条速记 + 单个语言”的 pending 目标来避免重复提交
+- 新增 [apps/web/src/routes/site/recently-translation.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.ts)
+  - 封装 EN / JA 语言定义
+  - 状态推导
+  - 菜单文案
+  - success toast 文案
+  - pending target 判断
+- 新增 / 更新测试：
+  - [apps/web/src/routes/site/recently-translation.test.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.test.ts)
+  - [apps/web/src/routes/site/recently-section.test.tsx](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-section.test.tsx)
+
+### 这次验证过什么
+
+已真实执行：
+
+```bash
+pnpm --filter @shiro/web exec vitest run src/routes/site/recently-translation.test.ts src/routes/site/recently-section.test.tsx
+```
+
+结果：
+
+- `2` 个 test files
+- `9` 个 tests
+- 全部通过
+
+已真实执行：
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 \
+NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz \
+pnpm --filter @shiro/web build
+```
+
+结果：
+
+- `next build` 成功
+- recently 轻管理改动没有阻塞生产构建
+
+### 接口与行为说明
+
+- 当前前端触发的是后端已有 recently 翻译生成路由：
+  - `GET /api/v2/ai/translations/article/:id/generate?lang=en|ja`
+- 前端通过：
+  - `apiClient.ai.proxy(\`translations/article/${itemId}/generate\`).get({ params: { lang } })`
+  发起请求
+- success toast 使用“已提交英文翻译 / 已提交日文翻译 / 已提交英文重翻译”这一类措辞
+  - 这里故意写“已提交”而不是“已完成”
+  - 因为后端翻译可能是异步处理，列表刷新后不一定瞬间变成 `已翻译`
+
+### 什么有效
+
+- 不需要新建页面，直接复用现有 `RecentlySection` 就够
+- `availableTranslations` 足够支撑 EN / JA 状态判断
+- 将文案、状态和 pending 判断提取到单独 helper 后，组件复杂度可控
+
+### 什么没有做
+
+- 没做翻译预览
+- 没做批量翻译
+- 没做更多语言
+- 没改首页 recently 展示样式
+
+### 当前相关提交
+
+- `63a0be3` `test(recently): 固化翻译状态推导`
+- `de15a52` `feat(recently): 展示轻管理翻译状态`
+- `70ab7a4` `feat(recently): 接入轻管理翻译操作`
+
+### 下一步建议
+
+1. push 当前分支
+2. 触发前端部署 workflow
+3. 部署后登录 `/dashboard/site` 或 `/dashboard/recently`，实测：
+   - `AI 翻译` 按钮是否可点
+   - EN / JA 状态是否会在生成后刷新
+   - 若状态没有立即更新，确认是否只是后端任务异步延迟
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状
@@ -5068,3 +5164,33 @@ Error: Your Vercel CLI version is outdated. This endpoint requires version 47.2.
   - 具体文章是否生成了英文摘要/分类展示名
   - `recently` 数据是否支持翻译或是否需要前端在英文首页隐藏该模块
   - footer 链接文案是否来自后台中文配置
+
+## [2026-04-15 19:20] 已新增仓库架构与试错复盘文档
+
+### 这轮补充了什么
+
+- 已更新：
+  - `AGENTS.md`
+- 已新增：
+  - `docs/deployment/2026-04-15-repo-architecture-and-retrospective.md`
+
+### 作用
+
+- `AGENTS.md`
+  - 只保留高价值、可执行、能防止下一个 agent 重复试错的经验。
+- `docs/deployment/2026-04-15-repo-architecture-and-retrospective.md`
+  - 给人类和下一位 agent 看的完整复盘：
+    - 这段时间改了什么
+    - 哪些方向错了
+    - 为什么错
+    - 当前前端仓库和外部后端仓库的架构
+    - 哪些文件负责什么
+
+### 给下一个 agent 的建议
+
+- 如果是要快速接手问题：
+  1. 先读 `AGENTS.md`
+  2. 再读 `HANDOFF.md` 最新章节
+- 如果是要理解全局背景或学习这次排障路径：
+  - 直接读：
+    - `docs/deployment/2026-04-15-repo-architecture-and-retrospective.md`
