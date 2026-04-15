@@ -16,12 +16,30 @@ export type RecentlyTranslationListItem = {
   availableTranslations?: string[]
 }
 
+export const normalizeRecentlyTranslationLanguages = (
+  value: unknown,
+): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+
+  if (value && typeof value === 'object' && 'data' in value) {
+    return normalizeRecentlyTranslationLanguages(
+      (value as { data?: unknown }).data,
+    )
+  }
+
+  return []
+}
+
 export const getRecentlyTranslationStatuses = (
   availableTranslations?: string[],
 ) =>
   RECENTLY_TRANSLATION_LANGS.map((item) => ({
     ...item,
-    translated: !!availableTranslations?.includes(item.lang),
+    translated: normalizeRecentlyTranslationLanguages(
+      availableTranslations,
+    ).includes(item.lang),
   }))
 
 export const getRecentlyTranslationActionLabel = (
@@ -56,8 +74,9 @@ export const getRecentlyTranslationItemsWithLanguages = <
 ) =>
   items.map((item) => ({
     ...item,
-    availableTranslations:
-      languagesById[item.id] ?? item.availableTranslations ?? [],
+    availableTranslations: normalizeRecentlyTranslationLanguages(
+      languagesById[item.id] ?? item.availableTranslations,
+    ),
   }))
 
 export const isRecentlyTranslationPendingTarget = (

@@ -33,6 +33,7 @@ import {
   getRecentlyTranslationStatuses,
   getRecentlyTranslationToastLabel,
   isRecentlyTranslationPendingTarget,
+  normalizeRecentlyTranslationLanguages,
   type RecentlyTranslationLang,
   type RecentlyTranslationListItem,
   type RecentlyTranslationTarget,
@@ -132,8 +133,9 @@ export const RecentlySection = () => {
           enabled: !!item.id,
           queryKey: [...RECENTLY_TRANSLATION_LANGUAGES_QUERY_KEY, item.id],
           queryFn: async () =>
-            (await apiClient.ai.getAvailableLanguages(item.id))
-              .$serialized as string[],
+            normalizeRecentlyTranslationLanguages(
+              (await apiClient.ai.getAvailableLanguages(item.id)).$serialized,
+            ),
           staleTime: 60 * 1000,
         }))
       : [],

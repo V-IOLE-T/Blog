@@ -611,6 +611,103 @@ pnpm --filter @shiro/web build
 
 ---
 
+## [2026-04-16 01:15] 修复 recently 轻管理运行时崩溃：`includes is not a function`
+
+> 本节是当前 recently 状态链路的最新补充；若与上文冲突，以本节为准。
+
+### 现象
+
+线上打开轻管理时出现：
+
+```text
+Unexpected Application Error!
+t?.includes is not a function
+```
+
+报错位置在 recently 翻译状态渲染链路里。
+
+### 根因
+
+并不是 `useQueries` 或 React Query 本身有问题，而是 `/ai/translations/article/:id/languages` 的返回值在前端某些路径下不是纯数组，而是包装对象形态：
+
+```json
+{ "data": ["en"] }
+```
+
+之前代码直接把查询结果当 `string[]` 使用，再在状态推导里调用：
+
+```ts
+availableTranslations?.includes(...)
+```
+
+于是当传入值实际上是对象时，就会在运行时崩溃。
+
+### 修法
+
+新增统一归一化函数：
+
+- [apps/web/src/routes/site/recently-translation.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.ts)
+  - `normalizeRecentlyTranslationLanguages(value)`
+
+规则：
+
+- 如果是 `string[]`，直接返回
+- 如果是 `{ data: [...] }`，递归解包
+- 其他值统一回退为 `[]`
+
+并在以下两处统一使用：
+
+1. `getRecentlyTranslationStatuses(...)`
+   - 不再直接对原值 `includes`
+2. `getRecentlyTranslationItemsWithLanguages(...)`
+   - 合并回列表项前先做归一化
+3. `RecentlySection` 的 `useQueries(...)`
+   - `queryFn` 里先归一化 `getAvailableLanguages(...).$serialized`
+
+### 测试与验证
+
+已新增测试：
+
+- [apps/web/src/routes/site/recently-translation.test.ts](/Users/zhenghan/Documents/GitHub/Blog/apps/web/src/routes/site/recently-translation.test.ts)
+  - 覆盖 `{ data: [...] }` 包装响应归一化
+
+已真实执行：
+
+```bash
+pnpm --filter @shiro/web exec vitest run src/routes/site/recently-translation.test.ts src/routes/site/recently-section.test.tsx
+```
+
+结果：
+
+- `2` 个 test files
+- `12` 个 tests
+- 全部通过
+
+已真实执行：
+
+```bash
+NEXT_PUBLIC_API_URL=https://api.418122.xyz/api/v2 \
+NEXT_PUBLIC_GATEWAY_URL=https://api.418122.xyz \
+pnpm --filter @shiro/web build
+```
+
+结果：
+
+- `next build` 成功
+
+### 当前结论
+
+recently 轻管理这一段现在的正确链路应当是：
+
+1. 点击 `AI 翻译`
+2. 前端请求同源纯代理 route
+3. 后端生成翻译
+4. 前端刷新该条 recently 的 `/languages`
+5. `/languages` 返回值先归一化
+6. 再渲染 `EN / JA 已翻译 / 未翻译`
+
+---
+
 ## 刚刚这个会话里最关键的坑
 
 ### 症状

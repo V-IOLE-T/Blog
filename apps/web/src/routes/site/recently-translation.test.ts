@@ -6,6 +6,7 @@ import {
   getRecentlyTranslationItemsWithLanguages,
   getRecentlyTranslationStatuses,
   isRecentlyTranslationPendingTarget,
+  normalizeRecentlyTranslationLanguages,
 } from './recently-translation'
 
 describe('recently translation helpers', () => {
@@ -26,6 +27,14 @@ describe('recently translation helpers', () => {
   it('returns update labels for translated languages', () => {
     expect(getRecentlyTranslationActionLabel('en', true)).toBe('更新英文')
     expect(getRecentlyTranslationActionLabel('ja', false)).toBe('生成日文')
+  })
+
+  it('normalizes wrapped language payloads into string arrays', () => {
+    expect(
+      normalizeRecentlyTranslationLanguages({ data: ['en', 'ja'] }),
+    ).toEqual(['en', 'ja'])
+    expect(normalizeRecentlyTranslationLanguages(['en'])).toEqual(['en'])
+    expect(normalizeRecentlyTranslationLanguages(undefined)).toEqual([])
   })
 
   it('builds the same-origin trigger path for translation requests', () => {
