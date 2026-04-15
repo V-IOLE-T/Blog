@@ -4799,3 +4799,67 @@ pnpm --filter @shiro/web build
   - 把 `Page` 列表 / header navigation / page paginator 的标题也接入 locale-aware 查询。
 - 当前没有做的原因：
   - 本次验收目标只要求打开 `/academic` 与 `/en/academic` 时正文语言正确，不需要顺带扩大到整站 Page 导航标题。
+
+## [2026-04-15 11:05] Vercel 前端部署失败根因已定位并修复
+
+> 若和更早的“部署失败可能与 Node 20 warning 有关”的猜测冲突，以本节为准。
+
+### 现象
+
+- GitHub Actions run:
+  - `https://github.com/V-IOLE-T/Blog/actions/runs/24433910339`
+- 失败 job:
+  - `deploy`
+- 用户侧看到：
+  - 1 error
+  - 1 warning
+  - `Process completed with exit code 1`
+  - Node 20 deprecation warning
+
+### 根因
+
+- 真正导致退出码 1 的不是 Node 20 warning。
+- 失败日志中明确报错：
+
+```text
+Error: Your Vercel CLI version is outdated. This endpoint requires version 47.2.2 or later.
+```
+
+- 当前工作流 `.github/workflows/vercel-frontend-deploy.yml` 把 CLI 固定成了：
+  - `vercel@47.0.5`
+- 构建阶段其实已经成功，失败发生在最后的上传/部署阶段。
+
+### 修复
+
+- 已修改：
+  - `.github/workflows/vercel-frontend-deploy.yml`
+- 修复内容：
+  - 新增统一环境变量：
+    - `VERCEL_CLI_VERSION: 51.2.1`
+  - 将三处命令统一改为：
+    - `pnpm dlx vercel@"$VERCEL_CLI_VERSION" ...`
+
+### 为什么这样改
+
+- `npm view vercel version` 当前返回：
+  - `51.2.1`
+- 这满足 Vercel 端点要求的 `>= 47.2.2`
+- 同时避免继续把版本号散落在 3 行命令里。
+
+### 验证
+
+- 失败日志确认根因：
+  - `gh run view 24433910339 --log-failed`
+- YAML 语法检查：
+  - `ruby -e 'require "yaml"; YAML.load_file(".github/workflows/vercel-frontend-deploy.yml"); puts "yaml ok"'`
+  - 输出：
+    - `yaml ok`
+
+### 对下一个 agent 的提醒
+
+- Node 20 deprecation 目前只是 warning，不是这次失败根因。
+- 如果未来要继续治理 CI，可以再单独升级：
+  - `actions/checkout`
+  - `actions/setup-node`
+  - `pnpm/action-setup`
+- 但这不是本次部署失败的阻塞点。
