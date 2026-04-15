@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import type { JSX } from 'react'
 
 import { fetchAggregationData } from '~/app/[locale]/api'
@@ -15,8 +15,9 @@ import { GatewayInfo } from './GatewayInfo'
 import { OwnerName } from './OwnerName'
 
 export const FooterInfo = async () => {
-  const t = await getTranslations('common')
-  const data = await fetchAggregationData()
+  const locale = await getLocale()
+  const t = await getTranslations({ locale, namespace: 'common' })
+  const data = await fetchAggregationData({ locale })
   const { footer } = data.theme
   const footerConfig: FooterConfig = footer || {
     linkSections: getDefaultLinkSections(t),

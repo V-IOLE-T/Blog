@@ -7,6 +7,7 @@ import { atom, useAtomValue, useSetAtom } from 'jotai'
 import { useLocale } from 'next-intl'
 import { createContext, use, useCallback, useEffect, useState } from 'react'
 
+import { buildApiLangQuery } from '~/i18n/build-api-lang-query'
 import { apiClient } from '~/lib/request'
 import { useAppConfigSelector } from '~/providers/root/aggregation-data-provider'
 import { navigation } from '~/queries/definition/navigation'
@@ -95,9 +96,14 @@ export const HeaderDataConfigureProvider: Component = ({ children }) => {
   })
 
   const { data: topData } = useQuery({
-    queryKey: ['nav-top'],
+    queryKey: ['nav-top', locale],
     queryFn: async () =>
-      (await apiClient.aggregate.getTop(5)).$serialized as AggregateTop,
+      (await apiClient.aggregate.proxy.top.get({
+        params: {
+          size: 5,
+          ...buildApiLangQuery(locale),
+        },
+      })) as AggregateTop,
     staleTime: 1000 * 60 * 5,
     enabled: shouldLoadTimelineMenu,
   })

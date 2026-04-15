@@ -12,6 +12,7 @@ import type { ReactNode } from 'react'
 import { useMemo } from 'react'
 
 import { RelativeTime } from '~/components/ui/relative-time'
+import { buildApiLangQuery } from '~/i18n/build-api-lang-query'
 import { Link } from '~/i18n/navigation'
 import { getNoteRouteParams } from '~/lib/note-route'
 import { apiClient } from '~/lib/request'
@@ -21,7 +22,12 @@ const useRecentlyData = (locale: string) =>
   useQuery({
     queryKey: ['recently', 'home', locale],
     queryFn: async () =>
-      (await apiClient.recently.getList({ size: 20 })).$serialized,
+      await apiClient.recently.proxy.get({
+        params: {
+          size: 20,
+          ...buildApiLangQuery(locale),
+        },
+      }),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -29,7 +35,9 @@ const useRecentComments = (locale: string) => {
   const { data, isLoading } = useQuery({
     queryKey: ['home-activity-recent', locale],
     queryFn: async () =>
-      (await apiClient.activity.getRecentActivities()).$serialized,
+      await apiClient.activity.proxy.recent.get({
+        params: buildApiLangQuery(locale),
+      }),
     refetchOnMount: true,
     meta: { persist: true },
   })

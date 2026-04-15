@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useLocale, useTranslations } from 'next-intl'
 import { Fragment, useMemo } from 'react'
 
+import { buildApiLangQuery } from '~/i18n/build-api-lang-query'
 import { Link } from '~/i18n/navigation'
 import { getNoteRouteParams } from '~/lib/note-route'
 import { apiClient } from '~/lib/request'
@@ -160,7 +161,10 @@ export const HomePageTimeLine = () => {
 
   const { data: yearData } = useQuery({
     queryKey: ['home-timeline', locale],
-    queryFn: async () => apiClient.activity.getLastYearPublication(),
+    queryFn: async () =>
+      apiClient.activity.proxy('last-year').publication.get({
+        params: buildApiLangQuery(locale),
+      }),
   })
 
   const seasons = useMemo(

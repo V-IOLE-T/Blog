@@ -4975,3 +4975,96 @@ Error: Your Vercel CLI version is outdated. This endpoint requires version 47.2.
   - 一个总设置按钮
   - 或一个带图标的 segmented control
   但当前版本已经满足“右上角两个相邻按钮”的需求。
+
+## [2026-04-15 12:35] 首页英文页的 locale 请求链路已补齐，但仍有后台未翻译数据残留
+
+> 若和更早“首页英文页有中文主要是前端漏传 locale” 的笼统描述冲突，以本节为准。
+
+### 当前目标
+
+- 修复首页 `/en` 下仍混出中文的前端请求链路问题。
+- 明确区分：
+  - 前端没按 locale 请求
+  - 后台即使收到英文请求仍返回中文
+
+### 这轮做了什么
+
+- 已新增：
+  - `apps/web/src/i18n/build-api-lang-query.ts`
+  - `apps/web/src/i18n/build-api-lang-query.test.ts`
+- 已修改：
+  - `apps/web/src/app/[locale]/(home)/layout.tsx`
+  - `apps/web/src/app/[locale]/(home)/components/BottomSection.tsx`
+  - `apps/web/src/app/[locale]/(home)/components/ActivityRecent.tsx`
+  - `apps/web/src/app/[locale]/(home)/components/HomePageTimeLine.tsx`
+  - `apps/web/src/components/layout/footer/FooterInfo.tsx`
+  - `apps/web/src/components/layout/header/internal/HeaderDataConfigureProvider.tsx`
+
+### 前端根因
+
+- 首页多处查询之前虽然拿到了 `locale`，但没有显式把它转成 API 的 `lang` 参数。
+- 典型位置：
+  - `aggregate/top`
+  - `activity/recent`
+  - `activity/last-year/publication`
+  - `recently`
+- 结果是：
+  - UI 文案走英文
+  - 但首页内容数据仍按默认中文拉取
+
+### 修复方式
+
+- 新增统一 helper：
+  - `buildApiLangQuery(locale)`
+  - 规则：
+    - `zh` -> 不传 `lang`
+    - `en` -> `lang=en`
+    - `ja` -> `lang=ja`
+- 首页 SSR 预取 `aggregate/top` 已改为显式带 `lang`
+- `BottomSection` / `ActivityRecent` / `HomePageTimeLine` 的客户端查询也已改为显式带 `lang`
+- `HeaderDataConfigureProvider` 里与首页相关的 `nav-top` 也同步带上 locale，并把 query key 改成包含 locale
+- `FooterInfo` 改为显式读取当前 locale 再取 aggregation data
+
+### 这轮确认下来的后台事实
+
+- 以下接口加 `lang=en` 后，**部分字段**会变英文：
+  - `/api/v2/aggregate/top`
+  - `/api/v2/activity/recent`
+  - `/api/v2/activity/last-year/publication`
+- 但仍有字段即使加了 `lang=en` 也还是中文，例如：
+  - 文章分类名（如 `项目`、`默认分类`）
+  - 文章摘要（部分文章）
+  - `recently` 文本流内容
+- 这说明首页剩余中文并不全是前端问题，部分是后台内容本身没有英文版本。
+
+### 本地烟测结论
+
+- 本地 standalone `/en` 首页中：
+  - `Visual Email Management and OAuth Automation Extension` 已能出现在 `Recently Writing`
+  - 说明 `aggregate/top?lang=en` 链路已接通
+- 仍能看到中文：
+  - `占位文章`
+  - `NapCat Docker 部署完整复盘`
+  - `一个把邮箱池管理...`
+  - `项目` / `默认分类`
+  - footer 的 `关于本站` / `关于我` / `时间线`
+- 这些残留中文当前更像是后台内容/配置未翻译，而不是前端没带 locale。
+
+### 验证
+
+- 单测：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog/apps/web && pnpm exec vitest run 'src/i18n/build-api-lang-query.test.ts' --config vitest.config.ts`
+  - 结果：
+    - `3 tests passed`
+- 构建：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog && pnpm --filter @shiro/web build`
+  - 结果：
+    - build 成功
+
+### 给下一个 agent 的提醒
+
+- 如果用户继续追问“为什么英文首页还有中文”，先不要再从前端链路里找锅。
+- 下一步更应该检查和处理的是：
+  - 具体文章是否生成了英文摘要/分类展示名
+  - `recently` 数据是否支持翻译或是否需要前端在英文首页隐藏该模块
+  - footer 链接文案是否来自后台中文配置

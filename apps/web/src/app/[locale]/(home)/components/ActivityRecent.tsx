@@ -8,6 +8,7 @@ import { useMemo } from 'react'
 
 import { ScrollArea } from '~/components/ui/scroll-area'
 import { softBouncePreset } from '~/constants/spring'
+import { buildApiLangQuery } from '~/i18n/build-api-lang-query'
 import { apiClient } from '~/lib/request'
 
 import { ActivityCard, iconClassName } from './ActivityCard'
@@ -19,7 +20,9 @@ export const ActivityRecent = () => {
   const { data, isLoading } = useQuery({
     queryKey: ['home-activity-recent', locale],
     queryFn: async () =>
-      (await apiClient.activity.getRecentActivities()).$serialized,
+      await apiClient.activity.proxy.recent.get({
+        params: buildApiLangQuery(locale),
+      }),
     refetchOnMount: true,
     meta: {
       persist: true,

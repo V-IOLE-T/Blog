@@ -1,6 +1,7 @@
 import { dehydrate } from '@tanstack/react-query'
 
 import { QueryHydrate } from '~/components/common/QueryHydrate'
+import { buildApiLangQuery } from '~/i18n/build-api-lang-query'
 import { isShallowEqualArray } from '~/lib/lodash'
 import { getQueryClient } from '~/lib/query-client.server'
 import { apiClient } from '~/lib/request'
@@ -20,7 +21,13 @@ export default definePrerenderPage<{ locale: string }>()({
     try {
       return await queryClient.fetchQuery({
         queryKey,
-        queryFn: async () => (await apiClient.aggregate.getTop(5)).$serialized,
+        queryFn: async () =>
+          await apiClient.aggregate.proxy.top.get({
+            params: {
+              size: 5,
+              ...buildApiLangQuery(locale),
+            },
+          }),
       })
     } catch (error) {
       return requestErrorHandler(error)
