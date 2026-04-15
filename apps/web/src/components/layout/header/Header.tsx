@@ -15,6 +15,7 @@ import { HeaderContent } from './internal/HeaderContent'
 import { HeaderDataConfigureProvider } from './internal/HeaderDataConfigureProvider'
 import { HeaderDrawerButton } from './internal/HeaderDrawerButton'
 import { HeaderLocaleSwitcher } from './internal/HeaderLocaleSwitcher'
+import { HeaderThemeSwitcher } from './internal/HeaderThemeSwitcher'
 
 export const Header = () => (
   <ErrorBoundary>
@@ -31,7 +32,7 @@ const MemoedHeader = memo(() => {
     >
       <div
         className={clsxm(
-          'relative mx-auto w-[calc(100vw-var(--removed-body-scroll-bar-size,0px))] grid h-full min-h-0 max-w-7xl grid-cols-[4.5rem_auto_4.5rem] lg:px-8',
+          'relative mx-auto w-[calc(100vw-var(--removed-body-scroll-bar-size,0px))] grid h-full min-h-0 max-w-7xl grid-cols-[4.5rem_auto_4.5rem] lg:grid-cols-[4.5rem_minmax(0,1fr)_5.75rem] lg:px-8',
           'header--grid',
         )}
       >
@@ -47,7 +48,8 @@ const MemoedHeader = memo(() => {
           <HeaderContent />
         </HeaderCenterArea>
 
-        <div className="flex size-full items-center justify-center lg:justify-end">
+        <div className="flex size-full items-center justify-center gap-2 lg:justify-end">
+          <HeaderThemeSwitcher />
           <HeaderLocaleSwitcher />
         </div>
       </div>

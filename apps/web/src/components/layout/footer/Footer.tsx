@@ -1,5 +1,4 @@
 import { FooterInfo } from './FooterInfo'
-import { FooterThemeSwitcher } from './FooterThemeSwitcher'
 
 export const Footer = async () => (
   <>
@@ -23,7 +22,7 @@ export const Footer = async () => (
     >
       <div className="px-4 sm:px-8">
         <div className="mx-auto max-w-7xl lg:px-8">
-          <FooterInfo themeSwitcher={<FooterThemeSwitcher />} />
+          <FooterInfo />
         </div>
       </div>
     </footer>

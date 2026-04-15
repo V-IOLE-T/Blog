@@ -1,7 +1,7 @@
 import 'server-only'
 
 import { getTranslations } from 'next-intl/server'
-import type { JSX, ReactNode } from 'react'
+import type { JSX } from 'react'
 
 import { fetchAggregationData } from '~/app/[locale]/api'
 import { SubscribeTextButton } from '~/components/modules/subscribe/SubscribeTextButton'
@@ -14,11 +14,7 @@ import { getDefaultLinkSections } from './config'
 import { GatewayInfo } from './GatewayInfo'
 import { OwnerName } from './OwnerName'
 
-interface FooterInfoProps {
-  themeSwitcher: ReactNode
-}
-
-export const FooterInfo = async ({ themeSwitcher }: FooterInfoProps) => {
+export const FooterInfo = async () => {
   const t = await getTranslations('common')
   const data = await fetchAggregationData()
   const { footer } = data.theme
@@ -109,7 +105,6 @@ export const FooterInfo = async ({ themeSwitcher }: FooterInfoProps) => {
                 <DotSep />
               </SubscribeTextButton>
             </div>
-            <div className="flex items-center gap-3">{themeSwitcher}</div>
           </div>
         </div>
       </div>
@@ -129,8 +124,6 @@ export const FooterInfo = async ({ themeSwitcher }: FooterInfoProps) => {
               <DotSep />
             </SubscribeTextButton>
           </span>
-          <SectionSep />
-          {themeSwitcher}
         </span>
         {icp && (
           <span className="text-sm text-neutral-6">
@@ -147,12 +140,6 @@ export const FooterInfo = async ({ themeSwitcher }: FooterInfoProps) => {
 const DotSep = () => (
   <span aria-hidden className="mx-1.5 select-none text-neutral-5">
     ·
-  </span>
-)
-
-const SectionSep = () => (
-  <span aria-hidden className="select-none text-neutral-4">
-    |
   </span>
 )
 

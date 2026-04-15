@@ -4918,3 +4918,60 @@ Error: Your Vercel CLI version is outdated. This endpoint requires version 47.2.
   - header 右上角显示图标而不是紧凑文字
   - 同时把主题切换也迁到 header
   那是后续 UI 迭代，不在这次范围内。
+
+## [2026-04-15 11:45] 右上角已升级为“主题 + 语言”双按钮
+
+> 若和上一节“右上角只有语言按钮”的描述冲突，以本节为准。
+
+### 当前目标
+
+- 将主题切换也迁移到页面右上角。
+- 最终右上角呈现两个相邻圆形按钮：
+  - 主题按钮
+  - 语言按钮
+
+### 这轮做了什么
+
+- 已修改：
+  - `apps/web/src/components/layout/header/Header.tsx`
+  - `apps/web/src/components/layout/footer/Footer.tsx`
+  - `apps/web/src/components/layout/footer/FooterInfo.tsx`
+- 已新增：
+  - `apps/web/src/components/layout/header/internal/HeaderThemeSwitcher.tsx`
+  - `apps/web/src/components/layout/header/internal/HeaderThemeSwitcher.config.ts`
+  - `apps/web/src/components/layout/header/internal/HeaderThemeSwitcher.test.ts`
+- 已删除：
+  - `apps/web/src/components/layout/footer/FooterThemeSwitcher.tsx`
+
+### 实现方式
+
+- 主题切换器采用单按钮下拉菜单，风格与语言按钮保持一致。
+- trigger 图标按当前主题状态切换：
+  - `light` -> 太阳
+  - `system` -> 电脑
+  - `dark` -> 月亮
+- 下拉项使用：
+  - 太阳 / 电脑 / 月亮 图标
+  - 对应的主题 aria 文案
+  - 当前选中态勾选
+- 为了放下两个按钮，desktop header 右侧列宽从单按钮宽度扩展到可容纳两个按钮的宽度。
+- footer 中主题切换入口已移除，因此 footer 不再承担任何“显示设置”功能。
+
+### 验证
+
+- 单测：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog/apps/web && pnpm exec vitest run 'src/components/layout/header/internal/HeaderThemeSwitcher.test.ts' 'src/components/layout/header/internal/HeaderLocaleSwitcher.test.ts' --config vitest.config.ts`
+  - 结果：
+    - `4 tests passed`
+- 构建：
+  - `cd /Users/zhenghan/Documents/GitHub/Blog && pnpm --filter @shiro/web build`
+  - 结果：
+    - build 成功
+
+### 给下一个 agent 的提醒
+
+- 这次没有把“移动端抽屉里的显示设置”一起重做。
+- 如果后续用户觉得右上角两个按钮还不够统一，可继续演进为：
+  - 一个总设置按钮
+  - 或一个带图标的 segmented control
+  但当前版本已经满足“右上角两个相邻按钮”的需求。
