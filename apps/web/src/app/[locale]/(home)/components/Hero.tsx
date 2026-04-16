@@ -383,14 +383,15 @@ const HeroSocialIcons = ({
 
 const HeroHitokoto = ({ shouldAnimate }: { shouldAnimate: boolean }) => {
   const t = useTranslations('home')
+  const locale = useLocale()
   const appConfigHitokoto = useAppConfigSelector(
     (config) => config.hero.hitokoto || {},
   )!
   const { data: latestHitokotoConfig, isFetched: hasResolvedLatestHitokoto } =
     useQuery({
-      queryKey: ['hero-hitokoto-config'],
+      queryKey: ['hero-hitokoto-config', locale],
       queryFn: async () => {
-        const response = await fetch('/api/hero-hitokoto', {
+        const response = await fetch(`/api/hero-hitokoto?locale=${locale}`, {
           cache: 'no-store',
         })
 

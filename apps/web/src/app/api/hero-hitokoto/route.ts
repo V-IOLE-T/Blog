@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server'
 import { NextServerResponse } from '~/lib/edge-function.server'
 import { fetchServerApiJson } from '~/lib/server-api-fetch'
 
+import { buildHeroHitokotoAggregateQuery } from './query'
+
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 export const fetchCache = 'force-no-store'
@@ -21,7 +23,9 @@ type HeroHitokotoPayload = {
 
 export const GET = async (request: NextRequest) => {
   const response = new NextServerResponse().headers(noStoreHeaders)
-  const origin = new URL(request.url).origin
+  const url = new URL(request.url)
+  const origin = url.origin
+  const locale = url.searchParams.get('locale') || undefined
 
   try {
     const aggregate = await fetchServerApiJson<{
@@ -34,9 +38,7 @@ export const GET = async (request: NextRequest) => {
       }
     }>('aggregate', {
       origin,
-      query: {
-        theme: 'shiro',
-      },
+      query: buildHeroHitokotoAggregateQuery(locale),
       next: {
         revalidate: 0,
       },
