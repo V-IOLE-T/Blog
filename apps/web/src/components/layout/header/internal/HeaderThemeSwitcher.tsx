@@ -50,6 +50,11 @@ export const HeaderThemeSwitcher = () => {
     system: t('aria_theme_system'),
     dark: t('aria_theme_dark'),
   } as const
+  const displayLabels = {
+    light: t('theme_light'),
+    system: t('theme_system'),
+    dark: t('theme_dark'),
+  } as const
 
   const handleSelect = (nextTheme: (typeof themes)[number]) => {
     if (nextTheme === currentTheme) return
@@ -88,7 +93,7 @@ export const HeaderThemeSwitcher = () => {
               <span className="flex w-full items-center justify-between gap-3">
                 <span className="flex items-center gap-2">
                   <ThemeIcon name={getHeaderThemeIconName(nextTheme)} />
-                  <span>{labels[nextTheme]}</span>
+                  <span>{displayLabels[nextTheme]}</span>
                 </span>
                 {isCurrent && (
                   <i className="i-mingcute-check-line text-accent" />
